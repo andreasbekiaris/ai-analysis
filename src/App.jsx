@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { BarChart3, Globe2, TrendingUp, Clock } from 'lucide-react'
+import { BarChart3, Globe2, TrendingUp, Clock, Plus, Send, CheckCircle, AlertCircle, Loader } from 'lucide-react'
 
 // Import dashboards here as they are created
 import UsIranWar from './dashboards/geopolitical/us-iran-war-2026-03-22'
@@ -9,12 +9,118 @@ const dashboards = [
   { path: '/geo/us-iran-war', component: UsIranWar, title: 'US–Iran War: Operation Epic Fury', type: 'geopolitical', date: '2026-03-22' },
 ]
 
+function NewAnalysisForm() {
+  const [prompt, setPrompt] = useState('')
+  const [status, setStatus] = useState(null) // null | 'loading' | 'success' | 'error'
+  const [message, setMessage] = useState('')
+
+  const submit = async (e) => {
+    e.preventDefault()
+    if (!prompt.trim() || status === 'loading') return
+
+    setStatus('loading')
+    setMessage('')
+
+    try {
+      const res = await fetch('/api/create-issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: prompt.trim() }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Failed to create issue')
+
+      setStatus('success')
+      setMessage(`Issue #${data.number} created — analysis is queued. Dashboard will be live in a few minutes.`)
+      setPrompt('')
+    } catch (err) {
+      setStatus('error')
+      setMessage(err.message)
+    }
+  }
+
+  return (
+    <div style={{
+      background: '#111827',
+      border: '1px solid #1e293b',
+      borderRadius: '12px',
+      padding: '1.5rem',
+      marginBottom: '3rem',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+        <Plus size={18} color="#06b6d4" />
+        <span style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem' }}>New Analysis</span>
+      </div>
+      <form onSubmit={submit} style={{ display: 'flex', gap: '0.75rem' }}>
+        <input
+          type="text"
+          value={prompt}
+          onChange={(e) => { setPrompt(e.target.value); setStatus(null) }}
+          placeholder="What do you want to analyze? e.g. US-China trade war, NVDA stock..."
+          style={{
+            flex: 1,
+            background: '#0a0f1e',
+            border: '1px solid #334155',
+            borderRadius: '8px',
+            padding: '0.625rem 1rem',
+            color: '#f8fafc',
+            fontSize: '0.95rem',
+            outline: 'none',
+          }}
+          onFocus={(e) => e.target.style.borderColor = '#06b6d4'}
+          onBlur={(e) => e.target.style.borderColor = '#334155'}
+          disabled={status === 'loading'}
+        />
+        <button
+          type="submit"
+          disabled={!prompt.trim() || status === 'loading'}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            background: prompt.trim() && status !== 'loading' ? '#06b6d4' : '#1e293b',
+            color: prompt.trim() && status !== 'loading' ? '#0a0f1e' : '#475569',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '0.625rem 1.25rem',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            cursor: prompt.trim() && status !== 'loading' ? 'pointer' : 'not-allowed',
+            transition: 'background 0.2s',
+          }}
+        >
+          {status === 'loading'
+            ? <><Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> Queuing...</>
+            : <><Send size={15} /> Analyze</>
+          }
+        </button>
+      </form>
+
+      {status === 'success' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem', color: '#10b981', fontSize: '0.875rem' }}>
+          <CheckCircle size={15} />
+          {message}
+        </div>
+      )}
+      {status === 'error' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem', color: '#ef4444', fontSize: '0.875rem' }}>
+          <AlertCircle size={15} />
+          {message}
+        </div>
+      )}
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
+}
+
 function Home() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0a0f1e', padding: '2rem' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         {/* Header */}
-        <div style={{ marginBottom: '3rem' }}>
+        <div style={{ marginBottom: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
             <BarChart3 size={32} color="#06b6d4" />
             <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
@@ -25,6 +131,8 @@ function Home() {
             Geopolitical & Financial Intelligence Dashboards
           </p>
         </div>
+
+        <NewAnalysisForm />
 
         {/* Dashboard Grid */}
         {dashboards.length === 0 ? (
