@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import AddToAnalysis from '../../components/AddToAnalysis'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -305,6 +306,68 @@ const analysisData = {
   ],
 }
 
+// ─── STRATEGIC VERDICT ────────────────────────────────────────────────────────
+const strategicVerdict = {
+  stance: 'MONITOR — HOLD POSITIONS',
+  stanceColor: '#f59e0b',
+  primaryScenario: 'Prolonged Stalemate',
+  primaryProb: 35,
+  timing: 'Re-assess in 48–72 hours',
+  timingDetail: 'The war has entered a grinding attrition phase at Day 22. The next 48–72 hours are decisive: Trump is expected to make a public statement on the war trajectory, Congress will begin debate on the $200B war funding request, and Brent crude movement will signal whether the Escalation scenario (15%) is rising. Do not change strategic positioning until at least one of these three signals resolves.',
+  immediateWatchpoints: [
+    { signal: 'Trump press statement on Iran war trajectory', timing: '24–48h', implication: 'Ceasefire signal → oil drops $15–20, risk-on; Escalation → oil > $125, risk-off globally', urgency: 'Critical' },
+    { signal: 'Congressional vote — $200B war funding', timing: '7–14 days', implication: 'Defeat forces de-escalation/negotiation (raises Ceasefire prob to 35%+); Passage = Stalemate entrenches', urgency: 'High' },
+    { signal: 'Brent crude sustained above $115/bbl', timing: 'Ongoing', implication: 'Signals Escalation scenario rising; revise probability from 15% → 20–25%', urgency: 'High' },
+    { signal: 'Oman/Qatar diplomatic shuttle resumes', timing: 'Watch', implication: 'Ceasefire probability jumps; adjust all financial market positioning immediately', urgency: 'High' },
+    { signal: 'Houthis mass strike on Saudi Aramco', timing: 'Unknown', implication: 'Triggers Regional Conflagration — most catastrophic market event', urgency: 'Critical (tail)' },
+  ],
+  marketPositioning: [
+    { asset: 'Long Oil (futures/ETF)', stance: 'HOLD', color: '#f59e0b', rationale: 'Stalemate keeps Brent $90–115. Do not add. Set stop if ceasefire signals emerge.' },
+    { asset: 'Long Gold', stance: 'HOLD', color: '#f59e0b', rationale: 'Geopolitical safe-haven premium persists. Add on dips if Congressional vote uncertain.' },
+    { asset: 'Long Defense (RTX, LMT, BAESY)', stance: 'REDUCE', color: '#ef4444', rationale: 'Most upside already priced. Take profits on 30–40% of position.' },
+    { asset: 'Peripheral EU Equities (Greek banks, etc.)', stance: 'CAUTIOUS', color: '#ef4444', rationale: 'Sovereign spread widening risk. Wait for war signal to resolve before adding.' },
+    { asset: 'Long USD', stance: 'HOLD', color: '#f59e0b', rationale: 'Safe-haven flows continue. Could unwind sharply on ceasefire — hedge accordingly.' },
+    { asset: 'Short Airlines / Tourism', stance: 'REDUCE', color: '#f59e0b', rationale: 'Travel disruption largely priced; upside limited. Cover shorts partially.' },
+  ],
+  probabilityUpdate: 'No change from base case. Stalemate 35% / Ceasefire 25% / Collapse 20% / Escalation 15% / Nuclear 5%. Next update trigger: Trump statement OR Congressional vote.',
+  conviction: 'Medium',
+  nextReview: '48–72 hours or on any watchpoint signal',
+}
+
+// ─── ANALYSIS GAPS ────────────────────────────────────────────────────────────
+const analysisGaps = [
+  {
+    topic: 'Turkey\'s Strategic Role & NATO Implications',
+    description: 'Turkey holds a unique position — NATO member, regional power, historically mediates Iran conflicts. Not covered in this analysis.',
+    issueTitle: 'Extend US-Iran War analysis: Turkey\'s strategic role — NATO implications, Erdogan\'s mediation position, Bosporus strait dynamics',
+  },
+  {
+    topic: 'Russia & China: Strategic Support & Limits',
+    description: 'Both provide diplomatic cover but what are their actual limits? Would either intervene militarily if Iran faces collapse?',
+    issueTitle: 'Extend US-Iran War analysis: Russia and China\'s strategic interests — what support will they actually provide Iran and where do they draw the line?',
+  },
+  {
+    topic: 'Iran Post-Khamenei Succession Crisis',
+    description: 'With Khamenei killed in the opening strikes, Iran\'s succession dynamics are unanalyzed. Who fills the power vacuum?',
+    issueTitle: 'Extend US-Iran War analysis: Iran post-Khamenei succession — power vacuum dynamics, IRGC factions, Assembly of Experts, legitimacy crisis',
+  },
+  {
+    topic: 'Houthi Threat Assessment: Yemen Escalation Scenarios',
+    description: 'Houthis are increasingly independent of Iran and hold 1,500km+ range. Their escalation calculus is only briefly covered.',
+    issueTitle: 'Extend US-Iran War analysis: Houthi threat assessment — Yemen escalation scenarios, Red Sea impact, independent capability analysis',
+  },
+  {
+    topic: 'Global Oil Market: OPEC Response & Demand Destruction',
+    description: 'How OPEC+ responds to the supply shock, what demand destruction looks like at $130+ oil, and price ceiling dynamics.',
+    issueTitle: 'Extend US-Iran War analysis: Global oil market — OPEC response to supply shock, demand destruction at $100-130+ Brent, strategic reserves',
+  },
+  {
+    topic: 'Iraq Stability: PMF Autonomous Escalation Risk',
+    description: 'Iraq\'s 100,000 PMF fighters are acting semi-autonomously. The risk of Iraq becoming a second theater is underweighted.',
+    issueTitle: 'Extend US-Iran War analysis: Iraq stability — PMF autonomous escalation, US base casualties, Iraqi government position, second-theater risk',
+  },
+]
+
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const sustainabilityConfig = {
   fully_sustainable: { label: "Fully Sustainable", color: "#10b981", bg: "rgba(16,185,129,0.15)" },
@@ -386,11 +449,12 @@ function FeasibilityRow({ dim, data }) {
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function UsIranWar20260322() {
   const [activeScenario, setActiveScenario] = useState(0)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('verdict')
   const d = analysisData
   const scenario = d.scenarios[activeScenario]
 
   const tabs = [
+    { id: 'verdict', label: 'Verdict', icon: Zap, highlight: true },
     { id: 'overview', label: 'Situation', icon: Globe2 },
     { id: 'scenarios', label: 'Scenarios', icon: Target },
     { id: 'feasibility', label: 'Feasibility', icon: Shield },
@@ -470,13 +534,14 @@ export default function UsIranWar20260322() {
 
         {/* ── TABS ── */}
         <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1rem', borderBottom: '1px solid #1e293b', paddingBottom: '0.75rem', flexWrap: 'wrap' }}>
-          {tabs.map(({ id, label, icon: Icon }) => (
+          {tabs.map(({ id, label, icon: Icon, highlight }) => (
             <button key={id} onClick={() => setActiveTab(id)} style={{
               display: 'flex', alignItems: 'center', gap: '0.4rem',
               padding: '0.4rem 0.85rem', borderRadius: '6px', border: 'none', cursor: 'pointer',
               fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.03em',
-              backgroundColor: activeTab === id ? '#06b6d4' : 'transparent',
-              color: activeTab === id ? '#0a0f1e' : '#94a3b8',
+              backgroundColor: activeTab === id ? '#06b6d4' : highlight && activeTab !== id ? 'rgba(245,158,11,0.12)' : 'transparent',
+              color: activeTab === id ? '#0a0f1e' : highlight && activeTab !== id ? '#f59e0b' : '#94a3b8',
+              border: highlight && activeTab !== id ? '1px solid rgba(245,158,11,0.4)' : '1px solid transparent',
               transition: 'all 0.15s'
             }}>
               <Icon size={13} />
@@ -484,6 +549,90 @@ export default function UsIranWar20260322() {
             </button>
           ))}
         </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {/* TAB: STRATEGIC VERDICT                                             */}
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'verdict' && (
+          <div>
+            {/* Stance banner */}
+            <div style={{ ...s.panel, border: `2px solid ${strategicVerdict.stanceColor}66`, background: 'rgba(245,158,11,0.06)', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.6rem' }}>
+                    <div style={{
+                      padding: '0.3rem 1rem', borderRadius: '6px',
+                      background: `${strategicVerdict.stanceColor}22`, border: `2px solid ${strategicVerdict.stanceColor}`,
+                      color: strategicVerdict.stanceColor, fontWeight: 800, fontSize: '1rem', letterSpacing: '0.05em',
+                    }}>{strategicVerdict.stance}</div>
+                    <span style={{ color: '#f8fafc', fontWeight: 700 }}>{strategicVerdict.timing}</span>
+                    <span style={{ ...s.tag('#94a3b8') }}>Conviction: {strategicVerdict.conviction}</span>
+                  </div>
+                  <p style={{ ...s.muted, lineHeight: 1.65, margin: 0, maxWidth: 780, fontSize: '0.875rem' }}>{strategicVerdict.timingDetail}</p>
+                </div>
+                <div style={{ textAlign: 'center', flexShrink: 0 }}>
+                  <div style={{ ...s.dim, marginBottom: 2 }}>Primary Scenario</div>
+                  <div style={{ color: '#f59e0b', fontWeight: 800, fontFamily: 'monospace', fontSize: '1.1rem' }}>{strategicVerdict.primaryProb}%</div>
+                  <div style={{ ...s.dim }}>{strategicVerdict.primaryScenario}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={s.grid2}>
+              {/* Immediate watchpoints */}
+              <div style={s.panel}>
+                <div style={s.panelTitle}><Eye size={13} /> Immediate Watchpoints (Act On These)</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                  {strategicVerdict.immediateWatchpoints.map((w, i) => {
+                    const urgencyColor = w.urgency === 'Critical' || w.urgency === 'Critical (tail)' ? '#ef4444' : '#f59e0b'
+                    return (
+                      <div key={i} style={{ backgroundColor: '#0a0f1e', borderRadius: '6px', padding: '0.75rem', border: `1px solid ${urgencyColor}33` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', gap: '0.5rem' }}>
+                          <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.82rem' }}>{w.signal}</span>
+                          <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                            <span style={{ ...s.tag(urgencyColor) }}>{w.urgency}</span>
+                            <span style={{ ...s.dim, fontSize: '0.7rem' }}>{w.timing}</span>
+                          </div>
+                        </div>
+                        <div style={{ ...s.muted, fontSize: '0.77rem', lineHeight: 1.5 }}>{w.implication}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Market positioning */}
+              <div style={s.panel}>
+                <div style={s.panelTitle}><Activity size={13} /> Market Positioning Guide</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  {strategicVerdict.marketPositioning.map((p, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0.75rem', backgroundColor: '#0a0f1e', borderRadius: '6px', border: '1px solid #1e293b' }}>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ color: '#f8fafc', fontWeight: 600, fontSize: '0.82rem' }}>{p.asset}</span>
+                        <div style={{ ...s.dim, fontSize: '0.72rem', marginTop: 2 }}>{p.rationale}</div>
+                      </div>
+                      <span style={{ ...s.tag(p.color), flexShrink: 0 }}>{p.stance}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#0a0f1e', borderRadius: '6px', border: '1px solid #1e293b' }}>
+                  <div style={{ ...s.panelTitle, marginBottom: '0.4rem' }}><Radio size={12} /> Probability Update</div>
+                  <p style={{ ...s.dim, fontSize: '0.75rem', margin: 0, lineHeight: 1.5 }}>{strategicVerdict.probabilityUpdate}</p>
+                  <div style={{ ...s.dim, fontSize: '0.72rem', marginTop: '0.4rem' }}>
+                    Next review trigger: <span style={{ color: '#f59e0b' }}>{strategicVerdict.nextReview}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <AddToAnalysis
+              analysisTitle="US–Iran War: Operation Epic Fury"
+              analysisType="geopolitical"
+              gaps={analysisGaps}
+            />
+          </div>
+        )}
 
         {/* ═══════════════════════════════════════════════════════════════════ */}
         {/* TAB: SITUATION OVERVIEW                                            */}

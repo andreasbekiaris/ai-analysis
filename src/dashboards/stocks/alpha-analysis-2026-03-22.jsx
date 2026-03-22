@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import AddToAnalysis from '../../components/AddToAnalysis'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -187,6 +188,67 @@ const riskNotices = [
   },
 ]
 
+/* ─── VERDICT ────────────────────────────────────────────────── */
+const verdict = {
+  stance: 'CAUTIOUS BUY',
+  stanceColor: '#f59e0b',
+  stanceBg: 'rgba(245,158,11,0.1)',
+  timing: 'Wait 24–48 hours, then buy on dip',
+  timingDetail: 'President Trump is expected to comment on the US-Iran war trajectory within 24 hours. Markets are pricing in mixed signals — if he signals ceasefire talks, ALPHA could gap up 8–12% on open. If he escalates rhetoric, oil spikes and peripheral EU banks sell off — offering a better entry near €2.85 support. In either case, do not chase today\'s price. Set a limit order at €2.95–3.05.',
+  entryZone: { low: 2.85, high: 3.10, ideal: 2.95 },
+  stopLoss: { price: 2.75, pct: -11.0, rationale: 'Break below €2.75 invalidates bullish structure; below Oct 2025 base' },
+  targets: [
+    { price: 3.51, label: 'Target 1', horizon: '1–3 months', upside: 13.6, trigger: 'Recovery above 50D MA + war de-escalation signal' },
+    { price: 4.45, label: 'Target 2', horizon: '6–12 months', upside: 44.0, trigger: 'RoTE convergence to 14%+ + Greek sovereign re-rating continuation' },
+    { price: 5.10, label: 'Bull case', horizon: '12–18 months', upside: 65.0, trigger: 'Goldman Sachs target; ECB cuts resume + full ceasefire' },
+  ],
+  riskReward: '3.5:1',
+  conviction: 'Medium-High',
+  keyConditions: [
+    { label: 'Brent crude < €105/bbl sustained', status: 'pending', impact: 'Positive — relieves ECB hold and NII compression pressure' },
+    { label: 'No Trump escalation statement (24–48h)', status: 'pending', impact: 'Critical timing gate — watch before entering any position' },
+    { label: 'ALPHA holds above €2.85 support', status: 'met', impact: 'Bullish structure intact — medium-term uptrend unbroken' },
+    { label: 'Greek sovereign spread remains < 100bps', status: 'met', impact: 'Favorable funding environment; institutional access maintained' },
+    { label: 'Congressional vote on $200B war funding', status: 'pending', impact: 'Defeat triggers ceasefire scenario (very positive); passage = stalemate' },
+  ],
+  bearCase: 'If oil breaks above $130 (Regional Conflagration scenario, 15%), Greek banks could correct 20–30%. Stop-loss at €2.75 is essential. Probability: 15%.',
+  disclaimer: 'Analytical data only. Not financial advice. Consult a qualified advisor.',
+}
+
+/* ─── ANALYSIS GAPS ──────────────────────────────────────────── */
+const analysisGaps = [
+  {
+    topic: 'Currency Risk: EUR/USD & RON/EUR',
+    description: 'Alpha Bank has ~10% Romania exposure. RON/EUR volatility and EUR/USD impact on institutional flows are unanalyzed.',
+    issueTitle: 'Extend Alpha Bank (ALPHA.AT) analysis: Add EUR/USD and RON/EUR currency risk analysis for Romania loan book',
+  },
+  {
+    topic: 'Options Market: Put/Call Ratio & Implied Volatility',
+    description: 'Derivatives market sentiment and IV surface for ALPHA.AT / ALBKY not covered. Options data often leads price moves.',
+    issueTitle: 'Extend Alpha Bank (ALPHA.AT) analysis: Add options market analysis — put/call ratio, implied volatility, open interest',
+  },
+  {
+    topic: 'Insider Ownership Changes (Q4 2025 – Q1 2026)',
+    description: 'Institutional and insider buying/selling patterns since the Jan-Feb peak not analyzed. UniCredit stake changes pending.',
+    issueTitle: 'Extend Alpha Bank (ALPHA.AT) analysis: Add insider and institutional ownership changes Q4 2025 - Q1 2026',
+  },
+  {
+    topic: 'Eurobank vs Alpha Bank: Full Head-to-Head',
+    description: 'Deutsche Bank ranks Eurobank first, Alpha second. A dedicated side-by-side deep dive would sharpen positioning.',
+    issueTitle: 'Extend Alpha Bank analysis: Full head-to-head comparison of Alpha Bank vs Eurobank — strategy, financials, valuation',
+  },
+  {
+    topic: 'ECB 2026 Stress Test Scenario Modeling',
+    description: 'How Alpha Bank performs under ECB adverse scenario (e.g., GDP −3%, NPE ratio spike) is not modeled.',
+    issueTitle: 'Extend Alpha Bank (ALPHA.AT) analysis: Model ECB 2026 stress test scenarios — adverse case CET1 and NPE impact',
+  },
+  {
+    topic: 'Greek Real Estate & Mortgage Book Exposure',
+    description: 'Alpha\'s domestic mortgage portfolio risk under rising rates + geopolitical scenario not assessed.',
+    issueTitle: 'Extend Alpha Bank analysis: Analyze Greek residential real estate market and Alpha Bank mortgage book risk',
+  },
+]
+
 /* ─── HELPERS ────────────────────────────────────────────────── */
 const pct = (n) => `${n > 0 ? '+' : ''}${n.toFixed(2)}%`
 const euro = (n) => `€${n.toFixed(2)}`
@@ -250,18 +312,43 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 /* ─── MAIN COMPONENT ─────────────────────────────────────────── */
 export default function AlphaBankAnalysis() {
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('verdict')
   const [peerMetric, setPeerMetric] = useState('pe')
+  const [capital, setCapital] = useState('')
+  const [risk, setRisk] = useState('moderate')
 
   const tabs = [
+    { id: 'verdict', label: 'Verdict', highlight: true },
     { id: 'overview', label: 'Overview' },
-    { id: 'georisk', label: 'Geo Risk', highlight: true },
+    { id: 'georisk', label: 'Geo Risk' },
     { id: 'technicals', label: 'Technicals' },
     { id: 'fundamentals', label: 'Fundamentals' },
     { id: 'events', label: 'Event Impact' },
     { id: 'peers', label: 'Peer Comparison' },
     { id: 'analysts', label: 'Analyst Views' },
   ]
+
+  const riskProfile = useMemo(() => {
+    const cap = parseFloat(capital.replace(/[^0-9.]/g, '')) || 0
+    if (cap < 1) return null
+    const alloc = { conservative: 0.10, moderate: 0.20, aggressive: 0.35 }[risk]
+    const posSize = cap * alloc
+    const shares = Math.floor(posSize / stock.price)
+    const slPrice = verdict.stopLoss.price
+    const maxLoss = shares * (stock.price - slPrice)
+    const t1Gain = shares * (verdict.targets[0].price - stock.price)
+    const t2Gain = shares * (verdict.targets[1].price - stock.price)
+    return {
+      posSize: posSize.toFixed(0),
+      shares,
+      allocPct: (alloc * 100).toFixed(0),
+      maxLoss: maxLoss.toFixed(0),
+      t1Gain: t1Gain.toFixed(0),
+      t2Gain: t2Gain.toFixed(0),
+      stopLoss: slPrice,
+      riskReward: (t1Gain / maxLoss).toFixed(1),
+    }
+  }, [capital, risk])
 
   const upside = (((stock.avgTarget - stock.price) / stock.price) * 100).toFixed(1)
   const isUp = stock.change >= 0
@@ -368,6 +455,63 @@ export default function AlphaBankAnalysis() {
         </div>
       </div>
 
+      {/* ── CAPITAL & RISK BAR ── */}
+      <div style={{ background: '#080e1a', borderBottom: `1px solid ${T.border}`, padding: '0.6rem 2rem' }}>
+        <div style={{ maxWidth: 1400, margin: '0 auto', display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+          <span style={{ color: T.dim, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0 }}>
+            My Position
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ color: T.dim, fontSize: '0.75rem' }}>Capital (€)</span>
+            <input
+              type="text"
+              value={capital}
+              onChange={e => setCapital(e.target.value)}
+              placeholder="e.g. 10000"
+              style={{
+                width: 100, background: T.card, border: `1px solid ${T.border}`,
+                borderRadius: 5, padding: '0.25rem 0.6rem',
+                color: T.text, fontSize: '0.82rem', outline: 'none', fontFamily: 'monospace',
+              }}
+              onFocus={e => e.target.style.borderColor = T.cyan}
+              onBlur={e => e.target.style.borderColor = T.border}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ color: T.dim, fontSize: '0.75rem' }}>Risk</span>
+            {['conservative', 'moderate', 'aggressive'].map(r => (
+              <button key={r} onClick={() => setRisk(r)} style={{
+                padding: '0.2rem 0.65rem', borderRadius: 4, border: 'none', cursor: 'pointer',
+                fontSize: '0.72rem', fontWeight: 700, textTransform: 'capitalize',
+                background: risk === r ? (r === 'conservative' ? `${T.emerald}28` : r === 'moderate' ? `${T.amber}28` : `${T.crimson}28`) : T.border,
+                color: risk === r ? (r === 'conservative' ? T.emerald : r === 'moderate' ? T.amber : T.crimson) : T.dim,
+              }}>{r}</button>
+            ))}
+          </div>
+          {riskProfile && (
+            <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', marginLeft: '0.5rem' }}>
+              {[
+                { label: 'Allocate', value: `€${Number(riskProfile.posSize).toLocaleString()}`, color: T.cyan },
+                { label: 'Shares', value: `~${riskProfile.shares}`, color: T.text },
+                { label: 'Allocation', value: `${riskProfile.allocPct}% of capital`, color: T.muted },
+                { label: 'Max Loss', value: `−€${Number(riskProfile.maxLoss).toLocaleString()}`, color: T.crimson },
+                { label: 'T1 Gain', value: `+€${Number(riskProfile.t1Gain).toLocaleString()}`, color: T.emerald },
+                { label: 'Stop Loss', value: `€${riskProfile.stopLoss}`, color: T.amber },
+                { label: 'R:R', value: `${riskProfile.riskReward}:1`, color: T.violet },
+              ].map(({ label, value, color }) => (
+                <div key={label}>
+                  <div style={{ color: T.dim, fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+                  <div style={{ color, fontFamily: 'monospace', fontWeight: 700, fontSize: '0.82rem' }}>{value}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {!riskProfile && (
+            <span style={{ color: T.dim, fontSize: '0.75rem', fontStyle: 'italic' }}>Enter capital to see personalized position sizing →</span>
+          )}
+        </div>
+      </div>
+
       {/* ── TABS ── */}
       <div style={{ background: '#0d1424', borderBottom: `1px solid ${T.border}`, padding: '0 2rem' }}>
         <div style={{ maxWidth: 1400, margin: '0 auto', display: 'flex', gap: '0' }}>
@@ -416,6 +560,124 @@ export default function AlphaBankAnalysis() {
 
       {/* ── BODY ── */}
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '1.5rem 2rem' }}>
+
+        {/* ═══════════════ VERDICT ═══════════════ */}
+        {activeTab === 'verdict' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+
+            {/* Main verdict card */}
+            <Card style={{ gridColumn: '1 / -1', border: `2px solid ${verdict.stanceColor}55`, background: verdict.stanceBg }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.6rem' }}>
+                    <div style={{
+                      padding: '0.35rem 1rem', borderRadius: 6,
+                      background: `${verdict.stanceColor}22`, border: `2px solid ${verdict.stanceColor}`,
+                      color: verdict.stanceColor, fontWeight: 800, fontSize: '1.1rem', letterSpacing: '0.05em',
+                    }}>{verdict.stance}</div>
+                    <div style={{ color: T.text, fontWeight: 700, fontSize: '1rem' }}>{verdict.timing}</div>
+                  </div>
+                  <p style={{ color: T.muted, fontSize: '0.85rem', lineHeight: 1.65, margin: 0, maxWidth: 780 }}>{verdict.timingDetail}</p>
+                </div>
+                <div style={{ textAlign: 'center', flexShrink: 0 }}>
+                  <div style={{ color: T.dim, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Conviction</div>
+                  <div style={{ color: verdict.stanceColor, fontWeight: 800, fontSize: '1rem' }}>{verdict.conviction}</div>
+                  <div style={{ color: T.dim, fontSize: '0.65rem', marginTop: 4 }}>R:R {verdict.riskReward}</div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Entry / Stop / Targets */}
+            <Card>
+              <SectionTitle>Entry Zone, Stop Loss & Targets</SectionTitle>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <div style={{ padding: '0.65rem', background: `${T.emerald}0f`, border: `1px solid ${T.emerald}33`, borderRadius: 6 }}>
+                    <div style={{ color: T.dim, fontSize: '0.65rem', textTransform: 'uppercase', marginBottom: 3 }}>Entry Zone</div>
+                    <div style={{ color: T.emerald, fontFamily: 'monospace', fontWeight: 800, fontSize: '1.1rem' }}>€{verdict.entryZone.low} – €{verdict.entryZone.high}</div>
+                    <div style={{ color: T.dim, fontSize: '0.7rem' }}>Ideal entry: €{verdict.entryZone.ideal}</div>
+                  </div>
+                  <div style={{ padding: '0.65rem', background: `${T.crimson}0f`, border: `1px solid ${T.crimson}33`, borderRadius: 6 }}>
+                    <div style={{ color: T.dim, fontSize: '0.65rem', textTransform: 'uppercase', marginBottom: 3 }}>Stop Loss</div>
+                    <div style={{ color: T.crimson, fontFamily: 'monospace', fontWeight: 800, fontSize: '1.1rem' }}>€{verdict.stopLoss.price}</div>
+                    <div style={{ color: T.dim, fontSize: '0.7rem' }}>{verdict.stopLoss.pct}% · {verdict.stopLoss.rationale}</div>
+                  </div>
+                </div>
+                {verdict.targets.map((t, i) => (
+                  <div key={i} style={{ padding: '0.65rem', background: T.bg, border: `1px solid ${T.border}`, borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ color: T.dim, fontSize: '0.65rem', textTransform: 'uppercase', marginBottom: 2 }}>{t.label} · {t.horizon}</div>
+                      <div style={{ color: T.cyan, fontFamily: 'monospace', fontWeight: 700, fontSize: '0.95rem' }}>€{t.price} <span style={{ color: T.emerald, fontSize: '0.8rem' }}>+{t.upside}%</span></div>
+                    </div>
+                    <div style={{ color: T.dim, fontSize: '0.72rem', maxWidth: 200, textAlign: 'right' }}>{t.trigger}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Bear case */}
+              <div style={{ padding: '0.75rem', background: `${T.crimson}0a`, border: `1px solid ${T.crimson}33`, borderRadius: 6 }}>
+                <div style={{ color: T.crimson, fontWeight: 700, fontSize: '0.75rem', marginBottom: 3 }}>Bear Case / Exit Condition</div>
+                <div style={{ color: T.muted, fontSize: '0.77rem', lineHeight: 1.5 }}>{verdict.bearCase}</div>
+              </div>
+            </Card>
+
+            {/* Key conditions */}
+            <Card>
+              <SectionTitle>Key Conditions to Monitor</SectionTitle>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {verdict.keyConditions.map((c, i) => {
+                  const color = c.status === 'met' ? T.emerald : c.status === 'failed' ? T.crimson : T.amber
+                  const label = c.status === 'met' ? 'MET' : c.status === 'failed' ? 'FAILED' : 'PENDING'
+                  return (
+                    <div key={i} style={{ padding: '0.6rem 0.75rem', background: T.bg, border: `1px solid ${T.border}`, borderRadius: 6 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                        <span style={{ color: T.text, fontSize: '0.8rem', fontWeight: 600 }}>{c.label}</span>
+                        <span style={{ color, fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.06em', border: `1px solid ${color}55`, borderRadius: 3, padding: '1px 5px' }}>{label}</span>
+                      </div>
+                      <div style={{ color: T.dim, fontSize: '0.72rem' }}>{c.impact}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </Card>
+
+            {/* Personalized verdict based on capital/risk */}
+            {riskProfile && (
+              <Card style={{ gridColumn: '1 / -1', border: `1px solid ${T.cyan}33`, background: `${T.cyan}06` }}>
+                <SectionTitle>Personalized Position — Based on Your Inputs</SectionTitle>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                  {[
+                    { label: 'Position Size', value: `€${Number(riskProfile.posSize).toLocaleString()}`, sub: `${riskProfile.allocPct}% of capital`, color: T.cyan },
+                    { label: 'Shares to Buy', value: `~${riskProfile.shares}`, sub: `@ €${stock.price} current`, color: T.text },
+                    { label: 'Stop Loss', value: `€${riskProfile.stopLoss}`, sub: 'Hard stop', color: T.amber },
+                    { label: 'Max Loss', value: `−€${Number(riskProfile.maxLoss).toLocaleString()}`, sub: 'If stop triggered', color: T.crimson },
+                    { label: 'Target 1 Profit', value: `+€${Number(riskProfile.t1Gain).toLocaleString()}`, sub: `@ €${verdict.targets[0].price}`, color: T.emerald },
+                    { label: 'Target 2 Profit', value: `+€${Number(riskProfile.t2Gain).toLocaleString()}`, sub: `@ €${verdict.targets[1].price}`, color: T.emerald },
+                    { label: 'Risk/Reward', value: `${riskProfile.riskReward}:1`, sub: 'T1 vs stop', color: T.violet },
+                  ].map(({ label, value, sub, color }) => (
+                    <div key={label} style={{ background: T.bg, borderRadius: 7, padding: '0.7rem', border: `1px solid ${T.border}` }}>
+                      <div style={{ color: T.dim, fontSize: '0.65rem', textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
+                      <div style={{ color, fontFamily: 'monospace', fontWeight: 800, fontSize: '1rem' }}>{value}</div>
+                      <div style={{ color: T.dim, fontSize: '0.68rem', marginTop: 1 }}>{sub}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ color: T.dim, fontSize: '0.72rem', fontStyle: 'italic' }}>
+                  {risk === 'conservative' ? 'Conservative profile: 10% allocation, wider margin of safety.' : risk === 'moderate' ? 'Moderate profile: 20% allocation, balanced risk/reward.' : 'Aggressive profile: 35% allocation — high conviction, higher risk.'}
+                  {' '}Disclaimer: {verdict.disclaimer}
+                </div>
+              </Card>
+            )}
+            {!riskProfile && (
+              <Card style={{ gridColumn: '1 / -1', border: `1px dashed ${T.border}` }}>
+                <div style={{ textAlign: 'center', padding: '1rem', color: T.dim, fontSize: '0.82rem' }}>
+                  Enter your capital in the bar above to see a personalized position sizing and profit/loss calculation.
+                </div>
+              </Card>
+            )}
+
+            <AddToAnalysis analysisTitle="Alpha Bank (ALPHA.AT)" analysisType="stock" gaps={analysisGaps} />
+          </div>
+        )}
 
         {/* ═══════════════ OVERVIEW ═══════════════ */}
         {activeTab === 'overview' && (
