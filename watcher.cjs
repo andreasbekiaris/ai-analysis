@@ -261,12 +261,12 @@ function runClaudeCode(analysisRequest, issueNumber) {
       const mins = Math.floor(elapsed / 60);
       const secs = elapsed % 60;
       const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+      log(`[Issue #${issueNumber}] Still working... ${timeStr} elapsed`);
       try {
         execSync(
           `gh issue comment ${issueNumber} --repo ${CONFIG.owner}/${CONFIG.repo} --body "⏳ Still working... (${timeStr} elapsed). Claude Code is researching and building your dashboard."`,
           { encoding: 'utf-8', timeout: 15000 }
         );
-        log(`Progress update posted for issue #${issueNumber} (${timeStr})`);
       } catch (err) {
         logError(`Could not post progress update: ${err.message}`);
       }
