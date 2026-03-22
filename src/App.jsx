@@ -3,13 +3,10 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import { BarChart3, Globe2, TrendingUp, Clock } from 'lucide-react'
 
 // Import dashboards here as they are created
-// import UsChina from './dashboards/geopolitical/us-china-trade-war-2026-03-22'
-// import TslaAnalysis from './dashboards/stocks/tsla-analysis-2026-03-22'
+import UsIranWar from './dashboards/geopolitical/us-iran-war-2026-03-22'
 
 const dashboards = [
-  // Add entries here as dashboards are created:
-  // { path: '/geo/us-china-trade', component: UsChina, title: 'US-China Trade War', type: 'geopolitical', date: '2026-03-22' },
-  // { path: '/stock/tsla', component: TslaAnalysis, title: 'Tesla Analysis', type: 'stock', date: '2026-03-22' },
+  { path: '/geo/us-iran-war', component: UsIranWar, title: 'US–Iran War: Operation Epic Fury', type: 'geopolitical', date: '2026-03-22' },
 ]
 
 function Home() {
