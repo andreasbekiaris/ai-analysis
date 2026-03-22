@@ -1,56 +1,53 @@
 #!/usr/bin/env node
 
 /**
- * Analysis Watcher — Polls GitHub Issues and triggers Claude Code
+ * Analysis Watcher — Instant GitHub webhook-driven analysis trigger
  *
  * HOW IT WORKS:
  * 1. Runs in the background on your desktop
- * 2. Checks your GitHub repo for new open Issues every 2 minutes
- * 3. When it finds one, it launches Claude Code with the analysis request
+ * 2. Connects to smee.io to receive GitHub webhooks instantly
+ * 3. When a new issue is created, it launches Claude Code with the title as the prompt
  * 4. Claude Code creates the dashboard, commits, and pushes
  * 5. Vercel auto-deploys — you see results on your phone
  *
- * SETUP:
- * 1. Make sure `gh` (GitHub CLI) is installed and authenticated: `gh auth login`
- * 2. Make sure `claude` (Claude Code) is installed and authenticated
- * 3. Edit the CONFIG section below with your repo details
- * 4. Run: `node watcher.js`
+ * FIRST-TIME SETUP:
+ * 1. Run: `node watcher.js` — it will create a smee channel and GitHub webhook automatically
+ * 2. The smee URL is saved to .smee-url so it persists across restarts
  *
  * FROM YOUR PHONE:
  * - Open GitHub app or browser
  * - Go to your repo → Issues → New Issue
- * - Title: "US-China trade war analysis" (the title IS the prompt)
+ * - Title: "Analyze US-China trade war" (the title IS the prompt)
  * - Body: optional extra context
- * - That's it! The watcher picks it up automatically.
+ * - The watcher triggers instantly.
  */
 
 const { execSync, spawn } = require('child_process');
+const http = require('http');
 const path = require('path');
+const fs = require('fs');
 
 // ============================================
 // CONFIG — EDIT THESE VALUES
 // ============================================
 const CONFIG = {
-  // Your GitHub username and repo name
   owner: 'andreasbekiaris',
   repo: 'ai-analysis',
 
-  // How often to check for new issues (in milliseconds)
-  // 120000 = 2 minutes
-  pollInterval: 120000,
-
-  // The path to your local project folder
   projectPath: path.join(process.env.HOME || process.env.USERPROFILE, 'Documents', 'projects', 'ai-analysis'),
 
-  // Label to add to issues after processing
-  doneLabel: 'completed',
+  // Local server port for receiving webhooks
+  port: 7890,
 
-  // Label to add to issues that are currently being processed
+  doneLabel: 'completed',
   processingLabel: 'in-progress',
+
+  // File to persist the smee channel URL across restarts
+  smeeUrlFile: path.join(process.env.HOME || process.env.USERPROFILE, 'Documents', 'projects', 'ai-analysis', '.smee-url'),
 };
 
 // ============================================
-// WATCHER LOGIC — NO NEED TO EDIT BELOW
+// WATCHER LOGIC
 // ============================================
 
 const log = (msg) => {
@@ -63,28 +60,149 @@ const logError = (msg) => {
   console.error(`[${timestamp}] ${msg}`);
 };
 
+// Track issues currently being processed to avoid duplicates
+const processing = new Set();
+
 /**
- * Fetch open issues that haven't been processed yet
+ * Get or create a smee.io channel URL
  */
-function getAnalysisIssues() {
-  try {
-    const result = execSync(
-      `gh issue list --repo ${CONFIG.owner}/${CONFIG.repo} --state open --json number,title,body,labels --limit 10`,
-      { encoding: 'utf-8', timeout: 30000 }
-    );
-
-    const issues = JSON.parse(result);
-
-    // Skip issues already labeled as in-progress or completed
-    return issues.filter(issue => {
-      const labelNames = (issue.labels || []).map(l => l.name.toLowerCase());
-      return !labelNames.includes(CONFIG.processingLabel) &&
-             !labelNames.includes(CONFIG.doneLabel);
-    });
-  } catch (err) {
-    logError(`Failed to fetch issues: ${err.message}`);
-    return [];
+async function getSmeeUrl() {
+  // Check if we have a saved URL
+  if (fs.existsSync(CONFIG.smeeUrlFile)) {
+    const url = fs.readFileSync(CONFIG.smeeUrlFile, 'utf-8').trim();
+    if (url) {
+      log(`Using saved smee channel: ${url}`);
+      return url;
+    }
   }
+
+  // Create a new channel
+  log('Creating new smee.io channel...');
+  const SmeeClient = (await import('smee-client')).default;
+  const url = await new Promise((resolve, reject) => {
+    https_get('https://smee.io/new', (res) => {
+      // smee.io/new redirects to the new channel URL
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        resolve(res.headers.location);
+      } else {
+        // Read the response to get the URL from the body/redirect
+        let data = '';
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => resolve(data.trim()));
+      }
+    }).on('error', reject);
+  });
+
+  fs.writeFileSync(CONFIG.smeeUrlFile, url);
+  log(`Created smee channel: ${url}`);
+  return url;
+}
+
+function https_get(url, callback) {
+  return require('https').get(url, callback);
+}
+
+/**
+ * Set up GitHub webhook pointing to smee channel
+ */
+function setupGitHubWebhook(smeeUrl) {
+  try {
+    // Check if webhook already exists
+    const existing = execSync(
+      `gh api repos/${CONFIG.owner}/${CONFIG.repo}/hooks --jq ".[].config.url"`,
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
+    ).trim();
+
+    if (existing.includes(smeeUrl)) {
+      log('  GitHub webhook already configured');
+      return;
+    }
+
+    // Create webhook
+    execSync(
+      `gh api repos/${CONFIG.owner}/${CONFIG.repo}/hooks --method POST --field "config[url]=${smeeUrl}" --field "config[content_type]=json" --field "events[]=issues" --field active=true`,
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
+    );
+    log('  GitHub webhook created');
+  } catch (err) {
+    logError(`Could not set up webhook: ${err.message}`);
+    logError('You may need to add it manually in GitHub repo Settings > Webhooks');
+  }
+}
+
+/**
+ * Start smee client to proxy webhooks to local server
+ */
+async function startSmeeClient(smeeUrl) {
+  const SmeeClient = (await import('smee-client')).default;
+
+  const smee = new SmeeClient({
+    source: smeeUrl,
+    target: `http://localhost:${CONFIG.port}/webhook`,
+    logger: { info: () => {}, error: logError },
+  });
+
+  smee.start();
+  log(`Smee client connected: ${smeeUrl} -> localhost:${CONFIG.port}`);
+}
+
+/**
+ * Start local HTTP server to receive webhook events
+ */
+function startWebhookServer() {
+  const server = http.createServer((req, res) => {
+    if (req.method === 'POST' && req.url === '/webhook') {
+      let body = '';
+      req.on('data', (chunk) => body += chunk);
+      req.on('end', () => {
+        res.writeHead(200);
+        res.end('ok');
+
+        try {
+          const event = JSON.parse(body);
+          handleWebhookEvent(req.headers, event);
+        } catch (err) {
+          logError(`Failed to parse webhook: ${err.message}`);
+        }
+      });
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+
+  server.listen(CONFIG.port, () => {
+    log(`Webhook server listening on port ${CONFIG.port}`);
+  });
+}
+
+/**
+ * Handle incoming webhook event
+ */
+function handleWebhookEvent(headers, event) {
+  const githubEvent = headers['x-github-event'];
+
+  // Only care about new issues being opened
+  if (githubEvent !== 'issues' || event.action !== 'opened') {
+    return;
+  }
+
+  const issue = event.issue;
+  if (!issue) return;
+
+  log(`New issue detected instantly: #${issue.number} "${issue.title}"`);
+
+  // Avoid processing the same issue twice
+  if (processing.has(issue.number)) {
+    log(`Issue #${issue.number} is already being processed, skipping`);
+    return;
+  }
+
+  processIssue({
+    number: issue.number,
+    title: issue.title,
+    body: issue.body || '',
+  });
 }
 
 /**
@@ -92,13 +210,11 @@ function getAnalysisIssues() {
  */
 function updateIssue(issueNumber, status, comment) {
   try {
-    // Add comment
     execSync(
       `gh issue comment ${issueNumber} --repo ${CONFIG.owner}/${CONFIG.repo} --body "${comment}"`,
       { encoding: 'utf-8', timeout: 15000 }
     );
 
-    // Update title to show status
     if (status === 'processing') {
       execSync(
         `gh issue edit ${issueNumber} --repo ${CONFIG.owner}/${CONFIG.repo} --add-label "${CONFIG.processingLabel}"`,
@@ -109,7 +225,6 @@ function updateIssue(issueNumber, status, comment) {
         `gh issue edit ${issueNumber} --repo ${CONFIG.owner}/${CONFIG.repo} --add-label "${CONFIG.doneLabel}" --remove-label "${CONFIG.processingLabel}"`,
         { encoding: 'utf-8', timeout: 15000 }
       );
-      // Close the issue
       execSync(
         `gh issue close ${issueNumber} --repo ${CONFIG.owner}/${CONFIG.repo}`,
         { encoding: 'utf-8', timeout: 15000 }
@@ -133,7 +248,7 @@ function runClaudeCode(analysisRequest, issueNumber) {
       cwd: CONFIG.projectPath,
       stdio: ['pipe', 'pipe', 'pipe'],
       shell: true,
-      timeout: 600000, // 10 minute timeout
+      timeout: 600000,
     });
 
     let stdout = '';
@@ -142,7 +257,7 @@ function runClaudeCode(analysisRequest, issueNumber) {
     claude.stdout.on('data', (data) => {
       const text = data.toString();
       stdout += text;
-      process.stdout.write(text); // Show Claude's output in real-time
+      process.stdout.write(text);
     });
 
     claude.stderr.on('data', (data) => {
@@ -172,19 +287,18 @@ function runClaudeCode(analysisRequest, issueNumber) {
 async function processIssue(issue) {
   const { number, title, body } = issue;
 
-  // The issue title IS the prompt
+  processing.add(number);
+
   const additionalContext = body ? `\n\nAdditional context: ${body}` : '';
   const fullRequest = `${title}${additionalContext}`;
 
   log(`Processing issue #${number}: "${title}"`);
 
-  // Mark as processing
   updateIssue(number, 'processing', 'Analysis started. Claude Code is working on this. You will be notified when the dashboard is live.');
 
   try {
     await runClaudeCode(fullRequest, number);
 
-    // Get the Vercel URL (you can customize this)
     const siteUrl = `https://${CONFIG.repo}.vercel.app`;
 
     updateIssue(
@@ -198,27 +312,8 @@ async function processIssue(issue) {
       'done',
       `Analysis failed.\n\nError: ${err.message}\n\nPlease check the desktop logs or try again.`
     );
-  }
-}
-
-/**
- * Main polling loop
- */
-async function poll() {
-  log('Checking for new analysis requests...');
-
-  const issues = getAnalysisIssues();
-
-  if (issues.length === 0) {
-    log('No new requests found.');
-    return;
-  }
-
-  log(`Found ${issues.length} new request(s)!`);
-
-  // Process one at a time (to avoid overwhelming Claude Code)
-  for (const issue of issues) {
-    await processIssue(issue);
+  } finally {
+    processing.delete(number);
   }
 }
 
@@ -252,19 +347,11 @@ function checkPrerequisites() {
     process.exit(1);
   }
 
-  // Check if project directory exists
-  try {
-    const fs = require('fs');
-    if (!fs.existsSync(CONFIG.projectPath)) {
-      logError(`Project directory not found: ${CONFIG.projectPath}`);
-      logError('Please update CONFIG.projectPath in this script.');
-      process.exit(1);
-    }
-    log(`  Project directory found: ${CONFIG.projectPath}`);
-  } catch {
-    logError('Could not verify project directory');
+  if (!fs.existsSync(CONFIG.projectPath)) {
+    logError(`Project directory not found: ${CONFIG.projectPath}`);
     process.exit(1);
   }
+  log(`  Project directory found: ${CONFIG.projectPath}`);
 
   // Ensure labels exist
   try {
@@ -286,24 +373,31 @@ function checkPrerequisites() {
 // START
 // ============================================
 
-console.log('');
-console.log('========================================');
-console.log('  Analysis Dashboard Watcher v1.0');
-console.log('');
-console.log('  Watching for GitHub Issues...');
-console.log('  Create an issue — the title is the prompt.');
-console.log('  e.g. "Analyze US-China trade war"');
-console.log('');
-console.log('  Press Ctrl+C to stop');
-console.log('========================================');
-console.log('');
+async function main() {
+  console.log('');
+  console.log('========================================');
+  console.log('  Analysis Dashboard Watcher v2.0');
+  console.log('  INSTANT via GitHub Webhooks');
+  console.log('');
+  console.log('  Create an issue — the title is the prompt.');
+  console.log('  Triggers instantly, no polling delay.');
+  console.log('');
+  console.log('  Press Ctrl+C to stop');
+  console.log('========================================');
+  console.log('');
 
-checkPrerequisites();
+  checkPrerequisites();
 
-log(`Polling every ${CONFIG.pollInterval / 1000} seconds`);
-log('Watcher started! Waiting for analysis requests...');
-console.log('');
+  // Set up webhook pipeline: GitHub -> smee.io -> localhost
+  const smeeUrl = await getSmeeUrl();
+  setupGitHubWebhook(smeeUrl);
+  startWebhookServer();
+  await startSmeeClient(smeeUrl);
 
-// Run immediately, then on interval
-poll();
-setInterval(poll, CONFIG.pollInterval);
+  log('Watcher is live! Create a GitHub issue to trigger an analysis.');
+}
+
+main().catch((err) => {
+  logError(`Fatal error: ${err.message}`);
+  process.exit(1);
+});
