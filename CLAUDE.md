@@ -127,19 +127,34 @@ Structure as:
 4. **Expert Confidence Level** — high confidence or heavy hedging?
 5. **Track Record** — did they get previous calls right?
 
+### Step 8: Political Signals Collection (MANDATORY)
+Search for and collect real statements, posts, and public communications from key actors that directly signal intent or shift probabilities. These are the raw political inputs that move markets and change scenario weights.
+
+Search for: `[leader name] statement [topic]`, `[leader name] tweet [topic]`, `[country] official statement [topic]`, `[leader] press conference [date]`
+
+For each statement collect:
+- **Who**: Actor name + role
+- **Platform**: Twitter/X, Truth Social, Telegram, Press Conference, State TV, Parliament, UN speech, etc.
+- **Date & time** (precision matters — a tweet before a market open vs. after close)
+- **Exact quote** (or closest verified paraphrase — mark unverified as `verified: false`)
+- **Context**: What was happening when this was said?
+- **Signal type**: `escalatory` | `de-escalatory` | `diplomatic` | `economic` | `ambiguous`
+- **Market impact**: Immediate price/market reaction if any
+- **Scenario implication**: Which scenario does this raise or lower probability for?
+
 ## Dashboard Output
 
 Create a React `.jsx` file in `/src/dashboards/geopolitical/` with these sections:
 
 0. **Header with Home Button** ← REQUIRED ON EVERY DASHBOARD: A persistent header bar with a `← Home` link (using react-router-dom `Link` to `/`) so the user can return to the homepage at any time. Style it as a small button in the top-right of the header panel.
-1. **Situation Overview Panel**: Actors, context, timeline
-2. **Scenario Cards**: Name, probability gauge, description
-3. **Feasibility Reality Check Panel**: Radar charts of 4 feasibility dimensions, sustainability badges, dealbreaker callouts, estimated costs
-4. **Impact Heatmap**: Matrix of impact scores, color-coded green→red
-5. **Decision Tree Visualization**: Flowchart of decisions leading to scenarios
-6. **Key Indicators Tracker**: Checklist of signposts per scenario
-7. **Expert Opinion Panel**: Consensus, dissenting views, regional vs Western gap
-8. **Timeline View**: Projected events per scenario across time horizons
+1. **Verdict Tab** (default, amber highlight): Stance · timing · immediate watchpoints · market positioning guide · AddToAnalysis
+2. **Situation Tab**: Actors table · context · triggers · key metrics · commodity/market chart
+3. **Political Signals Tab** ← NEW: Feed of real statements, tweets, and public communications from key actors. Each entry shows: actor avatar-initial + role badge · platform tag · date · quote block · signal-type badge (Escalatory/De-escalatory/Diplomatic/Economic/Ambiguous) · scenario implication. Sort newest first.
+4. **Scenarios Tab**: Scenario cards with ProbGauge · narrative · time horizons
+5. **Feasibility Tab**: Per-scenario radar (4 dimensions) · sustainability badge · dealbreaker · cost
+6. **Impact Tab**: RadarChart (all 6 dims × all scenarios) · per-dimension grouped BarChart
+7. **Indicators Tab**: Per-scenario signpost checklist with status dots (Observed/Emerging/Not Yet)
+8. **Expert Views Tab**: Consensus · dissenting views · Western vs regional gap
 
 ## Data Structure
 
@@ -149,16 +164,18 @@ const analysisData = {
   date: "YYYY-MM-DD",
   overallConfidence: "Medium-High",
   situation: {
-    actors: [...],
+    actors: [{ name, role, stance, power }],   // power 0-100
     context: "...",
     triggers: ["..."],
-    powerDynamics: {...}
+    keyMetrics: [{ label, value, color }],
   },
   scenarios: [
     {
       id: 1,
       name: "Scenario Name",
+      tagline: "Short evocative label",
       probability: 35,
+      color: "#hex",
       description: "...",
       narrative: "...",
       impacts: { military: 7, economic: 8, diplomatic: 5, humanitarian: 6, regional: 7, global: 6 },
@@ -172,21 +189,66 @@ const analysisData = {
           economicCapacity: { score: 4, detail: "..." },
           politicalWill: { score: 2, detail: "..." },
           allianceSupport: { score: 5, detail: "..." },
-          overallSustainability: "not_feasible",
+          overallSustainability: "fully_sustainable" | "sustainable_short_term" | "barely_feasible" | "not_feasible",
           dealbreaker: "The single biggest reason this could fail",
           estimatedCost: "$X billion/trillion over Y years"
         }
       ]
     }
   ],
-  decisionPoints: [{ actor: "...", decision: "...", leadsTo: [scenarioIds] }],
+  decisionPoints: [{ actor: "...", decision: "...", leadsTo: [scenarioIds], consequence: "..." }],
   expertOpinions: {
     consensus: { summary: "...", supporters: ["RAND", "Brookings"] },
     dissenting: [{ expert: "...", affiliation: "...", position: "...", reasoning: "...", credibilityNote: "..." }],
     regionalVsWestern: { westernView: "...", regionalView: "...", gapAnalysis: "..." },
     overallExpertConfidence: "High"
-  }
+  },
+  impactMatrix: [{ scenario, military, economic, diplomatic, humanitarian, regional, global }],
+  // Optional: commodity/market time-series relevant to the conflict
+  oilPriceData: [{ month, price }],  // or whatever market data is relevant
 };
+
+// ─── POLITICAL SIGNALS (MANDATORY — search for real quotes) ───────────────────
+const politicalComments = [
+  {
+    actor: "Donald Trump",
+    role: "US President",
+    platform: "Truth Social",   // Twitter/X | Truth Social | Telegram | Press Conference | State TV | Parliament | UN Speech
+    date: "2026-03-20",
+    time: "14:32 ET",           // include if known — pre/post market matters
+    quote: "The strikes are going very well. Iran is finished. We will wind this down soon.",
+    context: "Posted 3 hours after Congressional leaders demanded a war briefing",
+    signalType: "de-escalatory",  // escalatory | de-escalatory | diplomatic | economic | ambiguous
+    marketImpact: "Oil dropped $4/bbl on release; reversed within 2 hours as timeline remained unclear",
+    scenarioImplication: "Raises Ceasefire probability if serious (→ +5%); classified as ambiguous until follow-up",
+    verified: true,   // true = confirmed real quote; false = representative paraphrase
+  },
+  // ... collect 6-12 statements covering ALL key actors
+]
+
+// ─── STRATEGIC VERDICT ────────────────────────────────────────────────────────
+const strategicVerdict = {
+  stance: "MONITOR — HOLD POSITIONS",   // e.g. ESCALATE CAUTION | REDUCE RISK | HOLD | RE-ASSESS
+  stanceColor: "#f59e0b",
+  primaryScenario: "Scenario Name",
+  primaryProb: 35,
+  timing: "Re-assess in 48–72 hours",
+  timingDetail: "Explain exactly what you are waiting for and why timing matters now",
+  immediateWatchpoints: [
+    { signal: "...", timing: "24–48h", implication: "...", urgency: "Critical" | "High" | "Medium" }
+  ],
+  marketPositioning: [
+    { asset: "Long Oil (futures/ETF)", stance: "HOLD" | "ADD" | "REDUCE" | "AVOID" | "CAUTIOUS", color: "#hex", rationale: "..." }
+  ],
+  probabilityUpdate: "No change: Scenario1 X% / Scenario2 Y% / ... Next trigger: ...",
+  conviction: "High" | "Medium-High" | "Medium" | "Low",
+  nextReview: "48–72 hours or on any watchpoint signal",
+}
+
+// ─── ANALYSIS GAPS ────────────────────────────────────────────────────────────
+const analysisGaps = [
+  { topic: "...", description: "...", issueTitle: "Extend [analysis title]: [specific request]" }
+]
 ```
 
 ## Written Report
@@ -229,28 +291,28 @@ Trigger for: stock analysis, financial analysis, investment research, portfolio 
 
 ## Workflow
 
-### Step 0: Cross-Reference Existing Geopolitical Analyses (MANDATORY)
-Before gathering any stock data, scan `/src/dashboards/geopolitical/` to see what geopolitical analyses already exist in this project.
+### Step 0: Cross-Reference ALL Existing Geopolitical Analyses (MANDATORY — do this before any stock research)
+List every file in `/src/dashboards/geopolitical/`. For **each one**, read its `analysisData.title`, `scenarios`, `strategicVerdict`, and — critically — its `politicalComments`. Then ask:
 
-**For each existing geopolitical dashboard, ask:**
-- Does this conflict/event affect the company's sector (energy, defense, tech, shipping, finance)?
-- Does it affect supply chains, commodities, or markets this company is exposed to?
+**Relevance checklist (run for every geo dashboard):**
+- Does this conflict affect the company's sector (energy, defense, banking, shipping, tech)?
+- Does it affect commodities this company depends on (oil, gas, metals, food)?
 - Does it affect the country/region where this company operates, manufactures, or sells?
-- Does it change the macroeconomic backdrop (oil price, sanctions, tariffs, inflation)?
+- Does it change the macroeconomic backdrop (oil price, inflation, ECB/Fed path, sovereign spreads)?
+- Are there key political statements in `politicalComments` with a `marketImpact` that touches this stock's sector?
 
-**If YES — a geopolitical analysis directly impacts this stock:**
-- Incorporate its scenario probabilities and impact scores into the stock analysis
-- In the dashboard, add a **Geopolitical Risk Overlay Panel** showing which scenario is most relevant, what the probability-weighted price impact is, and what position the data suggests under each scenario
-- Clearly state: "This analysis is cross-referenced with the [Title] geopolitical analysis (YYYY-MM-DD)"
+**If YES — this geo analysis directly impacts this stock:**
+- Read the full `strategicVerdict` from that dashboard — its `immediateWatchpoints` become **entry timing gates** for the stock verdict
+- Read `politicalComments` — any `escalatory` or `de-escalatory` signals from key actors must be surfaced in the stock's Verdict tab with explicit "wait for X before entering" language
+- Build a `geoOverlay` object (see data structure below) incorporating scenario probabilities, price impact per scenario, and probability-weighted net impact
+- In the dashboard, show a **Geo Risk tab** with the full overlay — link directly to the geo dashboard
+- The stock's `verdict.timingDetail` MUST reference specific political signals: e.g. "Wait for Trump's statement on Iran (expected 24–48h) — a ceasefire signal closes the entry gap, an escalation signal drops the entry price"
 
-**If NO — no existing analysis is directly relevant:**
-- Run web searches for: `[COMPANY] lawsuits 2025 2026`, `[COMPANY] regulatory investigation`, `[COMPANY] sanctions exposure`, `[TICKER] geopolitical risk`, `[SECTOR] geopolitical headwinds`
-- If you find open lawsuits, regulatory probes, or significant geopolitical risks not yet analyzed:
-  - Add a **Risk Notice Panel** at the top of the dashboard (amber/red banner) with this structure:
-    - "⚠️ For a more complete analysis, consider running a full analysis on the following events which may materially affect this stock:"
-    - List each event: type (Legal/Geopolitical/Regulatory), brief description, estimated impact level (Low/Medium/High/Critical)
-    - Example: "⚠️ Geopolitical: US-China semiconductor export controls — run 'US-China Tech War' analysis for full scenario modeling"
-    - Example: "⚠️ Legal: [Company] antitrust lawsuit (DOJ, filed Jan 2026) — unresolved, $X billion exposure"
+**If NO — no existing geo analysis is directly relevant:**
+- Run web searches: `[COMPANY] lawsuits 2025 2026`, `[COMPANY] regulatory investigation`, `[COMPANY] sanctions exposure`, `[TICKER] geopolitical risk`, `[SECTOR] geopolitical headwinds`
+- If you find open lawsuits, regulatory probes, or significant unanalyzed risks, add them to `riskNotices[]` and show the **Risk Notice banner**
+
+**Rule: NEVER write a stock verdict that ignores an active geo dashboard.** If a geo analysis exists and is relevant, its scenario probabilities directly gate the timing, position size, and stop-loss in the stock verdict. A stock verdict that says "buy now" while a geo dashboard shows 15% catastrophic escalation probability must reduce position size and widen the stop accordingly.
 
 ### Step 1: Gather Stock Information
 Run multiple web searches in parallel:
@@ -274,11 +336,13 @@ Create a React `.jsx` file in `/src/dashboards/stocks/` with these sections:
    - Each entry: icon + type tag + brief description + suggested analysis action
    - Only omit this panel if zero material risks were found
 
-3. **Geopolitical Risk Overlay Panel** (conditional — show if existing geo analysis is relevant):
-   - Which existing analysis applies and why
-   - Scenario probability table: scenario name, probability, price impact direction, magnitude
-   - Recommended position per scenario (data-driven, not a personal recommendation)
-   - Overall probability-weighted impact on price
+3. **Geo Risk Tab** (show if any existing geo analysis is relevant — link to it):
+   - Which existing analysis applies and why (relevance summary)
+   - **Political Signals Feed**: pull the most market-relevant `politicalComments` from the geo dashboard — show actor, platform, quote, signal type, and what it means for THIS stock right now
+   - Scenario probability table: scenario name, probability, price impact direction, magnitude, rationale for this specific stock
+   - Key transmission channels (e.g. oil → ECB rate path → NII compression)
+   - Overall probability-weighted net impact on price
+   - Direct link to the full geo dashboard (`Link to={analysisPath}`)
 
 4. **Technical Analysis Panel**: Price chart (Recharts LineChart), support/resistance levels, trend direction, 50/200-day MA, RSI gauge, buy/sell/hold signal with rationale
 
@@ -304,12 +368,77 @@ Create a React `.jsx` file in `/src/dashboards/stocks/` with these sections:
 - News links must use real URLs (`<a href={url} target="_blank" rel="noreferrer">`)
 - **Always include disclaimer**: "This analysis is for informational purposes only and does not constitute financial advice. Always consult a qualified financial advisor before making investment decisions."
 
+### Stock Data Structures
+
+```javascript
+// ─── GEO OVERLAY (one per relevant geo dashboard) ────────────────────────────
+const geoOverlay = {
+  analysis: "Analysis Title",
+  analysisPath: "/geo/slug",
+  date: "YYYY-MM-DD",
+  relevance: "One sentence: why this geo situation directly affects this stock",
+  keyChannels: [
+    { channel: "Oil → ECB Rate Path → NII", detail: "...", severity: "Critical" | "High" | "Medium" | "Low" }
+  ],
+  // Pull the most market-relevant political comments from the geo dashboard:
+  keyPoliticalSignals: [
+    {
+      actor: "Donald Trump",
+      role: "US President",
+      platform: "Truth Social",
+      date: "2026-03-20",
+      quote: "We will wind this down soon.",
+      signalType: "de-escalatory",
+      stockImpact: "If genuine: oil -$15, ECB cuts resume, ALPHA +10–15%. If posturing: no change.",
+    }
+  ],
+  scenarios: [
+    { name, probability, color, priceImpact, direction, rationale }
+  ],
+  probabilityWeightedImpact: "Net impact summary string",
+}
+
+// ─── RISK NOTICES ─────────────────────────────────────────────────────────────
+const riskNotices = [
+  { type, icon, event, description, impact: "Critical"|"High"|"Medium"|"Low", impactColor, suggestion }
+]
+
+// ─── VERDICT ──────────────────────────────────────────────────────────────────
+const verdict = {
+  stance: "CAUTIOUS BUY",
+  stanceColor: "#f59e0b",
+  stanceBg: "rgba(245,158,11,0.1)",
+  timing: "Short timing label",
+  // timingDetail MUST reference specific geo political signals if a geo overlay exists:
+  timingDetail: "Wait for [specific political event from geo dashboard] before entering. If [signal] → [action]. If [opposite signal] → [alternative action].",
+  entryZone: { low, high, ideal },
+  stopLoss: { price, pct, rationale },
+  // stopLoss should be widened if geo tail scenarios (≥10%) are active
+  targets: [
+    { price, label, horizon, upside, trigger }
+  ],
+  riskReward: "X:1",
+  conviction: "High" | "Medium-High" | "Medium" | "Low",
+  keyConditions: [
+    { label, status: "met" | "pending" | "failed", impact }
+  ],
+  bearCase: "Reference the worst geo scenario probability explicitly",
+  disclaimer: "Analytical data only. Not financial advice. Consult a qualified advisor.",
+}
+
+// ─── ANALYSIS GAPS ────────────────────────────────────────────────────────────
+const analysisGaps = [
+  { topic, description, issueTitle }
+]
+```
+
 ### Important Rules
 - **Never give direct buy/sell recommendations** — present data objectively
 - **Be honest about data limitations** — note when figures are approximate or estimated
 - **Real news links only** — never fabricate article URLs; omit the link if you can't verify it
 - Frame as "the data suggests..." not "you should buy/sell..."
 - The geopolitical cross-reference (Step 0) is not optional — always do it, even if the result is "no existing analysis is relevant"
+- **Political signals gate the verdict** — if a geo dashboard has active `politicalComments` with pending signals, the stock verdict MUST reference them in `timingDetail` and `keyConditions`
 
 ---
 

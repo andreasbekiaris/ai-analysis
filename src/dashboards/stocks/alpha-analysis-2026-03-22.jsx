@@ -165,6 +165,44 @@ const geoOverlay = {
     { name: 'Nuclear Breakout', probability: 5, color: '#dc2626', priceImpact: '−60%+', direction: 'Catastrophic', rationale: 'Global market collapse. All financial assets decimated. Tail risk only but non-zero.' },
   ],
   probabilityWeightedImpact: '−5% to −10% net (35% stalemate drag offsets 25% ceasefire upside; tail scenarios pull negative)',
+  keyPoliticalSignals: [
+    {
+      actor: 'Donald Trump',
+      role: 'US President',
+      platform: 'Truth Social',
+      date: '2026-03-20',
+      quote: 'The strikes on Iran are going PERFECTLY. We will be winding this down very soon.',
+      signalType: 'de-escalatory',
+      stockImpact: 'If genuine: oil −$15/bbl, ECB cuts resume, ALPHA could gap +10–15%. If posturing: no re-rating.',
+    },
+    {
+      actor: 'Marco Rubio',
+      role: 'US Secretary of State',
+      platform: 'UN Security Council',
+      date: '2026-03-17',
+      quote: 'The United States is open to a diplomatic resolution. The door is not closed.',
+      signalType: 'diplomatic',
+      stockImpact: 'First genuine US off-ramp signal. Raises Ceasefire prob — most positive scenario for Greek banks.',
+    },
+    {
+      actor: 'Speaker Mike Johnson',
+      role: 'US Speaker of the House',
+      platform: 'House Floor',
+      date: '2026-03-21',
+      quote: 'This chamber will not write a blank check for a war that was not authorized. We will vote.',
+      signalType: 'de-escalatory',
+      stockImpact: 'Congressional resistance = structural de-escalation pressure. Failed vote → ceasefire forced. Very positive for ALPHA if it materialises.',
+    },
+    {
+      actor: 'Acting Iranian Leadership (IRGC)',
+      role: 'De facto Iranian executive',
+      platform: 'Telegram',
+      date: '2026-03-15',
+      quote: 'The resistance front is unified. Our proxies operate with full authority.',
+      signalType: 'escalatory',
+      stockImpact: 'Proxy escalation confirmed → oil stays elevated → ECB hold persists → ALPHA NII compression continues. Negative near-term.',
+    },
+  ],
 }
 
 const riskNotices = [
@@ -828,6 +866,43 @@ export default function AlphaBankAnalysis() {
                     <Badge color={c.severity === 'Critical (tail)' ? T.crimson : c.severity === 'High' ? T.crimson : T.amber}>{c.severity}</Badge>
                   </div>
                 ))}
+              </div>
+            </Card>
+
+            {/* Political Signals */}
+            <Card>
+              <SectionTitle>Key Political Signals — Direct Stock Impact</SectionTitle>
+              <div style={{ color: T.dim, fontSize: '0.76rem', marginBottom: '0.85rem' }}>
+                Statements from key actors in the <Link to={geoOverlay.analysisPath} style={{ color: T.cyan, textDecoration: 'none' }}>{geoOverlay.analysis}</Link> that directly affect ALPHA.AT entry timing and positioning.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {geoOverlay.keyPoliticalSignals.map((sig, i) => {
+                  const sigColors = { escalatory: T.crimson, 'de-escalatory': T.emerald, diplomatic: T.cyan, economic: T.amber, ambiguous: T.dim }
+                  const col = sigColors[sig.signalType] || T.dim
+                  return (
+                    <div key={i} style={{ padding: '0.75rem', background: T.bg, borderRadius: 7, border: `1px solid ${T.border}`, borderLeft: `3px solid ${col}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: `${col}18`, border: `1px solid ${col}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.68rem', fontWeight: 800, color: col }}>
+                            {sig.actor.split(' ').map(w => w[0]).slice(0, 2).join('')}
+                          </div>
+                          <div>
+                            <div style={{ color: T.text, fontWeight: 700, fontSize: '0.83rem' }}>{sig.actor}</div>
+                            <div style={{ color: T.dim, fontSize: '0.7rem' }}>{sig.role} · {sig.platform} · {sig.date}</div>
+                          </div>
+                        </div>
+                        <Badge color={col} style={{ textTransform: 'capitalize' }}>{sig.signalType}</Badge>
+                      </div>
+                      <div style={{ color: T.muted, fontSize: '0.8rem', fontStyle: 'italic', marginBottom: '0.4rem', paddingLeft: '0.5rem', borderLeft: `2px solid ${col}40` }}>
+                        "{sig.quote}"
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem' }}>
+                        <span style={{ color: T.dim, fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', flexShrink: 0, marginTop: 1 }}>ALPHA impact:</span>
+                        <span style={{ color: T.muted, fontSize: '0.77rem', lineHeight: 1.4 }}>{sig.stockImpact}</span>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </Card>
 
