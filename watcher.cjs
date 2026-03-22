@@ -244,15 +244,33 @@ function runClaudeCode(analysisRequest, issueNumber) {
 
     log(`Launching Claude Code: "${analysisRequest}"`);
 
-    const claude = spawn('claude', ['-p', fullPrompt], {
-      cwd: CONFIG.projectPath,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      shell: true,
-      timeout: 600000,
-    });
+    // Escape double quotes for cmd.exe and wrap prompt in quotes
+    const escapedPrompt = fullPrompt.replace(/"/g, '""');
+    const claude = spawn(
+      `claude --dangerously-skip-permissions -p "${escapedPrompt}"`,
+      { cwd: CONFIG.projectPath, stdio: ['pipe', 'pipe', 'pipe'], shell: true, timeout: 600000 }
+    );
 
     let stdout = '';
     let stderr = '';
+    let elapsed = 0;
+
+    // Post a progress comment every 30 seconds while Claude is working
+    const progressInterval = setInterval(() => {
+      elapsed += 30;
+      const mins = Math.floor(elapsed / 60);
+      const secs = elapsed % 60;
+      const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+      try {
+        execSync(
+          `gh issue comment ${issueNumber} --repo ${CONFIG.owner}/${CONFIG.repo} --body "⏳ Still working... (${timeStr} elapsed). Claude Code is researching and building your dashboard."`,
+          { encoding: 'utf-8', timeout: 15000 }
+        );
+        log(`Progress update posted for issue #${issueNumber} (${timeStr})`);
+      } catch (err) {
+        logError(`Could not post progress update: ${err.message}`);
+      }
+    }, 30000);
 
     claude.stdout.on('data', (data) => {
       const text = data.toString();
@@ -265,6 +283,7 @@ function runClaudeCode(analysisRequest, issueNumber) {
     });
 
     claude.on('close', (code) => {
+      clearInterval(progressInterval);
       if (code === 0) {
         log(`Claude Code finished successfully for issue #${issueNumber}`);
         resolve(stdout);
@@ -275,6 +294,7 @@ function runClaudeCode(analysisRequest, issueNumber) {
     });
 
     claude.on('error', (err) => {
+      clearInterval(progressInterval);
       logError(`Failed to start Claude Code: ${err.message}`);
       reject(err);
     });
@@ -369,6 +389,44 @@ function checkPrerequisites() {
   }
 }
 
+/**
+ * Fetch and process any open issues not already labelled completed or in-progress
+ */
+async function processExistingIssues() {
+  log('Checking for existing open issues...');
+  try {
+    const output = execSync(
+      `gh issue list --repo ${CONFIG.owner}/${CONFIG.repo} --state open --json number,title,body,labels --limit 50`,
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
+    ).trim();
+
+    const issues = JSON.parse(output);
+    if (!issues.length) {
+      log('  No open issues found.');
+      return;
+    }
+
+    const pending = issues.filter((issue) => {
+      const labels = issue.labels.map((l) => l.name);
+      return !labels.includes(CONFIG.doneLabel) && !labels.includes(CONFIG.processingLabel);
+    });
+
+    if (!pending.length) {
+      log(`  ${issues.length} open issue(s) found, all already labelled — skipping.`);
+      return;
+    }
+
+    log(`  Found ${pending.length} unprocessed issue(s). Processing sequentially...`);
+    for (const issue of pending) {
+      if (!processing.has(issue.number)) {
+        await processIssue({ number: issue.number, title: issue.title, body: issue.body || '' });
+      }
+    }
+  } catch (err) {
+    logError(`Failed to fetch existing issues: ${err.message}`);
+  }
+}
+
 // ============================================
 // START
 // ============================================
@@ -395,6 +453,9 @@ async function main() {
   await startSmeeClient(smeeUrl);
 
   log('Watcher is live! Create a GitHub issue to trigger an analysis.');
+
+  // Process any issues that were opened while the watcher was offline
+  await processExistingIssues();
 }
 
 main().catch((err) => {
