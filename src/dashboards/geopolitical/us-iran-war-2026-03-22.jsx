@@ -425,18 +425,32 @@ export default function UsIranWar20260322() {
               <p style={{ ...s.muted, margin: 0 }}>{d.subtitle} · Analysis Date: {d.date}</p>
             </div>
             <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem' }}>
-              <Link to="/" style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                color: '#94a3b8', fontSize: '0.78rem', fontWeight: 600,
-                textDecoration: 'none', padding: '0.3rem 0.7rem',
-                border: '1px solid #1e293b', borderRadius: '6px',
-                backgroundColor: '#0a0f1e', transition: 'all 0.15s',
-              }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#06b6d4'; e.currentTarget.style.color = '#06b6d4' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.color = '#94a3b8' }}
-              >
-                <Home size={12} /> Home
-              </Link>
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <Link to="/" style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                  color: '#94a3b8', fontSize: '0.78rem', fontWeight: 600,
+                  textDecoration: 'none', padding: '0.3rem 0.7rem',
+                  border: '1px solid #1e293b', borderRadius: '6px',
+                  backgroundColor: '#0a0f1e', transition: 'all 0.15s',
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#06b6d4'; e.currentTarget.style.color = '#06b6d4' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.color = '#94a3b8' }}
+                >
+                  <Home size={12} /> Home
+                </Link>
+                <Link to="/help" style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                  color: '#94a3b8', fontSize: '0.78rem', fontWeight: 600,
+                  textDecoration: 'none', padding: '0.3rem 0.7rem',
+                  border: '1px solid #1e293b', borderRadius: '6px',
+                  backgroundColor: '#0a0f1e', transition: 'all 0.15s',
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#06b6d4'; e.currentTarget.style.color = '#06b6d4' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.color = '#94a3b8' }}
+                >
+                  <BookOpen size={12} /> Glossary
+                </Link>
+              </div>
               <div style={{ ...s.mono, fontSize: '2rem', fontWeight: 800, color: '#ef4444' }}>DAY {d.daysElapsed}</div>
               <div style={{ ...s.dim }}>War began {d.warStartDate}</div>
               <div style={{ ...s.dim }}>Confidence: <span style={{ color: '#f59e0b' }}>{d.overallConfidence}</span></div>

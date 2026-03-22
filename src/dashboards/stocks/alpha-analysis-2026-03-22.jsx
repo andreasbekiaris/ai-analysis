@@ -1,10 +1,11 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell, ReferenceLine, Legend,
 } from 'recharts'
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Info, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react'
+import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Info, ArrowUpRight, ArrowDownRight, Minus, Home, BookOpen, ExternalLink, Globe2, Shield } from 'lucide-react'
 
 /* ─── THEME ──────────────────────────────────────────────────── */
 const T = {
@@ -136,11 +137,54 @@ const keyMetrics = [
 ]
 
 const newsItems = [
-  { date: '27 Feb 2026', headline: 'Alpha Bank reports €943.3M net profit for FY2025, up 44% — announces €519M shareholder distribution', sentiment: 'positive' },
-  { date: '19 Mar 2026', headline: 'Deutsche Bank raises Greek bank targets; Alpha Bank to €4.45 (Buy) — second top pick after Eurobank', sentiment: 'positive' },
-  { date: '13 Mar 2026', headline: 'Greek banks draw strong institutional interest entering 2026 — Eurozone re-rating underway', sentiment: 'positive' },
-  { date: '19 Mar 2026', headline: 'ECB holds rates unchanged; NII pressure on Greek banks set to persist through H1 2026', sentiment: 'neutral' },
-  { date: '10 Mar 2026', headline: 'Alpha Bank HQ expansion: acquires 38 Stadiou Street building for unified financial hub in Athens', sentiment: 'neutral' },
+  { date: '27 Feb 2026', source: 'Alpha Bank IR', headline: 'Alpha Bank reports €943.3M net profit for FY2025, up 44% — announces €519M shareholder distribution', sentiment: 'positive', url: 'https://www.alpha.gr/en/investor-relations/financial-results' },
+  { date: '19 Mar 2026', source: 'Deutsche Bank Research', headline: 'Deutsche Bank raises Greek bank targets; Alpha Bank to €4.45 (Buy) — second top pick after Eurobank', sentiment: 'positive', url: null },
+  { date: '13 Mar 2026', source: 'Reuters', headline: 'Greek banks draw strong institutional interest entering 2026 — Eurozone re-rating underway', sentiment: 'positive', url: null },
+  { date: '19 Mar 2026', source: 'ECB / Bloomberg', headline: 'ECB holds rates unchanged; NII pressure on Greek banks set to persist through H1 2026', sentiment: 'neutral', url: 'https://www.ecb.europa.eu/press/pr/date/2026/html/index.en.html' },
+  { date: '10 Mar 2026', source: 'Kathimerini', headline: 'Alpha Bank HQ expansion: acquires 38 Stadiou Street building for unified financial hub in Athens', sentiment: 'neutral', url: null },
+]
+
+/* ─── GEOPOLITICAL CROSS-REFERENCE ──────────────────────────── */
+const geoOverlay = {
+  analysis: 'US–Iran War: Operation Epic Fury',
+  analysisPath: '/geo/us-iran-war',
+  date: '2026-03-22',
+  relevance: 'HIGH — Oil price shock ($108–126/bbl) feeds directly into Greek inflation, ECB rate path, and Alpha Bank NII. SE Europe risk premium affects funding costs. Romania exposure (~10% of loans) faces Balkans spillover risk.',
+  keyChannels: [
+    { channel: 'Oil → Inflation → ECB Rate Path', detail: 'Brent at $108+ sustains Greek inflation. ECB holds rates. Alpha Bank NII compression continues longer than base case. Probability-weighted: −€50–120M NII impact.', severity: 'High' },
+    { channel: 'Global Risk-Off → Sovereign Spreads', detail: 'War-driven risk aversion widens Greek sovereign spreads (~+40bps current). Raises Alpha Bank wholesale funding costs and pressures P/B multiple re-rating timeline.', severity: 'Medium' },
+    { channel: 'SE Europe Spillover → Romania', detail: 'Romania (~10% of Alpha loan book) exposed to Balkans instability, energy price pass-through, and FX pressure under Escalation scenarios.', severity: 'Medium' },
+    { channel: 'Global Recession Risk (Escalation)', detail: 'Under Regional Conflagration (15% prob), oil $150+ triggers Eurozone recession. Greek GDP growth reverses, NPEs re-accelerate, all Greek banks severely impacted.', severity: 'Critical (tail)' },
+  ],
+  scenarios: [
+    { name: 'Prolonged Stalemate', probability: 35, color: '#f59e0b', priceImpact: '−8% to −15%', direction: 'Negative', rationale: 'Oil $90–110 sustains ECB hold. NII compressed. Greek spreads elevated. Modest drag on re-rating.' },
+    { name: 'Negotiated Ceasefire', probability: 25, color: '#10b981', priceImpact: '+12% to +20%', direction: 'Positive', rationale: 'Oil retreats to $75–85. ECB resumes cuts. Risk-on boosts peripheral EU banks. Most favorable scenario for ALPHA.' },
+    { name: 'Regime Collapse', probability: 20, color: '#8b5cf6', priceImpact: '−15% to −25%', direction: 'Negative', rationale: 'Iran power vacuum → regional chaos → oil volatile → global uncertainty. Greek risk premium rises sharply.' },
+    { name: 'Regional Conflagration', probability: 15, color: '#ef4444', priceImpact: '−30% to −50%', direction: 'Strongly Negative', rationale: 'Oil $150+. Eurozone recession. Greek GDP contracts. NPEs re-accelerate. SE Europe destabilized. Severe impact.' },
+    { name: 'Nuclear Breakout', probability: 5, color: '#dc2626', priceImpact: '−60%+', direction: 'Catastrophic', rationale: 'Global market collapse. All financial assets decimated. Tail risk only but non-zero.' },
+  ],
+  probabilityWeightedImpact: '−5% to −10% net (35% stalemate drag offsets 25% ceasefire upside; tail scenarios pull negative)',
+}
+
+const riskNotices = [
+  {
+    type: 'Geopolitical',
+    icon: '🌍',
+    event: 'Russia-Ukraine War — Year 4 (Ongoing)',
+    description: 'Conflict continues with Romania (~10% of Alpha loan book) in spillover zone. SE European energy prices and FX pressure persist.',
+    impact: 'Medium',
+    impactColor: '#f59e0b',
+    suggestion: 'Run a "Russia-Ukraine War" geopolitical analysis for full scenario modeling of SE European economic spillover and Alpha Bank Romania exposure.',
+  },
+  {
+    type: 'Regulatory',
+    icon: '⚖️',
+    event: 'Basel IV / EU CRR3 Capital Requirements (Phased 2025–2030)',
+    description: 'New capital output floors (Basel IV) phase in from Jan 2025. Could require Greek banks to hold 10–15% more RWA capital by 2030 depending on model outcomes.',
+    impact: 'Medium',
+    impactColor: '#f59e0b',
+    suggestion: 'Monitor Alpha Bank\'s disclosed Basel IV impact (est. −80 to −130bps CET1) against current 15.0% ratio. Run a "EU Banking Regulation 2025–2030" analysis for sector-wide context.',
+  },
 ]
 
 /* ─── HELPERS ────────────────────────────────────────────────── */
@@ -211,6 +255,7 @@ export default function AlphaBankAnalysis() {
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
+    { id: 'georisk', label: 'Geo Risk', highlight: true },
     { id: 'technicals', label: 'Technicals' },
     { id: 'fundamentals', label: 'Fundamentals' },
     { id: 'events', label: 'Event Impact' },
@@ -228,6 +273,26 @@ export default function AlphaBankAnalysis() {
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <Link to="/" style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                  color: T.muted, fontSize: '0.75rem', fontWeight: 600,
+                  textDecoration: 'none', padding: '0.25rem 0.6rem',
+                  border: `1px solid ${T.border}`, borderRadius: '5px', backgroundColor: T.bg,
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.cyan; e.currentTarget.style.color = T.cyan }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted }}
+                ><Home size={11} /> Home</Link>
+                <Link to="/help" style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                  color: T.muted, fontSize: '0.75rem', fontWeight: 600,
+                  textDecoration: 'none', padding: '0.25rem 0.6rem',
+                  border: `1px solid ${T.border}`, borderRadius: '5px', backgroundColor: T.bg,
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.cyan; e.currentTarget.style.color = T.cyan }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted }}
+                ><BookOpen size={11} /> Glossary</Link>
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
                 <span style={{ fontSize: '1.6rem', fontWeight: 800, color: T.text }}>{stock.name}</span>
                 <Badge color={T.cyan}>{stock.ticker}</Badge>
@@ -313,15 +378,39 @@ export default function AlphaBankAnalysis() {
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 padding: '0.75rem 1.25rem',
-                color: activeTab === t.id ? T.cyan : T.dim,
-                borderBottom: activeTab === t.id ? `2px solid ${T.cyan}` : '2px solid transparent',
-                fontSize: '0.85rem', fontWeight: activeTab === t.id ? 700 : 400,
+                color: activeTab === t.id ? T.cyan : t.highlight ? T.amber : T.dim,
+                borderBottom: activeTab === t.id ? `2px solid ${T.cyan}` : t.highlight ? `2px solid ${T.amber}44` : '2px solid transparent',
+                fontSize: '0.85rem', fontWeight: activeTab === t.id || t.highlight ? 700 : 400,
                 transition: 'color 0.15s',
               }}
             >
               {t.label}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* ── RISK NOTICE BANNER ── */}
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '1rem 2rem 0' }}>
+        <div style={{ background: '#1a1208', border: `1px solid ${T.amber}44`, borderRadius: 8, padding: '0.85rem 1.1rem', marginBottom: '0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+            <AlertTriangle size={14} color={T.amber} />
+            <span style={{ color: T.amber, fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Additional Analysis Recommended
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            {riskNotices.map((r, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', fontSize: '0.78rem' }}>
+                <Badge color={r.impactColor}>{r.type}</Badge>
+                <div>
+                  <span style={{ color: T.text, fontWeight: 600 }}>{r.event}</span>
+                  <span style={{ color: T.muted }}> — {r.description}</span>
+                  <span style={{ color: T.dim }}> · {r.suggestion}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -375,9 +464,20 @@ export default function AlphaBankAnalysis() {
                       width: 8, height: 8, borderRadius: '50%', marginTop: 5, flexShrink: 0,
                       background: sentimentColor[n.sentiment]
                     }} />
-                    <div>
-                      <div style={{ color: T.text, fontSize: '0.82rem', lineHeight: 1.4 }}>{n.headline}</div>
-                      <div style={{ color: T.dim, fontSize: '0.7rem', marginTop: 2 }}>{n.date}</div>
+                    <div style={{ flex: 1 }}>
+                      {n.url ? (
+                        <a href={n.url} target="_blank" rel="noreferrer" style={{ color: T.text, fontSize: '0.82rem', lineHeight: 1.4, textDecoration: 'none', display: 'flex', alignItems: 'flex-start', gap: '0.3rem' }}
+                          onMouseEnter={e => e.currentTarget.style.color = T.cyan}
+                          onMouseLeave={e => e.currentTarget.style.color = T.text}
+                        >
+                          {n.headline} <ExternalLink size={10} style={{ flexShrink: 0, marginTop: 3 }} />
+                        </a>
+                      ) : (
+                        <div style={{ color: T.text, fontSize: '0.82rem', lineHeight: 1.4 }}>{n.headline}</div>
+                      )}
+                      <div style={{ color: T.dim, fontSize: '0.7rem', marginTop: 2 }}>
+                        {n.date} · {n.source}{!n.url && <span style={{ color: '#475569' }}> · (link unavailable)</span>}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -419,6 +519,101 @@ export default function AlphaBankAnalysis() {
                     <div style={{ color: T.dim, fontSize: '0.65rem', lineHeight: 1.3 }}>{s.note}</div>
                   </div>
                 ))}
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* ═══════════════ GEO RISK ═══════════════ */}
+        {activeTab === 'georisk' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.25rem' }}>
+
+            {/* Header panel */}
+            <Card style={{ border: `1px solid ${T.amber}44`, background: '#0f1218' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+                    <Globe2 size={15} color={T.amber} />
+                    <span style={{ color: T.amber, fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Geopolitical Risk Cross-Reference</span>
+                    <Badge color={T.crimson}>HIGH RELEVANCE</Badge>
+                  </div>
+                  <div style={{ color: T.text, fontWeight: 700, fontSize: '1rem', marginBottom: '0.3rem' }}>{geoOverlay.analysis}</div>
+                  <div style={{ color: T.muted, fontSize: '0.8rem', lineHeight: 1.5, maxWidth: 700 }}>{geoOverlay.relevance}</div>
+                </div>
+                <Link to={geoOverlay.analysisPath} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                  color: T.amber, fontSize: '0.78rem', fontWeight: 700,
+                  textDecoration: 'none', padding: '0.45rem 1rem',
+                  border: `1px solid ${T.amber}66`, borderRadius: '6px',
+                  backgroundColor: `${T.amber}10`, whiteSpace: 'nowrap',
+                }}>
+                  <ExternalLink size={12} /> Open Full Analysis
+                </Link>
+              </div>
+            </Card>
+
+            {/* Transmission channels */}
+            <Card>
+              <SectionTitle>Impact Transmission Channels</SectionTitle>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {geoOverlay.keyChannels.map((c, i) => (
+                  <div key={i} style={{ padding: '0.75rem', background: T.bg, borderRadius: 6, border: `1px solid ${T.border}`, display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '0.75rem', alignItems: 'start' }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: c.severity === 'Critical (tail)' ? T.crimson : c.severity === 'High' ? T.crimson : T.amber, marginTop: 5, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ color: T.text, fontWeight: 700, fontSize: '0.82rem', marginBottom: '0.2rem' }}>{c.channel}</div>
+                      <div style={{ color: T.muted, fontSize: '0.77rem', lineHeight: 1.5 }}>{c.detail}</div>
+                    </div>
+                    <Badge color={c.severity === 'Critical (tail)' ? T.crimson : c.severity === 'High' ? T.crimson : T.amber}>{c.severity}</Badge>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Scenario impact table */}
+            <Card>
+              <SectionTitle>Scenario Probability & Price Impact on ALPHA.AT</SectionTitle>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${T.border}` }}>
+                      {['Scenario', 'Probability', 'Price Impact', 'Direction', 'Rationale'].map(h => (
+                        <th key={h} style={{ color: T.dim, textAlign: 'left', padding: '0.5rem 0.75rem', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {geoOverlay.scenarios.map((sc, i) => (
+                      <tr key={i} style={{ borderBottom: `1px solid ${T.border}` }}>
+                        <td style={{ padding: '0.65rem 0.75rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: sc.color, flexShrink: 0 }} />
+                            <span style={{ color: T.text, fontWeight: 600 }}>{sc.name}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.65rem 0.75rem' }}>
+                          <span style={{ color: sc.color, fontFamily: 'monospace', fontWeight: 700, fontSize: '0.9rem' }}>{sc.probability}%</span>
+                        </td>
+                        <td style={{ padding: '0.65rem 0.75rem' }}>
+                          <span style={{ color: sc.direction.includes('Positive') ? T.emerald : sc.direction === 'Catastrophic' ? '#dc2626' : T.crimson, fontFamily: 'monospace', fontWeight: 700 }}>{sc.priceImpact}</span>
+                        </td>
+                        <td style={{ padding: '0.65rem 0.75rem' }}>
+                          <Badge color={sc.direction.includes('Positive') ? T.emerald : sc.direction === 'Catastrophic' ? '#dc2626' : sc.direction === 'Strongly Negative' ? '#dc2626' : T.crimson}>{sc.direction}</Badge>
+                        </td>
+                        <td style={{ padding: '0.65rem 0.75rem', color: T.muted, lineHeight: 1.4, fontSize: '0.78rem' }}>{sc.rationale}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ marginTop: '1rem', padding: '0.75rem', background: `${T.amber}10`, border: `1px solid ${T.amber}33`, borderRadius: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <Shield size={13} color={T.amber} />
+                  <span style={{ color: T.amber, fontWeight: 700, fontSize: '0.78rem' }}>Probability-Weighted Net Impact</span>
+                </div>
+                <div style={{ color: T.muted, fontSize: '0.8rem' }}>{geoOverlay.probabilityWeightedImpact}</div>
+                <div style={{ color: T.dim, fontSize: '0.73rem', marginTop: '0.3rem' }}>
+                  Cross-referenced with <Link to={geoOverlay.analysisPath} style={{ color: T.cyan, textDecoration: 'none' }}>{geoOverlay.analysis}</Link> · {geoOverlay.date}
+                </div>
               </div>
             </Card>
           </div>
