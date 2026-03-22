@@ -131,6 +131,7 @@ Structure as:
 
 Create a React `.jsx` file in `/src/dashboards/geopolitical/` with these sections:
 
+0. **Header with Home Button** ← REQUIRED ON EVERY DASHBOARD: A persistent header bar with a `← Home` link (using react-router-dom `Link` to `/`) so the user can return to the homepage at any time. Style it as a small button in the top-right of the header panel.
 1. **Situation Overview Panel**: Actors, context, timeline
 2. **Scenario Cards**: Name, probability gauge, description
 3. **Feasibility Reality Check Panel**: Radar charts of 4 feasibility dimensions, sustainability badges, dealbreaker callouts, estimated costs
@@ -228,23 +229,71 @@ Trigger for: stock analysis, financial analysis, investment research, portfolio 
 
 ## Workflow
 
+### Step 0: Cross-Reference Existing Geopolitical Analyses (MANDATORY)
+Before gathering any stock data, scan `/src/dashboards/geopolitical/` to see what geopolitical analyses already exist in this project.
+
+**For each existing geopolitical dashboard, ask:**
+- Does this conflict/event affect the company's sector (energy, defense, tech, shipping, finance)?
+- Does it affect supply chains, commodities, or markets this company is exposed to?
+- Does it affect the country/region where this company operates, manufactures, or sells?
+- Does it change the macroeconomic backdrop (oil price, sanctions, tariffs, inflation)?
+
+**If YES — a geopolitical analysis directly impacts this stock:**
+- Incorporate its scenario probabilities and impact scores into the stock analysis
+- In the dashboard, add a **Geopolitical Risk Overlay Panel** showing which scenario is most relevant, what the probability-weighted price impact is, and what position the data suggests under each scenario
+- Clearly state: "This analysis is cross-referenced with the [Title] geopolitical analysis (YYYY-MM-DD)"
+
+**If NO — no existing analysis is directly relevant:**
+- Run web searches for: `[COMPANY] lawsuits 2025 2026`, `[COMPANY] regulatory investigation`, `[COMPANY] sanctions exposure`, `[TICKER] geopolitical risk`, `[SECTOR] geopolitical headwinds`
+- If you find open lawsuits, regulatory probes, or significant geopolitical risks not yet analyzed:
+  - Add a **Risk Notice Panel** at the top of the dashboard (amber/red banner) with this structure:
+    - "⚠️ For a more complete analysis, consider running a full analysis on the following events which may materially affect this stock:"
+    - List each event: type (Legal/Geopolitical/Regulatory), brief description, estimated impact level (Low/Medium/High/Critical)
+    - Example: "⚠️ Geopolitical: US-China semiconductor export controls — run 'US-China Tech War' analysis for full scenario modeling"
+    - Example: "⚠️ Legal: [Company] antitrust lawsuit (DOJ, filed Jan 2026) — unresolved, $X billion exposure"
+
 ### Step 1: Gather Stock Information
-Run multiple web searches:
-- **Price & Technical**: `[TICKER] stock price today`, `[TICKER] technical analysis`
+Run multiple web searches in parallel:
+- **Price & Technical**: `[TICKER] stock price today`, `[TICKER] technical analysis [YEAR]`
 - **Fundamentals**: `[TICKER] financials earnings revenue P/E ratio`, `[TICKER] balance sheet market cap`
-- **News & Sentiment**: `[TICKER] stock news latest`, `[TICKER] analyst rating sentiment`
-- **Event Impact**: `[TICKER] geopolitical risk exposure`, `[TICKER] impact war sanctions tariffs`, `current geopolitical events affecting [SECTOR] stocks`
-- **Comparison** (if multiple): Each ticker individually, then `[TICKER1] vs [TICKER2]`
+- **News**: `[TICKER] stock news latest`, `[COMPANY NAME] news [MONTH YEAR]` — collect actual article titles, sources, dates, and URLs
+- **Analyst Sentiment**: `[TICKER] analyst rating price target [YEAR]`, `[TICKER] analyst consensus`
+- **Legal & Regulatory**: `[COMPANY] lawsuit 2025 2026`, `[COMPANY] SEC investigation`, `[COMPANY] regulatory fine`
+- **Geopolitical Exposure**: `[TICKER] geopolitical risk`, `[COMPANY] supply chain [country]`, `[TICKER] sanctions tariffs exposure`
+- **Comparison** (if multiple tickers): Each ticker individually, then `[TICKER1] vs [TICKER2]`
 
 ### Step 2: Build the Dashboard
 Create a React `.jsx` file in `/src/dashboards/stocks/` with these sections:
 
-1. **Header / Overview**: Stock name, ticker, price, daily change, key stats (Market Cap, P/E, EPS, Dividend Yield, 52-week range)
-2. **Technical Analysis Panel**: Price chart (Recharts), support/resistance, trend direction, moving averages, buy/sell/hold indicator
-3. **Fundamental Analysis Panel**: Financial metrics grid, revenue/earnings trend, valuation assessment, competitive positioning
-4. **News & Sentiment Panel**: 3-5 headlines with dates, sentiment gauge, analyst consensus
-5. **Event Impact Analysis Panel**: Current events impact matrix (event, level, direction, rationale), historical parallels, risk/opportunity factors
-6. **Comparison Panel** (multi-stock): Side-by-side metrics, radar chart, relative performance
+0. **Header with Home Button** ← REQUIRED: Persistent header with stock name, ticker, a `← Home` link (react-router-dom `Link` to `/`), and a help/glossary link to `/help`. Style consistently with geopolitical dashboards.
+
+1. **Header / Overview**: Stock name, ticker, current price, daily change %, key stats strip (Market Cap, P/E, EPS, Dividend Yield, 52-week range, Beta)
+
+2. **⚠️ Risk Notice Panel** (conditional — show if risks found in Step 0):
+   - Amber/red banner listing unanalyzed geopolitical events, open lawsuits, or regulatory risks
+   - Each entry: icon + type tag + brief description + suggested analysis action
+   - Only omit this panel if zero material risks were found
+
+3. **Geopolitical Risk Overlay Panel** (conditional — show if existing geo analysis is relevant):
+   - Which existing analysis applies and why
+   - Scenario probability table: scenario name, probability, price impact direction, magnitude
+   - Recommended position per scenario (data-driven, not a personal recommendation)
+   - Overall probability-weighted impact on price
+
+4. **Technical Analysis Panel**: Price chart (Recharts LineChart), support/resistance levels, trend direction, 50/200-day MA, RSI gauge, buy/sell/hold signal with rationale
+
+5. **Fundamental Analysis Panel**: Financial metrics grid, revenue/earnings trend (BarChart), valuation vs sector peers, competitive positioning, growth catalysts
+
+6. **News & Sentiment Panel**:
+   - 5-8 news items with: headline, source name, date, sentiment tag (Bullish/Bearish/Neutral), and a **clickable `<a href="..." target="_blank">` link** to the actual article
+   - Sources must be real URLs found during web search — do NOT fabricate URLs
+   - If you cannot find a real URL, show the headline with source + date but no link, and note "(link unavailable)"
+   - Analyst consensus bar (Buy/Hold/Sell distribution), average price target
+   - Overall sentiment gauge
+
+7. **Event Impact Analysis Panel**: Impact matrix table (event → severity → direction → rationale), historical parallels, key risk/opportunity factors
+
+8. **Comparison Panel** (multi-stock only): Side-by-side metrics table, radar chart comparison, relative YTD performance
 
 ### Technical Requirements
 - Single `.jsx` file, default export
@@ -252,17 +301,54 @@ Create a React `.jsx` file in `/src/dashboards/stocks/` with these sections:
 - Recharts for charts
 - lucide-react for icons
 - All data in component state — no localStorage
+- News links must use real URLs (`<a href={url} target="_blank" rel="noreferrer">`)
 - **Always include disclaimer**: "This analysis is for informational purposes only and does not constitute financial advice. Always consult a qualified financial advisor before making investment decisions."
 
 ### Important Rules
 - **Never give direct buy/sell recommendations** — present data objectively
-- **Be honest about data limitations** — note when figures are approximate
-- **Cite sources** in commit messages or comments
+- **Be honest about data limitations** — note when figures are approximate or estimated
+- **Real news links only** — never fabricate article URLs; omit the link if you can't verify it
 - Frame as "the data suggests..." not "you should buy/sell..."
+- The geopolitical cross-reference (Step 0) is not optional — always do it, even if the result is "no existing analysis is relevant"
 
 ---
 
 # General Dashboard Guidelines
+
+## Universal Header Rule (ALL dashboards — no exceptions)
+
+Every dashboard `.jsx` file — geopolitical or stock — MUST include a persistent header containing:
+- A `← Home` button using react-router-dom `Link to="/"` that is always visible
+- A `Glossary` link using `Link to="/help"`
+- Import `{ Link }` from `'react-router-dom'` and `{ Home, BookOpen }` from `'lucide-react'`
+
+Style the home button consistently:
+```jsx
+import { Link } from 'react-router-dom'
+import { Home, BookOpen } from 'lucide-react'
+
+// In header JSX:
+<div style={{ display: 'flex', gap: '0.5rem' }}>
+  <Link to="/" style={{
+    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+    color: '#94a3b8', fontSize: '0.78rem', fontWeight: 600,
+    textDecoration: 'none', padding: '0.3rem 0.7rem',
+    border: '1px solid #1e293b', borderRadius: '6px',
+    backgroundColor: '#0a0f1e',
+  }}>
+    <Home size={12} /> Home
+  </Link>
+  <Link to="/help" style={{
+    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+    color: '#94a3b8', fontSize: '0.78rem', fontWeight: 600,
+    textDecoration: 'none', padding: '0.3rem 0.7rem',
+    border: '1px solid #1e293b', borderRadius: '6px',
+    backgroundColor: '#0a0f1e',
+  }}>
+    <BookOpen size={12} /> Glossary
+  </Link>
+</div>
+```
 
 ## After Every Analysis
 
