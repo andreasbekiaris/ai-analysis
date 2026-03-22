@@ -5,7 +5,7 @@
  *
  * HOW IT WORKS:
  * 1. Runs in the background on your desktop
- * 2. Checks your GitHub repo for new Issues with "analyze:" prefix every 2 minutes
+ * 2. Checks your GitHub repo for new open Issues every 2 minutes
  * 3. When it finds one, it launches Claude Code with the analysis request
  * 4. Claude Code creates the dashboard, commits, and pushes
  * 5. Vercel auto-deploys — you see results on your phone
@@ -19,7 +19,8 @@
  * FROM YOUR PHONE:
  * - Open GitHub app or browser
  * - Go to your repo → Issues → New Issue
- * - Title: "analyze: US war in Iran" (or any analysis request)
+ * - Title: "US-China trade war analysis" (the title IS the prompt)
+ * - Body: optional extra context
  * - That's it! The watcher picks it up automatically.
  */
 
@@ -31,15 +32,15 @@ const path = require('path');
 // ============================================
 const CONFIG = {
   // Your GitHub username and repo name
-  owner: 'YOUR_GITHUB_USERNAME',
-  repo: 'analysis-dashboards',
+  owner: 'andreasbekiaris',
+  repo: 'ai-analysis',
 
   // How often to check for new issues (in milliseconds)
   // 120000 = 2 minutes
   pollInterval: 120000,
 
   // The path to your local project folder
-  projectPath: path.join(process.env.HOME || process.env.USERPROFILE, 'Desktop', 'analysis-dashboards'),
+  projectPath: path.join(process.env.HOME || process.env.USERPROFILE, 'Documents', 'projects', 'ai-analysis'),
 
   // Label to add to issues after processing
   doneLabel: 'completed',
@@ -63,23 +64,23 @@ const logError = (msg) => {
 };
 
 /**
- * Fetch open issues with "analyze:" in the title using GitHub CLI
+ * Fetch open issues that haven't been processed yet
  */
 function getAnalysisIssues() {
   try {
     const result = execSync(
-      `gh issue list --repo ${CONFIG.owner}/${CONFIG.repo} --state open --json number,title,body --limit 10`,
+      `gh issue list --repo ${CONFIG.owner}/${CONFIG.repo} --state open --json number,title,body,labels --limit 10`,
       { encoding: 'utf-8', timeout: 30000 }
     );
 
     const issues = JSON.parse(result);
 
-    // Filter for issues that start with "analyze:" (case-insensitive)
-    return issues.filter(issue =>
-      issue.title.toLowerCase().startsWith('analyze:') &&
-      !issue.title.toLowerCase().includes('[processing]') &&
-      !issue.title.toLowerCase().includes('[done]')
-    );
+    // Skip issues already labeled as in-progress or completed
+    return issues.filter(issue => {
+      const labelNames = (issue.labels || []).map(l => l.name.toLowerCase());
+      return !labelNames.includes(CONFIG.processingLabel) &&
+             !labelNames.includes(CONFIG.doneLabel);
+    });
   } catch (err) {
     logError(`Failed to fetch issues: ${err.message}`);
     return [];
@@ -171,12 +172,11 @@ function runClaudeCode(analysisRequest, issueNumber) {
 async function processIssue(issue) {
   const { number, title, body } = issue;
 
-  // Extract the analysis request (everything after "analyze:")
-  const analysisRequest = title.replace(/^analyze:\s*/i, '').trim();
+  // The issue title IS the prompt
   const additionalContext = body ? `\n\nAdditional context: ${body}` : '';
-  const fullRequest = `Analyze ${analysisRequest}${additionalContext}`;
+  const fullRequest = `${title}${additionalContext}`;
 
-  log(`Processing issue #${number}: "${analysisRequest}"`);
+  log(`Processing issue #${number}: "${title}"`);
 
   // Mark as processing
   updateIssue(number, 'processing', 'Analysis started. Claude Code is working on this. You will be notified when the dashboard is live.');
@@ -291,8 +291,8 @@ console.log('========================================');
 console.log('  Analysis Dashboard Watcher v1.0');
 console.log('');
 console.log('  Watching for GitHub Issues...');
-console.log('  Create an issue with title:');
-console.log('  "analyze: [your request]"');
+console.log('  Create an issue — the title is the prompt.');
+console.log('  e.g. "Analyze US-China trade war"');
 console.log('');
 console.log('  Press Ctrl+C to stop');
 console.log('========================================');
