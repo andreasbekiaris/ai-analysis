@@ -4,9 +4,11 @@ import { BarChart3, Globe2, TrendingUp, Clock, Plus, Send, CheckCircle, AlertCir
 
 // Import dashboards here as they are created
 import UsIranWar from './dashboards/geopolitical/us-iran-war-2026-03-22'
+import AlphaBank from './dashboards/stocks/alpha-analysis-2026-03-22'
 
 const dashboards = [
   { path: '/geo/us-iran-war', component: UsIranWar, title: 'US–Iran War: Operation Epic Fury', type: 'geopolitical', date: '2026-03-22' },
+  { path: '/stocks/alpha', component: AlphaBank, title: 'Alpha Bank (ALPHA.AT / ALBKY)', type: 'stocks', date: '2026-03-22' },
 ]
 
 function NewAnalysisForm() {
