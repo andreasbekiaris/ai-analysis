@@ -51,11 +51,20 @@ function NewAnalysisForm() {
       padding: '1.5rem',
       marginBottom: '3rem',
     }}>
+      <style>{`
+        @media (max-width: 480px) {
+          .home-form { flex-direction: column !important; }
+          .home-form button { width: 100% !important; justify-content: center !important; }
+          .home-container { padding: 1rem !important; }
+          .home-grid { grid-template-columns: 1fr !important; }
+          .home-title { font-size: 1.4rem !important; }
+        }
+      `}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
         <Plus size={18} color="#06b6d4" />
         <span style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem' }}>New Analysis</span>
       </div>
-      <form onSubmit={submit} style={{ display: 'flex', gap: '0.75rem' }}>
+      <form onSubmit={submit} className="home-form" style={{ display: 'flex', gap: '0.75rem' }}>
         <input
           type="text"
           value={prompt}
@@ -120,14 +129,14 @@ function NewAnalysisForm() {
 
 function Home() {
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0a0f1e', padding: '2rem' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0a0f1e', padding: '2rem', boxSizing: 'border-box' }}>
+      <div className="home-container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <BarChart3 size={32} color="#06b6d4" />
-              <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+              <h1 className="home-title" style={{ fontSize: '2rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
                 Analysis Dashboard Hub
               </h1>
             </div>
@@ -168,9 +177,9 @@ function Home() {
             </p>
           </div>
         ) : (
-          <div style={{
+          <div className="home-grid" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
             gap: '1.5rem'
           }}>
             {dashboards.map((d) => (

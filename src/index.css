@@ -1,8 +1,17 @@
 @import "tailwindcss";
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   background-color: #0a0f1e;
   color: #f8fafc;
   font-family: system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+@media (max-width: 480px) {
+  .home-container { padding: 1rem !important; }
 }

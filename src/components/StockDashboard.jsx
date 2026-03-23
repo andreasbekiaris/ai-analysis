@@ -153,26 +153,31 @@ export default function StockDashboard({
           .s-grid2 { grid-template-columns: 1fr !important; }
           .s-grid6 { grid-template-columns: repeat(3, 1fr) !important; }
           .s-header-main { flex-direction: column !important; gap: 0.75rem !important; }
-          .s-header-right { flex-direction: row !important; flex-wrap: wrap !important; gap: 0.75rem !important; }
-          .s-stats-row { gap: 1rem !important; }
+          .s-header-right { flex-direction: row !important; flex-wrap: wrap !important; gap: 0.75rem !important; align-items: center !important; }
+          .s-stats-row { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 0.5rem !important; }
           .s-capital-bar { flex-direction: column !important; align-items: flex-start !important; gap: 0.5rem !important; }
           .s-capital-metrics { flex-wrap: wrap !important; gap: 0.75rem !important; }
-          .s-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; white-space: nowrap; }
+          .s-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; white-space: nowrap; padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
           .s-tabs::-webkit-scrollbar { display: none; }
-          .s-price-block { flex-direction: column !important; gap: 0.75rem !important; }
+          .s-price-block { flex-direction: row !important; flex-wrap: wrap !important; gap: 0.75rem !important; justify-content: flex-start !important; align-items: flex-start !important; }
+          .s-price-block > div { text-align: left !important; }
           .s-peer-table { font-size: 0.7rem !important; }
           .s-page-pad { padding: 0.85rem 0.85rem !important; }
+          .s-outer-pad { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+          .s-stock-name { font-size: 1.25rem !important; }
+          .s-stock-price { font-size: 1.8rem !important; }
         }
         @media (max-width: 480px) {
           .s-grid2 { grid-template-columns: 1fr !important; }
           .s-grid6 { grid-template-columns: repeat(2, 1fr) !important; }
-          .s-header-main { padding: 0.85rem !important; }
-          .s-stats-row { display: grid !important; grid-template-columns: 1fr 1fr 1fr !important; gap: 0.5rem !important; }
+          .s-stats-row { grid-template-columns: repeat(2, 1fr) !important; }
+          .s-outer-pad { padding-left: 0.6rem !important; padding-right: 0.6rem !important; }
+          .s-page-pad { padding: 0.6rem 0.6rem !important; }
         }
       `}</style>
 
       {/* ── HEADER ── */}
-      <div style={{ background: '#0d1424', borderBottom: `1px solid ${T.border}`, padding: '1.25rem 2rem' }}>
+      <div className="s-outer-pad" style={{ background: '#0d1424', borderBottom: `1px solid ${T.border}`, padding: '1.25rem 2rem' }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           <div className="s-header-main" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
@@ -197,7 +202,7 @@ export default function StockDashboard({
                 ><BookOpen size={11} /> Glossary</Link>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-                <span style={{ fontSize: '1.6rem', fontWeight: 800, color: T.text }}>{stock.name}</span>
+                <span className="s-stock-name" style={{ fontSize: '1.6rem', fontWeight: 800, color: T.text }}>{stock.name}</span>
                 <Badge color={T.cyan}>{stock.ticker}</Badge>
                 {stock.adr && <Badge color={T.violet}>{stock.adr}</Badge>}
               </div>
@@ -207,7 +212,7 @@ export default function StockDashboard({
             <div className="s-header-right s-price-block" style={{ display: 'flex', gap: '2.5rem', alignItems: 'flex-end' }}>
               {/* Price block */}
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '2.4rem', fontWeight: 800, fontFamily: 'monospace', color: T.text, lineHeight: 1 }}>
+                <div className="s-stock-price" style={{ fontSize: '2.4rem', fontWeight: 800, fontFamily: 'monospace', color: T.text, lineHeight: 1 }}>
                   {euro(stock.price)}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end', marginTop: 4 }}>
@@ -272,7 +277,7 @@ export default function StockDashboard({
       </div>
 
       {/* ── CAPITAL & RISK BAR ── */}
-      <div style={{ background: '#080e1a', borderBottom: `1px solid ${T.border}`, padding: '0.6rem 2rem' }}>
+      <div className="s-outer-pad" style={{ background: '#080e1a', borderBottom: `1px solid ${T.border}`, padding: '0.6rem 2rem' }}>
         <div className="s-capital-bar" style={{ maxWidth: 1400, margin: '0 auto', display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
           <span style={{ color: T.dim, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0 }}>
             My Position
@@ -329,7 +334,7 @@ export default function StockDashboard({
       </div>
 
       {/* ── TABS ── */}
-      <div style={{ background: '#0d1424', borderBottom: `1px solid ${T.border}`, padding: '0 2rem' }}>
+      <div className="s-outer-pad" style={{ background: '#0d1424', borderBottom: `1px solid ${T.border}`, padding: '0 2rem' }}>
         <div className="s-tabs" style={{ maxWidth: 1400, margin: '0 auto', display: 'flex', gap: '0' }}>
           {tabs.map((t) => (
             <button
@@ -352,7 +357,7 @@ export default function StockDashboard({
 
       {/* ── RISK NOTICE BANNER ── */}
       {riskNotices && riskNotices.length > 0 && (
-        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '1rem 2rem 0' }}>
+        <div className="s-outer-pad" style={{ maxWidth: 1400, margin: '0 auto', padding: '1rem 2rem 0' }}>
           <div style={{ background: '#1a1208', border: `1px solid ${T.amber}44`, borderRadius: 8, padding: '0.85rem 1.1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
               <AlertTriangle size={14} color={T.amber} />

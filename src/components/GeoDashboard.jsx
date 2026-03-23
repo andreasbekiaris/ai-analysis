@@ -82,10 +82,10 @@ function ProbGauge({ probability, color }) {
 
 function FeasibilityRow({ dim, data }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
-      <span style={{ ...s.dim, minWidth: '90px' }}>{dim}</span>
-      <ScoreBar score={data.score} />
-      <span style={{ ...s.dim, fontSize: '0.7rem', flex: 2 }}>{data.detail}</span>
+    <div className="g-feasibility-row" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
+      <span style={{ ...s.dim, minWidth: '90px', flexShrink: 0 }}>{dim}</span>
+      <div className="g-feasibility-bar" style={{ flex: 1, minWidth: 0 }}><ScoreBar score={data.score} /></div>
+      <span className="g-feasibility-detail" style={{ ...s.dim, fontSize: '0.7rem', flex: 2 }}>{data.detail}</span>
     </div>
   )
 }
@@ -135,10 +135,15 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps })
           .g-feasibility-rows { grid-template-columns: 1fr !important; }
           .g-scenario-detail { grid-template-columns: 1fr !important; }
           .g-watchpoints-grid { grid-template-columns: 1fr !important; }
+          .g-feasibility-row { flex-direction: column !important; gap: 0.2rem !important; align-items: flex-start !important; }
+          .g-feasibility-row .g-feasibility-bar { width: 100% !important; }
+          .g-feasibility-row .g-feasibility-detail { flex: none !important; }
+          .g-watchpoint-header { flex-direction: column !important; align-items: flex-start !important; gap: 0.3rem !important; }
         }
         @media (max-width: 480px) {
           .g-metrics { grid-template-columns: 1fr 1fr !important; }
           h1 { font-size: 1.3rem !important; }
+          .g-header-tags { flex-wrap: wrap !important; gap: 0.3rem !important; }
         }
       `}</style>
 
@@ -148,7 +153,7 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps })
         <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid #1e293b', paddingBottom: '1rem' }}>
           <div className="g-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
+              <div className="g-header-tags" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
                 <span style={s.tag('#ef4444')}>ACTIVE CONFLICT</span>
                 <span style={s.tag('#f59e0b')}>OPEN SOURCE</span>
                 <span style={s.tag('#8b5cf6')}>GEOPOLITICAL</span>
@@ -261,9 +266,9 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps })
                     const urgencyColor = w.urgency === 'Critical' || w.urgency === 'Critical (tail)' ? '#ef4444' : '#f59e0b'
                     return (
                       <div key={i} style={{ backgroundColor: '#0a0f1e', borderRadius: '6px', padding: '0.75rem', border: `1px solid ${urgencyColor}33` }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', gap: '0.5rem' }}>
+                        <div className="g-watchpoint-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', gap: '0.5rem' }}>
                           <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.82rem' }}>{w.signal}</span>
-                          <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                          <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0, flexWrap: 'wrap' }}>
                             <span style={s.tag(urgencyColor)}>{w.urgency}</span>
                             <span style={{ ...s.dim, fontSize: '0.7rem' }}>{w.timing}</span>
                           </div>
