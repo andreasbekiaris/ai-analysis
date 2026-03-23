@@ -92,7 +92,9 @@ function FeasibilityRow({ dim, data }) {
 
 // ─── WORLD IMPACT MAP (D3 geo + TopoJSON) ───────────────────────────────────
 
-const MAP_W = 960, MAP_H = 480
+const MAP_W = 960, MAP_H = 540
+// The viewBox will be cropped to cut empty ocean — these define the visible window
+const VB_X = 0, VB_Y = 60, VB_W = 960, VB_H = 420
 
 /* Minimal inline TopoJSON decoder — no external dependency needed */
 function topoFeature(topology, object) {
@@ -233,13 +235,13 @@ function WorldImpactMap({ countries }) {
       <div className="g-map-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 215px', gap: '1rem', marginBottom: '1rem' }}>
 
         {/* ──── SVG MAP ──── */}
-        <div style={{ background: 'linear-gradient(180deg, #030a18 0%, #071020 50%, #030a14 100%)', borderRadius: 12, overflow: 'hidden', border: '1px solid #162038', lineHeight: 0, position: 'relative' }}>
+        <div style={{ background: 'linear-gradient(180deg, #030a18 0%, #071020 50%, #030a14 100%)', borderRadius: 12, overflow: 'hidden', border: '1px solid #162038', lineHeight: 0, position: 'relative', maxHeight: 420 }}>
           {loading && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155', fontSize: '0.82rem', zIndex: 2 }}>
               Loading world map…
             </div>
           )}
-          <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width: '100%', display: 'block' }} preserveAspectRatio="xMidYMid meet">
+          <svg viewBox={`${VB_X} ${VB_Y} ${VB_W} ${VB_H}`} style={{ width: '100%', display: 'block' }} preserveAspectRatio="xMidYMid meet">
             <defs>
               {/* Per-country radial glow */}
               {countries.map((c, i) => {
@@ -259,9 +261,12 @@ function WorldImpactMap({ countries }) {
 
             {/* Globe/ocean */}
             {geo?.path ? (
-              <path d={geo.path({ type: 'Sphere' })} fill="url(#oceanGrad)" stroke="#0f2240" strokeWidth={1} />
+              <>
+                <rect x={VB_X} y={VB_Y} width={VB_W} height={VB_H} fill="#030a14" />
+                <path d={geo.path({ type: 'Sphere' })} fill="url(#oceanGrad)" stroke="#0f2240" strokeWidth={1} />
+              </>
             ) : (
-              <rect width={MAP_W} height={MAP_H} fill="#030a14" />
+              <rect x={VB_X} y={VB_Y} width={VB_W} height={VB_H} fill="#030a14" />
             )}
 
             {/* Graticule grid */}
@@ -381,28 +386,12 @@ function WorldImpactMap({ countries }) {
 
 // ─── AI ANALYST ───────────────────────────────────────────────────────────────
 
-const COOLDOWN_MS = 2000
-
 function AIAnalyst({ data, verdict }) {
   const [mode, setMode]       = useState('question')
   const [input, setInput]     = useState('')
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
-  const [cooldown, setCooldown] = useState(0) // seconds remaining
-  const lastCallRef = useRef(0)
-  const cooldownTimer = useRef(null)
-
-  const startCooldown = () => {
-    const secs = Math.ceil(COOLDOWN_MS / 1000)
-    setCooldown(secs)
-    let remaining = secs
-    cooldownTimer.current = setInterval(() => {
-      remaining -= 1
-      setCooldown(remaining)
-      if (remaining <= 0) clearInterval(cooldownTimer.current)
-    }, 1000)
-  }
 
   const QPROMPTS = [
     'What is the most likely ceasefire timeline?',
@@ -431,21 +420,11 @@ CONTEXT: ${data.situation.context?.slice(0, 350)}...`
 
   const submit = async (text) => {
     const q = (text || input).trim()
-    if (!q || loading || cooldown > 0) return
-
-    const now = Date.now()
-    const elapsed = now - lastCallRef.current
-    if (elapsed < COOLDOWN_MS) {
-      setError(`Please wait ${Math.ceil((COOLDOWN_MS - elapsed) / 1000)}s before sending another request.`)
-      return
-    }
-
-    lastCallRef.current = now
+    if (!q || loading) return
     setInput('')
     setMessages(prev => [...prev, { role: 'user', text: q }])
     setLoading(true)
     setError('')
-    startCooldown()
     try {
       const res = await fetch('/api/gemini', {
         method: 'POST',
@@ -544,7 +523,7 @@ CONTEXT: ${data.situation.context?.slice(0, 350)}...`
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && submit()}
           placeholder={mode === 'question' ? 'Ask any question about this analysis...' : 'Describe a what-if scenario... e.g. "What if Iran strikes a US carrier?"'}
-          disabled={loading || cooldown > 0}
+          disabled={loading}
           style={{
             flex: 1, background: '#0a0f1e', border: '1px solid #334155', borderRadius: 8,
             padding: '0.65rem 1rem', color: '#f8fafc', fontSize: '0.85rem', outline: 'none',
@@ -552,20 +531,19 @@ CONTEXT: ${data.situation.context?.slice(0, 350)}...`
           onFocus={e => e.target.style.borderColor = '#06b6d4'}
           onBlur={e => e.target.style.borderColor = '#334155'}
         />
-        <button onClick={() => submit()} disabled={!input.trim() || loading || cooldown > 0} style={{
+        <button onClick={() => submit()} disabled={!input.trim() || loading} style={{
           display: 'flex', alignItems: 'center', gap: '0.35rem',
-          padding: '0.65rem 1.25rem', borderRadius: 8, border: 'none',
-          cursor: !input.trim() || loading || cooldown > 0 ? 'not-allowed' : 'pointer',
-          background: !input.trim() || loading || cooldown > 0 ? '#1e293b' : mode === 'simulation' ? '#8b5cf6' : '#06b6d4',
-          color: !input.trim() || loading || cooldown > 0 ? '#475569' : '#0a0f1e',
-          fontWeight: 700, fontSize: '0.85rem', transition: 'all 0.15s', minWidth: '80px', justifyContent: 'center',
+          padding: '0.65rem 1.25rem', borderRadius: 8, border: 'none', cursor: !input.trim() || loading ? 'not-allowed' : 'pointer',
+          background: !input.trim() || loading ? '#1e293b' : mode === 'simulation' ? '#8b5cf6' : '#06b6d4',
+          color: !input.trim() || loading ? '#475569' : '#0a0f1e',
+          fontWeight: 700, fontSize: '0.85rem', transition: 'all 0.15s',
         }}>
-          {loading ? '...' : cooldown > 0 ? `${cooldown}s` : mode === 'simulation' ? '⚡ Run' : <><Send size={14}/> Ask</>}
+          {loading ? '...' : mode === 'simulation' ? '⚡ Run' : <><Send size={14}/> Ask</>}
         </button>
       </div>
       <div style={{ color: '#1e3a5f', fontSize: '0.65rem', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
         <span>Powered by</span>
-        <span style={{ color: '#1a4a80', fontWeight: 700 }}>Google Gemini 2.5 Flash Lite</span>
+        <span style={{ color: '#1a4a80', fontWeight: 700 }}>Google Gemini 2.0 Flash</span>
         <span>· Free tier · AI-generated responses are for informational purposes only</span>
       </div>
     </div>
@@ -624,7 +602,8 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
           .g-feasibility-row .g-feasibility-detail { flex: none !important; }
           .g-watchpoint-header { flex-direction: column !important; align-items: flex-start !important; gap: 0.3rem !important; }
           .g-map-layout { grid-template-columns: 1fr !important; }
-          .g-map-layout > div:last-child { max-height: 250px !important; }
+          .g-map-layout > div:first-child { max-height: 280px !important; }
+          .g-map-layout > div:last-child { max-height: 200px !important; }
         }
         @media (max-width: 480px) {
           .g-metrics { grid-template-columns: 1fr 1fr !important; }
