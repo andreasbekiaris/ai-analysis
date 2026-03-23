@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import AddToAnalysis from './AddToAnalysis'
 import {
@@ -90,51 +90,61 @@ function FeasibilityRow({ dim, data }) {
   )
 }
 
-// ─── WORLD IMPACT MAP ─────────────────────────────────────────────────────────
+// ─── WORLD IMPACT MAP (D3 geo + TopoJSON) ───────────────────────────────────
 
-const MW = 960, MH = 460
+const MAP_W = 960, MAP_H = 480
 
-function merc(lat, lon) {
-  const x = ((lon + 180) / 360) * MW
-  const r = (lat * Math.PI) / 180
-  const n = Math.log(Math.tan(Math.PI / 4 + r / 2))
-  const y = MH / 2 - (MW * n) / (2 * Math.PI)
-  return [parseFloat(x.toFixed(1)), parseFloat(y.toFixed(1))]
+/* Minimal inline TopoJSON decoder — no external dependency needed */
+function topoFeature(topology, object) {
+  const arcs = topology.arcs
+  const tf = topology.transform
+  function decodeArc(arc) {
+    let x = 0, y = 0
+    return arc.map(([dx, dy]) => {
+      x += dx; y += dy
+      return [x * tf.scale[0] + tf.translate[0], y * tf.scale[1] + tf.translate[1]]
+    })
+  }
+  const decoded = arcs.map(decodeArc)
+  function ring(indices) {
+    let coords = []
+    indices.forEach(idx => {
+      const arc = idx < 0 ? [...decoded[~idx]].reverse() : decoded[idx]
+      coords = coords.concat(arc)
+    })
+    return coords
+  }
+  function geom(g) {
+    if (g.type === 'Polygon') return { type: 'Polygon', coordinates: g.arcs.map(ring) }
+    if (g.type === 'MultiPolygon') return { type: 'MultiPolygon', coordinates: g.arcs.map(p => p.map(ring)) }
+    return g
+  }
+  return {
+    type: 'FeatureCollection',
+    features: object.geometries.map(g => ({ type: 'Feature', id: g.id, properties: g.properties || {}, geometry: geom(g) })),
+  }
 }
 
-function polyPath(pts) {
-  return pts.map(([la, lo], i) => `${i ? 'L' : 'M'}${merc(la, lo).join(',')}`).join('') + 'Z'
+/* Projection: Natural Earth 1 — built-in to d3-geo, produces a nice curved-edge world */
+function makeProjection() {
+  // d3.geoNaturalEarth1 is available in the d3 bundle from recharts' peer deps,
+  // but we also carry a manual fallback in case it isn't.
+  try {
+    const { geoNaturalEarth1, geoPath } = require('d3-geo')
+    const proj = geoNaturalEarth1().fitSize([MAP_W, MAP_H], { type: 'Sphere' })
+    return { proj, path: geoPath(proj) }
+  } catch {
+    return null
+  }
 }
 
-const LAND = [
-  [[70,-160],[70,-140],[60,-140],[49,-126],[37,-122],[32,-117],[20,-106],[15,-90],[9,-79],[11,-83],[20,-87],[26,-97],[30,-81],[38,-75],[41,-70],[44,-66],[47,-52],[60,-64],[63,-66],[68,-73],[72,-68],[73,-58],[76,-27],[72,-22],[65,-14],[63,-52],[70,-160]],
-  [[12,-72],[10,-62],[5,-52],[0,-50],[-5,-35],[-24,-43],[-35,-57],[-55,-67],[-55,-70],[-43,-73],[-30,-71],[-18,-70],[-5,-82],[0,-80],[5,-77],[12,-72]],
-  [[37,-9],[44,-8],[48,-5],[51,2],[54,10],[60,25],[65,25],[55,37],[47,39],[41,29],[37,25],[37,10],[36,-6],[37,-9]],
-  [[57,8],[60,5],[62,5],[65,14],[68,18],[70,28],[65,25],[60,25],[58,10],[57,8]],
-  [[55,37],[72,60],[72,100],[72,142],[55,145],[55,110],[55,80],[55,37]],
-  [[37,-10],[37,10],[37,37],[22,38],[12,52],[0,42],[-12,40],[-26,33],[-34,26],[-34,18],[-22,14],[0,8],[4,-8],[15,-17],[22,-17],[37,-10]],
-  [[22,38],[12,44],[12,54],[22,60],[28,58],[32,50],[28,47],[22,38]],
-  [[37,37],[55,37],[55,80],[40,68],[37,72],[28,63],[24,62],[22,60],[28,58],[37,50],[37,43],[37,37]],
-  [[28,72],[20,73],[8,77],[8,80],[22,90],[28,97],[28,72]],
-  [[55,80],[55,145],[45,141],[38,122],[22,122],[20,110],[5,100],[5,103],[22,100],[28,97],[28,72],[40,68],[55,80]],
-  [[-8,105],[-5,115],[0,119],[-5,130],[-8,141],[0,140],[0,128],[-5,120],[-8,108],[-8,105]],
-  [[-18,122],[-14,130],[-14,140],[-18,147],[-22,150],[-38,147],[-39,143],[-38,140],[-35,117],[-22,114],[-18,122]],
-  [[34,130],[36,136],[36,141],[40,141],[43,141],[43,143],[41,141],[37,137],[34,130]],
-  [[50,-5],[58,-5],[55,0],[52,2],[50,0],[49,-2],[50,-5]],
-  [[83,-40],[83,-15],[72,-23],[65,-40],[65,-52],[73,-58],[76,-30],[83,-40]],
-  [[64,-25],[66,-24],[66,-14],[63,-14],[63,-22],[64,-25]],
-  [[-36,174],[-38,176],[-46,170],[-44,168],[-36,174]],
-]
-
-const CTLABELS = [
-  { name: 'N. AMERICA', lat: 50, lon: -100 },
-  { name: 'S. AMERICA', lat: -18, lon: -58 },
-  { name: 'EUROPE',     lat: 53,  lon: 13  },
-  { name: 'AFRICA',     lat: 3,   lon: 22  },
-  { name: 'RUSSIA',     lat: 63,  lon: 92  },
-  { name: 'ASIA',       lat: 38,  lon: 102 },
-  { name: 'AUSTRALIA',  lat: -28, lon: 135 },
-]
+/* Simple equirectangular fallback if d3-geo isn't available */
+function fallbackProject(lat, lon) {
+  const x = ((lon + 180) / 360) * MAP_W
+  const rad = (lat * Math.PI) / 180
+  const y = MAP_H / 2 - (MAP_W * Math.log(Math.tan(Math.PI / 4 + rad / 2))) / (2 * Math.PI)
+  return [x, Math.max(0, Math.min(MAP_H, y))]
+}
 
 const IMPACT_CFG = {
   direct:    { color: '#ef4444', label: 'Direct Involvement',   icon: '⚔',  legend: 'At War' },
@@ -148,6 +158,36 @@ const IMPACT_CFG = {
 function WorldImpactMap({ countries }) {
   const [selected, setSelected] = useState(null)
   const [filter, setFilter]     = useState('all')
+  const [worldGeo, setWorldGeo] = useState(null)
+  const [geo, setGeo]           = useState(null) // { proj, path } from d3-geo
+  const [loading, setLoading]   = useState(true)
+
+  /* Load world TopoJSON + set up projection */
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      // set up d3-geo projection
+      try {
+        const d3Geo = await import('d3-geo')
+        if (!cancelled) {
+          const proj = d3Geo.geoNaturalEarth1().fitSize([MAP_W, MAP_H], { type: 'Sphere' })
+          setGeo({ proj, path: d3Geo.geoPath(proj), graticule: d3Geo.geoGraticule10() })
+        }
+      } catch { /* fallback mode */ }
+
+      // load world atlas
+      try {
+        const res = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+        const topo = await res.json()
+        if (!cancelled) {
+          setWorldGeo(topoFeature(topo, topo.objects.countries))
+        }
+      } catch { /* silent — map will show markers without country shapes */ }
+      if (!cancelled) setLoading(false)
+    })()
+    return () => { cancelled = true }
+  }, [])
+
   if (!countries?.length) return null
 
   const sel    = selected !== null ? countries[selected] : null
@@ -159,19 +199,28 @@ function WorldImpactMap({ countries }) {
   const listItems = filter === 'all' ? countries : countries.filter(c => c.impact === filter)
   const inFilter  = (c) => filter === 'all' || c.impact === filter
 
+  /* Project lat/lon → SVG coords using d3 if available, fallback otherwise */
+  const project = (lat, lon) => {
+    if (geo?.proj) {
+      const p = geo.proj([lon, lat])
+      return p || [0, 0]
+    }
+    return fallbackProject(lat, lon)
+  }
+
   const chipBtn = (active, color, children, onClick) => (
     <button onClick={onClick} style={{
-      padding: '0.28rem 0.7rem', borderRadius: 4, cursor: 'pointer', fontSize: '0.72rem',
+      padding: '0.3rem 0.75rem', borderRadius: 6, cursor: 'pointer', fontSize: '0.72rem',
       fontWeight: active ? 700 : 500, border: `1px solid ${active ? color : '#1e293b'}`,
-      background: active ? `${color}1a` : 'transparent', color: active ? color : '#64748b',
-      transition: 'all 0.1s', whiteSpace: 'nowrap',
+      background: active ? `${color}18` : 'transparent', color: active ? color : '#586880',
+      transition: 'all 0.15s ease', whiteSpace: 'nowrap', outline: 'none', fontFamily: 'inherit',
     }}>{children}</button>
   )
 
   return (
     <div>
       {/* ── Filter chips ── */}
-      <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '1rem', padding: '0.6rem 0.75rem', background: '#080e1a', borderRadius: 8, border: '1px solid #1e293b' }}>
+      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1rem', padding: '0.55rem 0.8rem', background: 'linear-gradient(135deg, #070d19 0%, #0a1224 100%)', borderRadius: 10, border: '1px solid #162038' }}>
         {chipBtn(filter === 'all', '#06b6d4', `🌍 All (${countries.length})`, () => { setFilter('all'); setSelected(null) })}
         {Object.entries(IMPACT_CFG).filter(([k]) => counts[k] > 0).map(([key, cfg]) => (
           <span key={key}>
@@ -183,94 +232,92 @@ function WorldImpactMap({ countries }) {
       {/* ── Map + Sidebar ── */}
       <div className="g-map-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 215px', gap: '1rem', marginBottom: '1rem' }}>
 
-        {/* SVG Map */}
-        <div style={{ background: '#020810', borderRadius: 10, overflow: 'hidden', border: '1px solid #1e293b', lineHeight: 0 }}>
-          <svg viewBox={`0 0 ${MW} ${MH}`} style={{ width: '100%', display: 'block' }} preserveAspectRatio="xMidYMid meet">
+        {/* ──── SVG MAP ──── */}
+        <div style={{ background: 'linear-gradient(180deg, #030a18 0%, #071020 50%, #030a14 100%)', borderRadius: 12, overflow: 'hidden', border: '1px solid #162038', lineHeight: 0, position: 'relative' }}>
+          {loading && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155', fontSize: '0.82rem', zIndex: 2 }}>
+              Loading world map…
+            </div>
+          )}
+          <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ width: '100%', display: 'block' }} preserveAspectRatio="xMidYMid meet">
             <defs>
-              <clipPath id="mc"><rect width={MW} height={MH} /></clipPath>
               {/* Per-country radial glow */}
               {countries.map((c, i) => {
                 const col = (IMPACT_CFG[c.impact] || IMPACT_CFG.neutral).color
                 return (
-                  <radialGradient key={i} id={`g${i}`} cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor={col} stopOpacity="0.6" />
+                  <radialGradient key={i} id={`wg${i}`} cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor={col} stopOpacity="0.5" />
                     <stop offset="100%" stopColor={col} stopOpacity="0" />
                   </radialGradient>
                 )
               })}
+              <radialGradient id="oceanGrad" cx="50%" cy="40%" r="60%">
+                <stop offset="0%" stopColor="#081828" />
+                <stop offset="100%" stopColor="#030a14" />
+              </radialGradient>
             </defs>
 
-            {/* Ocean */}
-            <rect width={MW} height={MH} fill="#020810" />
+            {/* Globe/ocean */}
+            {geo?.path ? (
+              <path d={geo.path({ type: 'Sphere' })} fill="url(#oceanGrad)" stroke="#0f2240" strokeWidth={1} />
+            ) : (
+              <rect width={MAP_W} height={MAP_H} fill="#030a14" />
+            )}
 
-            {/* Grid lines */}
-            {[-60,-30,0,30,60].map(lat => {
-              const [,y] = merc(lat, 0)
-              return (y > 0 && y < MH) ? <line key={lat} x1={0} y1={y} x2={MW} y2={y} stroke={lat===0 ? '#0d2444' : '#090f1e'} strokeWidth={lat===0 ? 1.2 : 0.7}/> : null
+            {/* Graticule grid */}
+            {geo?.path && geo.graticule && (
+              <path d={geo.path(geo.graticule)} fill="none" stroke="#0b1628" strokeWidth={0.4} />
+            )}
+
+            {/* Country polygons from TopoJSON */}
+            {worldGeo && geo?.path && worldGeo.features.map((f, i) => (
+              <path key={i} d={geo.path(f)} fill="#0d1f36" stroke="#162a46" strokeWidth={0.45} />
+            ))}
+
+            {/* Country markers */}
+            {countries.map((c, i) => {
+              const [cx, cy] = project(c.lat, c.lon)
+              const cfg  = IMPACT_CFG[c.impact] || IMPACT_CFG.neutral
+              const isSel = selected === i
+              const dim   = !inFilter(c) && filter !== 'all'
+              const r = c.magnitude === 'Critical' ? 13 : c.magnitude === 'High' ? 10 : c.magnitude === 'Medium' ? 7.5 : 5.5
+              return (
+                <g key={i} opacity={dim ? 0.08 : 1} style={{ cursor: 'pointer', transition: 'opacity 0.25s ease' }}
+                  onClick={() => setSelected(selected === i ? null : i)}>
+                  {/* Glow */}
+                  <circle cx={cx} cy={cy} r={r + 20} fill={`url(#wg${i})`}
+                    opacity={isSel ? 0.75 : c.magnitude === 'Critical' ? 0.35 : 0.18} />
+                  {/* Pulse ring on selected */}
+                  {isSel && (
+                    <circle cx={cx} cy={cy} r={r + 8} fill="none" stroke={cfg.color} strokeWidth={1.2} opacity={0.5}>
+                      <animate attributeName="r" from={r + 5} to={r + 18} dur="1.8s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" from="0.5" to="0" dur="1.8s" repeatCount="indefinite" />
+                    </circle>
+                  )}
+                  {/* Outer ring */}
+                  <circle cx={cx} cy={cy} r={r + 4} fill="none" stroke={cfg.color}
+                    strokeWidth={isSel ? 1.6 : 0.6} opacity={isSel ? 0.9 : 0.25} />
+                  {/* Body */}
+                  <circle cx={cx} cy={cy} r={r} fill={`${cfg.color}20`} stroke={cfg.color} strokeWidth={1.6} />
+                  {/* Core */}
+                  <circle cx={cx} cy={cy} r={2.5} fill={cfg.color} opacity={0.95} />
+                  {/* Icon */}
+                  {(isSel || r >= 10) && (
+                    <text x={cx} y={cy + 0.5} textAnchor="middle" dominantBaseline="central"
+                      fill={cfg.color} fontSize={r >= 13 ? 8.5 : 7} fontWeight="bold"
+                      style={{ pointerEvents: 'none', textShadow: `0 0 6px ${cfg.color}88` }}>
+                      {cfg.icon}
+                    </text>
+                  )}
+                </g>
+              )
             })}
-            {[-150,-120,-90,-60,-30,0,30,60,90,120,150].map(lon => {
-              const [x] = merc(0, lon)
-              return <line key={lon} x1={x} y1={0} x2={x} y2={MH} stroke="#090f1e" strokeWidth={0.7}/>
-            })}
-
-            {/* Land */}
-            <g clipPath="url(#mc)">
-              {LAND.map((pts, i) => <path key={i} d={polyPath(pts)} fill="#0e1c30" stroke="#07121e" strokeWidth={0.8}/>)}
-            </g>
-
-            {/* Continent labels */}
-            <g clipPath="url(#mc)" style={{ pointerEvents: 'none', userSelect: 'none' }}>
-              {CTLABELS.map(ct => {
-                const [x, y] = merc(ct.lat, ct.lon)
-                return (
-                  <text key={ct.name} x={x} y={y} textAnchor="middle" dominantBaseline="central"
-                    fill="#1a2e48" fontSize={10} fontWeight={800} letterSpacing={1.5}
-                    style={{ fontFamily: 'system-ui' }}>
-                    {ct.name}
-                  </text>
-                )
-              })}
-            </g>
-
-            {/* Country markers — no text labels */}
-            <g clipPath="url(#mc)">
-              {countries.map((c, i) => {
-                const [cx, cy] = merc(c.lat, c.lon)
-                const cfg  = IMPACT_CFG[c.impact] || IMPACT_CFG.neutral
-                const isSel = selected === i
-                const dim   = !inFilter(c) && filter !== 'all'
-                const r = c.magnitude === 'Critical' ? 14 : c.magnitude === 'High' ? 11 : c.magnitude === 'Medium' ? 8 : 6
-                return (
-                  <g key={i} opacity={dim ? 0.12 : 1} style={{ cursor: 'pointer' }}
-                    onClick={() => setSelected(selected === i ? null : i)}>
-                    {/* Glow halo */}
-                    <circle cx={cx} cy={cy} r={r + 16} fill={`url(#g${i})`}
-                      opacity={isSel ? 0.6 : c.magnitude === 'Critical' ? 0.3 : 0.15}/>
-                    {/* Outer ring */}
-                    <circle cx={cx} cy={cy} r={r + 5} fill="none" stroke={cfg.color}
-                      strokeWidth={isSel ? 1.5 : 0.7} opacity={isSel ? 0.8 : 0.3}/>
-                    {/* Body */}
-                    <circle cx={cx} cy={cy} r={r} fill={`${cfg.color}25`} stroke={cfg.color} strokeWidth={1.8}/>
-                    {/* Core dot */}
-                    <circle cx={cx} cy={cy} r={3} fill={cfg.color} opacity={0.9}/>
-                    {/* Icon — only on selected or large markers */}
-                    {(isSel || r >= 11) && (
-                      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central"
-                        fill={cfg.color} fontSize={r >= 14 ? 9 : 7} fontWeight="bold"
-                        style={{ pointerEvents: 'none' }}>
-                        {cfg.icon}
-                      </text>
-                    )}
-                  </g>
-                )
-              })}
-            </g>
           </svg>
         </div>
 
         {/* ── Country list sidebar ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0', overflowY: 'auto', maxHeight: 420 }}>
-          <div style={{ color: '#334155', fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0 0 0.5rem', marginBottom: '0.5rem', borderBottom: '1px solid #1e293b', flexShrink: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, overflowY: 'auto', maxHeight: 420, paddingRight: 2 }}>
+          <div style={{ color: '#3e5170', fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', padding: '0 0 0.45rem', marginBottom: '0.4rem', borderBottom: '1px solid #162038', flexShrink: 0 }}>
             {filter === 'all' ? `${countries.length} countries affected` : `${listItems.length} ${IMPACT_CFG[filter]?.legend || filter}`}
           </div>
           {listItems.map((c) => {
@@ -279,15 +326,16 @@ function WorldImpactMap({ countries }) {
             const isSel   = selected === origIdx
             return (
               <button key={origIdx} onClick={() => setSelected(isSel ? null : origIdx)} style={{
-                display: 'flex', alignItems: 'center', gap: '0.45rem',
-                padding: '0.42rem 0.55rem', borderRadius: 5, cursor: 'pointer', textAlign: 'left',
-                background: isSel ? `${cfg.color}18` : 'transparent',
-                border: `1px solid ${isSel ? cfg.color : 'transparent'}`,
-                marginBottom: '0.2rem', transition: 'all 0.1s',
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.45rem 0.55rem', borderRadius: 6, cursor: 'pointer', textAlign: 'left',
+                fontFamily: 'inherit', outline: 'none',
+                background: isSel ? `${cfg.color}12` : 'transparent',
+                border: `1px solid ${isSel ? `${cfg.color}40` : 'transparent'}`,
+                marginBottom: '0.15rem', transition: 'all 0.15s ease',
               }}>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: cfg.color, flexShrink: 0, boxShadow: `0 0 5px ${cfg.color}88` }}/>
-                <span style={{ flex: 1, color: isSel ? '#f8fafc' : '#94a3b8', fontSize: '0.78rem', fontWeight: isSel ? 700 : 400 }}>{c.name}</span>
-                <span style={{ fontSize: '0.72rem', color: cfg.color }}>{cfg.icon}</span>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.color, flexShrink: 0, boxShadow: `0 0 5px ${cfg.color}55` }} />
+                <span style={{ flex: 1, color: isSel ? '#f1f5f9' : '#8899b0', fontSize: '0.78rem', fontWeight: isSel ? 700 : 400 }}>{c.name}</span>
+                <span style={{ fontSize: '0.7rem', color: cfg.color, opacity: 0.75 }}>{cfg.icon}</span>
               </button>
             )
           })}
@@ -296,32 +344,35 @@ function WorldImpactMap({ countries }) {
 
       {/* ── Country detail card ── */}
       {sel ? (
-        <div style={{ background: `${selCfg.color}0b`, border: `1px solid ${selCfg.color}40`, borderRadius: 10, padding: '1.1rem 1.25rem', marginTop: '0.25rem' }}>
+        <div style={{ background: `linear-gradient(135deg, ${selCfg.color}08 0%, ${selCfg.color}04 100%)`, border: `1px solid ${selCfg.color}30`, borderRadius: 12, padding: '1.1rem 1.25rem', marginTop: '0.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem', marginBottom: '0.85rem', flexWrap: 'wrap' }}>
             <div style={{
               width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-              background: `${selCfg.color}18`, border: `2px solid ${selCfg.color}`,
+              background: `${selCfg.color}14`, border: `2px solid ${selCfg.color}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.25rem',
+              fontSize: '1.25rem', boxShadow: `0 0 20px ${selCfg.color}20`,
             }}>{selCfg.icon}</div>
             <div>
-              <div style={{ color: '#f8fafc', fontWeight: 800, fontSize: '1.15rem', lineHeight: 1.2, marginBottom: '0.35rem' }}>{sel.name}</div>
+              <div style={{ color: '#f1f5f9', fontWeight: 800, fontSize: '1.15rem', lineHeight: 1.2, marginBottom: '0.35rem' }}>{sel.name}</div>
               <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                 <span style={s.tag(selCfg.color)}>{sel.impactLabel}</span>
-                <span style={s.tag('#475569')}>Magnitude: {sel.magnitude}</span>
+                <span style={s.tag('#5a6e88')}>Magnitude: {sel.magnitude}</span>
               </div>
             </div>
-            <button onClick={() => setSelected(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem' }}>✕</button>
+            <button onClick={() => setSelected(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#3e5170', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', fontFamily: 'inherit', outline: 'none' }}>✕</button>
           </div>
-          <ul style={{ margin: 0, padding: '0 0 0 1.1rem', borderTop: `1px solid ${selCfg.color}25`, paddingTop: '0.75rem' }}>
+          <ul style={{ margin: 0, padding: '0.75rem 0 0 0', borderTop: `1px solid ${selCfg.color}1a`, listStyle: 'none' }}>
             {sel.reasons.map((r, i) => (
-              <li key={i} style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.7, marginBottom: '0.2rem' }}>{r}</li>
+              <li key={i} style={{ color: '#8899b0', fontSize: '0.82rem', lineHeight: 1.75, marginBottom: '0.2rem', paddingLeft: '1rem', position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 0, top: '0.52rem', width: 5, height: 5, borderRadius: '50%', background: `${selCfg.color}50` }} />
+                {r}
+              </li>
             ))}
           </ul>
         </div>
       ) : (
-        <div style={{ color: '#334155', fontSize: '0.72rem', textAlign: 'center', padding: '0.75rem', fontStyle: 'italic' }}>
-          Click a marker on the map or a country name in the list to see its full impact breakdown
+        <div style={{ color: '#2d3f57', fontSize: '0.73rem', textAlign: 'center', padding: '0.8rem', fontStyle: 'italic' }}>
+          Click a marker on the map or a country in the list to see its full impact breakdown
         </div>
       )}
     </div>
@@ -545,6 +596,8 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
           .g-feasibility-row .g-feasibility-bar { width: 100% !important; }
           .g-feasibility-row .g-feasibility-detail { flex: none !important; }
           .g-watchpoint-header { flex-direction: column !important; align-items: flex-start !important; gap: 0.3rem !important; }
+          .g-map-layout { grid-template-columns: 1fr !important; }
+          .g-map-layout > div:last-child { max-height: 250px !important; }
         }
         @media (max-width: 480px) {
           .g-metrics { grid-template-columns: 1fr 1fr !important; }
