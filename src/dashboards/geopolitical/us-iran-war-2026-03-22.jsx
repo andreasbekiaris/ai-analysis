@@ -467,7 +467,7 @@ const politicalComments = [
 // ─── AFFECTED COUNTRIES (World Map) ──────────────────────────────────────────
 const affectedCountries = [
   {
-    name: "USA",         lat: 38.9,  lon: -97,   impact: "direct",
+    name: "USA",         lat: 38.9,  lon: -97,   impact: "direct",   impactScore: 9,
     impactLabel: "Primary Belligerent",  magnitude: "Critical",
     reasons: [
       "Launched Operation Epic Fury on Feb 28, 2026 — ~900 strikes in 12 hours",
@@ -477,7 +477,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Iran",        lat: 32.4,  lon: 53.7,  impact: "direct",
+    name: "Iran",        lat: 32.4,  lon: 53.7,  impact: "direct",   impactScore: 10,
     impactLabel: "Primary Target",  magnitude: "Critical",
     reasons: [
       "Nuclear infrastructure, military leadership, and command nodes struck in opening salvo",
@@ -487,7 +487,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Israel",      lat: 31.8,  lon: 35.0,  impact: "direct",
+    name: "Israel",      lat: 31.8,  lon: 35.0,  impact: "direct",   impactScore: 8,
     impactLabel: "Co-Belligerent",  magnitude: "Critical",
     reasons: [
       "Coordinated strikes alongside US; primary strategic objective: permanent nuclear elimination",
@@ -496,7 +496,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Russia",      lat: 55.75, lon: 37.6,  impact: "positive",
+    name: "Russia",      lat: 55.75, lon: 37.6,  impact: "positive",  impactScore: 7,
     impactLabel: "Economic Beneficiary",  magnitude: "High",
     reasons: [
       "Brent crude peaked at $126/bbl — every $10 oil spike = ~$15B/yr in additional revenue",
@@ -506,7 +506,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "China",       lat: 35.0,  lon: 105.0, impact: "strategic",
+    name: "China",       lat: 35.0,  lon: 105.0, impact: "strategic",  impactScore: 7,
     impactLabel: "Strategic Risk / Oil Shock",  magnitude: "High",
     reasons: [
       "65% of Chinese oil imports transit the Strait of Hormuz — partial blockade is critical",
@@ -516,7 +516,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Iraq",        lat: 33.3,  lon: 44.4,  impact: "negative",
+    name: "Iraq",        lat: 33.3,  lon: 44.4,  impact: "negative",  impactScore: 8,
     impactLabel: "Proxy Conflict Spillover",  magnitude: "High",
     reasons: [
       "Iranian-backed militias actively striking US bases on Iraqi soil",
@@ -526,7 +526,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Lebanon",     lat: 33.9,  lon: 35.5,  impact: "negative",
+    name: "Lebanon",     lat: 33.9,  lon: 35.5,  impact: "negative",  impactScore: 8,
     impactLabel: "Hezbollah Conflict Zone",  magnitude: "High",
     reasons: [
       "Hezbollah re-engaged March 2 — rockets and drones targeting Israeli north",
@@ -536,7 +536,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Yemen",       lat: 15.3,  lon: 44.2,  impact: "direct",
+    name: "Yemen",       lat: 15.3,  lon: 44.2,  impact: "direct",    impactScore: 7,
     impactLabel: "Houthi Active Threat",  magnitude: "High",
     reasons: [
       "Houthis holding back larger strikes but have upgraded independent manufacturing capability",
@@ -545,7 +545,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Saudi Arabia", lat: 24.7, lon: 46.7,  impact: "mixed",
+    name: "Saudi Arabia", lat: 24.7, lon: 46.7,  impact: "mixed",     impactScore: 7,
     impactLabel: "Oil Windfall / Regional Risk",  magnitude: "High",
     reasons: [
       "Oil revenue windfall: $126/bbl vs $75 budgeted — massive fiscal surplus",
@@ -555,7 +555,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "UAE",         lat: 24.5,  lon: 54.4,  impact: "negative",
+    name: "UAE",         lat: 24.5,  lon: 54.4,  impact: "negative",  impactScore: 7,
     impactLabel: "Under Direct Missile Attack",  magnitude: "High",
     reasons: [
       "Iranian missiles have struck UAE installations hosting US military assets",
@@ -565,7 +565,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Qatar",       lat: 25.3,  lon: 51.2,  impact: "negative",
+    name: "Qatar",       lat: 25.3,  lon: 51.2,  impact: "negative",  impactScore: 7,
     impactLabel: "US Base — Target Risk",  magnitude: "High",
     reasons: [
       "Al-Udeid Air Base — largest US military base in the Middle East — primary operational hub",
@@ -574,7 +574,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Turkey",      lat: 39.9,  lon: 32.9,  impact: "mixed",
+    name: "Turkey",      lat: 39.9,  lon: 32.9,  impact: "mixed",     impactScore: 5,
     impactLabel: "NATO Ally / Iran Trade Partner",  magnitude: "Medium",
     reasons: [
       "NATO ally under pressure to provide logistics and airspace for US operations",
@@ -584,7 +584,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Greece",      lat: 37.9,  lon: 23.7,  impact: "negative",
+    name: "Greece",      lat: 37.9,  lon: 23.7,  impact: "negative",  impactScore: 6,
     impactLabel: "Oil Import Shock",  magnitude: "Medium",
     reasons: [
       "60% of Greek oil imports transiting Suez/Hormuz — price shock hits hard",
@@ -594,7 +594,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "India",       lat: 20.6,  lon: 78.9,  impact: "negative",
+    name: "India",       lat: 20.6,  lon: 78.9,  impact: "negative",  impactScore: 7,
     impactLabel: "Oil Import Dependency",  magnitude: "High",
     reasons: [
       "India imports 85% of its oil; 60% transits Hormuz — direct price shock",
@@ -604,7 +604,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Pakistan",    lat: 30.4,  lon: 69.3,  impact: "negative",
+    name: "Pakistan",    lat: 30.4,  lon: 69.3,  impact: "negative",  impactScore: 5,
     impactLabel: "Regional Destabilization",  magnitude: "Medium",
     reasons: [
       "Shares 900km border with Iran; cross-border militant spillover risk",
@@ -613,7 +613,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Germany",     lat: 51.2,  lon: 10.5,  impact: "negative",
+    name: "Germany",     lat: 51.2,  lon: 10.5,  impact: "negative",  impactScore: 5,
     impactLabel: "Energy Cost Spike",  magnitude: "Medium",
     reasons: [
       "Energy-intensive industry hit by $126/bbl oil and LNG scarcity",
@@ -622,7 +622,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Japan",       lat: 36.2,  lon: 138.3, impact: "negative",
+    name: "Japan",       lat: 36.2,  lon: 138.3, impact: "negative",  impactScore: 7,
     impactLabel: "Oil Import Crisis",  magnitude: "High",
     reasons: [
       "90% of Japanese oil imports transit the Strait of Hormuz",
@@ -632,7 +632,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Egypt",       lat: 26.8,  lon: 30.1,  impact: "mixed",
+    name: "Egypt",       lat: 26.8,  lon: 30.1,  impact: "mixed",     impactScore: 5,
     impactLabel: "Suez Canal Revenues / Instability",  magnitude: "Medium",
     reasons: [
       "Suez Canal toll revenues under threat as shipping reroutes around Cape of Good Hope",
@@ -641,7 +641,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Norway",      lat: 60.5,  lon: 8.5,   impact: "positive",
+    name: "Norway",      lat: 60.5,  lon: 8.5,   impact: "positive",  impactScore: 6,
     impactLabel: "Oil & Gas Windfall",  magnitude: "Medium",
     reasons: [
       "Europe's largest oil and gas supplier; $126/bbl = record government fund revenues",
@@ -650,7 +650,7 @@ const affectedCountries = [
     ],
   },
   {
-    name: "Azerbaijan",  lat: 40.4,  lon: 49.9,  impact: "positive",
+    name: "Azerbaijan",  lat: 40.4,  lon: 49.9,  impact: "positive",  impactScore: 4,
     impactLabel: "Oil Export Premium",  magnitude: "Medium",
     reasons: [
       "Baku-Tbilisi-Ceyhan pipeline bypasses Hormuz — premium pricing for safe delivery",

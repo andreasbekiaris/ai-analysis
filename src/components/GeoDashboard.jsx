@@ -179,7 +179,7 @@ function WorldImpactMap({ countries }) {
 
       // load world atlas
       try {
-        const res = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+        const res = await fetch('/world-110m.json')
         const topo = await res.json()
         if (!cancelled) {
           setWorldGeo(topoFeature(topo, topo.objects.countries))
@@ -285,7 +285,7 @@ function WorldImpactMap({ countries }) {
               const cfg  = IMPACT_CFG[c.impact] || IMPACT_CFG.neutral
               const isSel = selected === i
               const dim   = !inFilter(c) && filter !== 'all'
-              const r = c.magnitude === 'Critical' ? 13 : c.magnitude === 'High' ? 10 : c.magnitude === 'Medium' ? 7.5 : 5.5
+              const r = c.magnitude === 'Critical' ? 9 : c.magnitude === 'High' ? 7 : c.magnitude === 'Medium' ? 5.5 : 4
               return (
                 <g key={i} opacity={dim ? 0.08 : 1} style={{ cursor: 'pointer', transition: 'opacity 0.25s ease' }}
                   onClick={() => setSelected(selected === i ? null : i)}>
@@ -306,11 +306,19 @@ function WorldImpactMap({ countries }) {
                   <circle cx={cx} cy={cy} r={r} fill={`${cfg.color}20`} stroke={cfg.color} strokeWidth={1.6} />
                   {/* Core */}
                   <circle cx={cx} cy={cy} r={2.5} fill={cfg.color} opacity={0.95} />
-                  {/* Icon */}
-                  {(isSel || r >= 10) && (
+                  {/* Score badge above marker */}
+                  {c.impactScore != null && (isSel || r >= 7) && (
+                    <text x={cx} y={cy - r - 4} textAnchor="middle" dominantBaseline="auto"
+                      fill={cfg.color} fontSize={6.5} fontWeight="800"
+                      style={{ pointerEvents: 'none' }}>
+                      {c.impactScore}
+                    </text>
+                  )}
+                  {/* Icon inside marker */}
+                  {(isSel || r >= 7) && (
                     <text x={cx} y={cy + 0.5} textAnchor="middle" dominantBaseline="central"
-                      fill={cfg.color} fontSize={r >= 13 ? 8.5 : 7} fontWeight="bold"
-                      style={{ pointerEvents: 'none', textShadow: `0 0 6px ${cfg.color}88` }}>
+                      fill={cfg.color} fontSize={r >= 9 ? 7 : 6} fontWeight="bold"
+                      style={{ pointerEvents: 'none' }}>
                       {cfg.icon}
                     </text>
                   )}
@@ -340,6 +348,9 @@ function WorldImpactMap({ countries }) {
               }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: cfg.color, flexShrink: 0, boxShadow: `0 0 5px ${cfg.color}55` }} />
                 <span style={{ flex: 1, color: isSel ? '#f1f5f9' : '#8899b0', fontSize: '0.78rem', fontWeight: isSel ? 700 : 400 }}>{c.name}</span>
+                {c.impactScore != null && (
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: cfg.color, fontFamily: 'monospace', minWidth: '1.2rem', textAlign: 'right' }}>{c.impactScore}</span>
+                )}
                 <span style={{ fontSize: '0.7rem', color: cfg.color, opacity: 0.75 }}>{cfg.icon}</span>
               </button>
             )
@@ -359,9 +370,18 @@ function WorldImpactMap({ countries }) {
             }}>{selCfg.icon}</div>
             <div>
               <div style={{ color: '#f1f5f9', fontWeight: 800, fontSize: '1.15rem', lineHeight: 1.2, marginBottom: '0.35rem' }}>{sel.name}</div>
-              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
                 <span style={s.tag(selCfg.color)}>{sel.impactLabel}</span>
                 <span style={s.tag('#5a6e88')}>Magnitude: {sel.magnitude}</span>
+                {sel.impactScore != null && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.7rem' }}>Impact</span>
+                    <span style={{ color: selCfg.color, fontWeight: 800, fontSize: '0.85rem', fontFamily: 'monospace' }}>{sel.impactScore}<span style={{ color: '#334155', fontWeight: 400 }}>/10</span></span>
+                    <div style={{ width: 50, height: 4, background: '#1e293b', borderRadius: 2, overflow: 'hidden' }}>
+                      <div style={{ width: `${sel.impactScore * 10}%`, height: '100%', background: selCfg.color, borderRadius: 2 }} />
+                    </div>
+                  </span>
+                )}
               </div>
             </div>
             <button onClick={() => setSelected(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#3e5170', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem', fontFamily: 'inherit', outline: 'none' }}>✕</button>
