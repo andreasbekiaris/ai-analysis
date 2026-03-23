@@ -90,8 +90,185 @@ function FeasibilityRow({ dim, data }) {
   )
 }
 
+// ─── WORLD IMPACT MAP ─────────────────────────────────────────────────────────
+
+const MW = 920, MH = 440
+
+function merc(lat, lon) {
+  const x = ((lon + 180) / 360) * MW
+  const r = (lat * Math.PI) / 180
+  const n = Math.log(Math.tan(Math.PI / 4 + r / 2))
+  const y = MH / 2 - (MW * n) / (2 * Math.PI)
+  return [parseFloat(x.toFixed(1)), parseFloat(y.toFixed(1))]
+}
+
+function polyPath(pts) {
+  return pts.map(([la, lo], i) => `${i ? 'L' : 'M'}${merc(la, lo).join(',')}`).join('') + 'Z'
+}
+
+// Simplified continent outlines [lat, lon]
+const LAND = [
+  // North America
+  [[70,-160],[70,-140],[60,-140],[49,-126],[37,-122],[32,-117],[20,-106],[15,-90],[9,-79],[11,-83],[20,-87],[26,-97],[30,-81],[38,-75],[41,-70],[44,-66],[47,-52],[60,-64],[63,-66],[68,-73],[72,-68],[73,-58],[76,-27],[72,-22],[65,-14],[63,-52],[70,-160]],
+  // South America
+  [[12,-72],[10,-62],[5,-52],[0,-50],[-5,-35],[-24,-43],[-35,-57],[-55,-67],[-55,-70],[-43,-73],[-30,-71],[-18,-70],[-5,-82],[0,-80],[5,-77],[12,-72]],
+  // Europe (mainland + W Russia)
+  [[37,-9],[44,-8],[48,-5],[51,2],[54,10],[60,25],[65,25],[55,37],[47,39],[41,29],[37,25],[37,10],[36,-6],[37,-9]],
+  // Scandinavia
+  [[57,8],[60,5],[62,5],[65,14],[68,18],[70,28],[65,25],[60,25],[58,10],[57,8]],
+  // Russia (Siberia body)
+  [[55,37],[72,60],[72,100],[72,142],[55,145],[55,110],[55,80],[55,37]],
+  // Africa
+  [[37,-10],[37,10],[37,37],[22,38],[12,52],[0,42],[-12,40],[-26,33],[-34,26],[-34,18],[-22,14],[0,8],[4,-8],[15,-17],[22,-17],[37,-10]],
+  // Arabian Peninsula
+  [[22,38],[12,44],[12,54],[22,60],[28,58],[32,50],[28,47],[22,38]],
+  // Middle East + Iran + Central Asia
+  [[37,37],[55,37],[55,80],[40,68],[37,72],[28,63],[24,62],[22,60],[28,58],[37,50],[37,43],[37,37]],
+  // Indian Subcontinent
+  [[28,72],[20,73],[8,77],[8,80],[22,90],[28,97],[28,72]],
+  // East Asia + SE Asia mainland
+  [[55,80],[55,145],[45,141],[38,122],[22,122],[20,110],[5,100],[5,103],[22,100],[28,97],[28,72],[40,68],[55,80]],
+  // SE Asia islands (rough)
+  [[-8,105],[-5,115],[0,119],[-5,130],[-8,141],[0,140],[0,128],[-5,120],[-8,108],[-8,105]],
+  // Australia
+  [[-18,122],[-14,130],[-14,140],[-18,147],[-22,150],[-38,147],[-39,143],[-38,140],[-35,117],[-22,114],[-18,122]],
+  // Japan
+  [[34,130],[36,136],[36,141],[40,141],[43,141],[43,143],[41,141],[37,137],[34,130]],
+  // UK
+  [[50,-5],[58,-5],[55,0],[52,2],[50,0],[49,-2],[50,-5]],
+  // Greenland
+  [[83,-40],[83,-15],[72,-23],[65,-40],[65,-52],[73,-58],[76,-30],[83,-40]],
+  // Iceland
+  [[64,-25],[66,-24],[66,-14],[63,-14],[63,-22],[64,-25]],
+  // New Zealand (rough)
+  [[-36,174],[-38,176],[-46,170],[-44,168],[-36,174]],
+]
+
+const IMPACT_CFG = {
+  direct:    { color: '#ef4444', label: 'Direct Involvement',  icon: '⚔',  legend: 'At War / Direct Party' },
+  negative:  { color: '#f97316', label: 'Negative Impact',     icon: '↓',  legend: 'Harmed / At Risk' },
+  positive:  { color: '#10b981', label: 'Economic Beneficiary',icon: '↑',  legend: 'Benefits from Conflict' },
+  mixed:     { color: '#f59e0b', label: 'Mixed Impact',         icon: '↕',  legend: 'Mixed/Uncertain Impact' },
+  strategic: { color: '#8b5cf6', label: 'Strategic Risk',      icon: '⚡', legend: 'Heightened Strategic Risk' },
+  neutral:   { color: '#64748b', label: 'Minimal Impact',       icon: '→',  legend: 'Indirect / Minor Impact' },
+}
+
+function WorldImpactMap({ countries }) {
+  const [selected, setSelected] = useState(null)
+  if (!countries || countries.length === 0) return null
+  const sel = selected !== null ? countries[selected] : null
+
+  return (
+    <div>
+      {/* Map SVG */}
+      <div style={{ position: 'relative', background: '#040c18', borderRadius: 8, overflow: 'hidden', border: '1px solid #1e293b' }}>
+        <svg viewBox={`0 0 ${MW} ${MH}`} style={{ width: '100%', display: 'block' }} preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <clipPath id="mapclip"><rect width={MW} height={MH} /></clipPath>
+          </defs>
+
+          {/* Ocean */}
+          <rect width={MW} height={MH} fill="#040c18" />
+
+          {/* Lat/lon grid */}
+          {[-60,-30,0,30,60].map(lat => {
+            const [,y] = merc(lat, 0)
+            return y >= 0 && y <= MH ? <line key={lat} x1={0} y1={y} x2={MW} y2={y} stroke="#0b1929" strokeWidth={0.6} /> : null
+          })}
+          {[-150,-120,-90,-60,-30,0,30,60,90,120,150].map(lon => {
+            const [x] = merc(0, lon)
+            return <line key={lon} x1={x} y1={0} x2={x} y2={MH} stroke="#0b1929" strokeWidth={0.6} />
+          })}
+
+          {/* Equator highlight */}
+          {(() => { const [,y] = merc(0,0); return <line x1={0} y1={y} x2={MW} y2={y} stroke="#0d2744" strokeWidth={1} /> })()}
+
+          {/* Land masses */}
+          <g clipPath="url(#mapclip)">
+            {LAND.map((pts, i) => (
+              <path key={i} d={polyPath(pts)} fill="#182840" stroke="#0d1e32" strokeWidth={0.7} />
+            ))}
+          </g>
+
+          {/* Country impact markers */}
+          <g clipPath="url(#mapclip)">
+            {countries.map((c, i) => {
+              const [cx, cy] = merc(c.lat, c.lon)
+              const cfg = IMPACT_CFG[c.impact] || IMPACT_CFG.neutral
+              const r = c.magnitude === 'Critical' ? 14 : c.magnitude === 'High' ? 11 : c.magnitude === 'Medium' ? 9 : 7
+              const isSel = selected === i
+              return (
+                <g key={i} style={{ cursor: 'pointer' }} onClick={() => setSelected(selected === i ? null : i)}>
+                  {/* Glow ring */}
+                  {isSel && <circle cx={cx} cy={cy} r={r + 10} fill="none" stroke={cfg.color} strokeWidth={0.8} opacity={0.25} />}
+                  <circle cx={cx} cy={cy} r={r + 5} fill="none" stroke={cfg.color} strokeWidth={isSel ? 1.5 : 0.5} opacity={isSel ? 0.5 : 0.2} />
+                  {/* Fill circle */}
+                  <circle cx={cx} cy={cy} r={r} fill={`${cfg.color}28`} stroke={cfg.color} strokeWidth={1.8} />
+                  {/* Icon */}
+                  <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central"
+                    fill={cfg.color} fontSize={r < 9 ? 7 : 8} fontWeight="bold" style={{ pointerEvents: 'none' }}>
+                    {cfg.icon}
+                  </text>
+                  {/* Country label */}
+                  <text x={cx} y={cy + r + 9} textAnchor="middle" fill={cfg.color}
+                    fontSize={8.5} fontWeight={isSel ? '700' : '500'}
+                    stroke="#040c18" strokeWidth={2.5} paintOrder="stroke"
+                    style={{ pointerEvents: 'none' }}>
+                    {c.name}
+                  </text>
+                </g>
+              )
+            })}
+          </g>
+        </svg>
+      </div>
+
+      {/* Legend */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1rem', marginTop: '0.75rem' }}>
+        {Object.entries(IMPACT_CFG).map(([key, cfg]) => (
+          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <div style={{ width: 9, height: 9, borderRadius: '50%', background: cfg.color, flexShrink: 0 }} />
+            <span style={{ color: '#64748b', fontSize: '0.7rem' }}>{cfg.legend}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Tap hint */}
+      <p style={{ color: '#334155', fontSize: '0.68rem', margin: '0.3rem 0 0.75rem', fontStyle: 'italic' }}>
+        Tap a country circle to see its full impact breakdown
+      </p>
+
+      {/* Selected country detail */}
+      {sel && (() => {
+        const cfg = IMPACT_CFG[sel.impact] || IMPACT_CFG.neutral
+        return (
+          <div style={{ background: `${cfg.color}0d`, border: `1px solid ${cfg.color}44`, borderRadius: 8, padding: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${cfg.color}22`, border: `2px solid ${cfg.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
+                {cfg.icon}
+              </div>
+              <div>
+                <div style={{ color: '#f8fafc', fontWeight: 800, fontSize: '1.05rem' }}>{sel.name}</div>
+                <div style={{ display: 'flex', gap: '0.4rem', marginTop: 3, flexWrap: 'wrap' }}>
+                  <span style={s.tag(cfg.color)}>{sel.impactLabel}</span>
+                  <span style={s.tag('#475569')}>Magnitude: {sel.magnitude}</span>
+                </div>
+              </div>
+            </div>
+            <ul style={{ margin: 0, padding: '0 0 0 1.1rem' }}>
+              {sel.reasons.map((r, i) => (
+                <li key={i} style={{ color: '#94a3b8', fontSize: '0.8rem', lineHeight: 1.65, marginBottom: '0.25rem' }}>{r}</li>
+              ))}
+            </ul>
+          </div>
+        )
+      })()}
+    </div>
+  )
+}
+
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
-export default function GeoDashboard({ data, politicalComments, verdict, gaps }) {
+export default function GeoDashboard({ data, politicalComments, verdict, gaps, affectedCountries }) {
   const [activeScenario, setActiveScenario] = useState(0)
   const [activeTab, setActiveTab] = useState('verdict')
   const d = data
@@ -100,6 +277,7 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps })
   const tabs = [
     { id: 'verdict',    label: 'Verdict',         icon: Zap,       highlight: true },
     { id: 'overview',   label: 'Situation',        icon: Globe2 },
+    ...(affectedCountries?.length ? [{ id: 'worldmap', label: 'World Map', icon: BarChart3 }] : []),
     { id: 'signals',    label: 'Political Signals',icon: MessageSquare },
     { id: 'scenarios',  label: 'Scenarios',        icon: Target },
     { id: 'feasibility',label: 'Feasibility',      icon: Shield },
@@ -310,6 +488,26 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps })
               analysisType="geopolitical"
               gaps={gaps}
             />
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {/* TAB: WORLD MAP                                                     */}
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'worldmap' && (
+          <div>
+            <div style={{ ...s.panel, marginBottom: '0.75rem', background: 'rgba(16,185,129,0.04)', border: '1px solid rgba(16,185,129,0.18)' }}>
+              <div style={{ color: '#94a3b8', fontSize: '0.8rem', lineHeight: 1.6 }}>
+                Countries affected by this conflict — colored by how they are impacted.
+                Circle size = estimated magnitude of impact.{' '}
+                <span style={{ color: '#10b981', fontWeight: 700 }}>Green ↑</span> = economic or strategic beneficiary ·{' '}
+                <span style={{ color: '#f97316', fontWeight: 700 }}>Orange ↓</span> = harmed or at risk ·{' '}
+                <span style={{ color: '#ef4444', fontWeight: 700 }}>Red ⚔</span> = direct party to conflict
+              </div>
+            </div>
+            <div style={s.panel}>
+              <WorldImpactMap countries={affectedCountries} />
+            </div>
           </div>
         )}
 

@@ -464,6 +464,201 @@ const politicalComments = [
   },
 ]
 
+// ─── AFFECTED COUNTRIES (World Map) ──────────────────────────────────────────
+const affectedCountries = [
+  {
+    name: "USA",         lat: 38.9,  lon: -97,   impact: "direct",
+    impactLabel: "Primary Belligerent",  magnitude: "Critical",
+    reasons: [
+      "Launched Operation Epic Fury on Feb 28, 2026 — ~900 strikes in 12 hours",
+      "~45,000 troops deployed to the region; 2 carrier strike groups active",
+      "$200B supplemental funding request faces bipartisan Congressional resistance",
+      "Public approval at 41%; rising fuel costs and economic drag from sustained operations",
+    ],
+  },
+  {
+    name: "Iran",        lat: 32.4,  lon: 53.7,  impact: "direct",
+    impactLabel: "Primary Target",  magnitude: "Critical",
+    reasons: [
+      "Nuclear infrastructure, military leadership, and command nodes struck in opening salvo",
+      "Supreme Leader Khamenei killed on Day 1 along with senior IRGC officials",
+      "Economy near collapse: 60% inflation, oil exports severely disrupted by partial Hormuz blockade",
+      "Retaliating asymmetrically across 9 countries via proxies and direct missile strikes",
+    ],
+  },
+  {
+    name: "Israel",      lat: 31.8,  lon: 35.0,  impact: "direct",
+    impactLabel: "Co-Belligerent",  magnitude: "Critical",
+    reasons: [
+      "Coordinated strikes alongside US; primary strategic objective: permanent nuclear elimination",
+      "Under active Hezbollah rocket and drone attacks from Lebanon (March 2 onwards)",
+      "Seeks regime change; ground operation option remains on table",
+    ],
+  },
+  {
+    name: "Russia",      lat: 55.75, lon: 37.6,  impact: "positive",
+    impactLabel: "Economic Beneficiary",  magnitude: "High",
+    reasons: [
+      "Brent crude peaked at $126/bbl — every $10 oil spike = ~$15B/yr in additional revenue",
+      "US strategic focus shifts away from Ukraine, reducing pressure on Russian operations",
+      "Geopolitical leverage increases as mediator/spoiler in ceasefire negotiations",
+      "Arms exports accelerate as Gulf states rearm; Russian equipment in demand",
+    ],
+  },
+  {
+    name: "China",       lat: 35.0,  lon: 105.0, impact: "strategic",
+    impactLabel: "Strategic Risk / Oil Shock",  magnitude: "High",
+    reasons: [
+      "65% of Chinese oil imports transit the Strait of Hormuz — partial blockade is critical",
+      "Strategic opportunity: increased leverage over Iran and Gulf states while US is distracted",
+      "Taiwan Strait deterrence calculus shifts as US carrier groups focus on Persian Gulf",
+      "Global supply chain disruption adds cost to manufacturing exports and rare earth access",
+    ],
+  },
+  {
+    name: "Iraq",        lat: 33.3,  lon: 44.4,  impact: "negative",
+    impactLabel: "Proxy Conflict Spillover",  magnitude: "High",
+    reasons: [
+      "Iranian-backed militias actively striking US bases on Iraqi soil",
+      "Government caught between Washington and Tehran — sovereignty under pressure",
+      "Oil infrastructure at risk from spillover strikes; Iraqi oil production disrupted",
+      "Humanitarian crisis risk as fighting approaches population centers",
+    ],
+  },
+  {
+    name: "Lebanon",     lat: 33.9,  lon: 35.5,  impact: "negative",
+    impactLabel: "Hezbollah Conflict Zone",  magnitude: "High",
+    reasons: [
+      "Hezbollah re-engaged March 2 — rockets and drones targeting Israeli north",
+      "Israeli counter-strikes into Lebanon resuming; civilian areas at risk",
+      "Economy — already near failed-state status — further destabilized",
+      "Ceasefire of 2024 collapsed; full war resumption possible",
+    ],
+  },
+  {
+    name: "Yemen",       lat: 15.3,  lon: 44.2,  impact: "direct",
+    impactLabel: "Houthi Active Threat",  magnitude: "High",
+    reasons: [
+      "Houthis holding back larger strikes but have upgraded independent manufacturing capability",
+      "Red Sea shipping lanes remain under threat — insurance premiums surged 300%",
+      "Potential for escalated Houthi involvement if Iran signals a go-ahead",
+    ],
+  },
+  {
+    name: "Saudi Arabia", lat: 24.7, lon: 46.7,  impact: "mixed",
+    impactLabel: "Oil Windfall / Regional Risk",  magnitude: "High",
+    reasons: [
+      "Oil revenue windfall: $126/bbl vs $75 budgeted — massive fiscal surplus",
+      "Iranian missile salvos targeting Saudi facilities and US assets on Saudi soil",
+      "Hosting US forces makes Saudi Arabia a legitimate Iranian counter-target",
+      "Regional instability threatens Vision 2030 investment climate",
+    ],
+  },
+  {
+    name: "UAE",         lat: 24.5,  lon: 54.4,  impact: "negative",
+    impactLabel: "Under Direct Missile Attack",  magnitude: "High",
+    reasons: [
+      "Iranian missiles have struck UAE installations hosting US military assets",
+      "Dubai financial markets rattled; safe-haven outflows accelerating",
+      "Tourism and Expo investment pipeline frozen as regional stability collapses",
+      "Hosting US forces = legitimate target under Iranian doctrine",
+    ],
+  },
+  {
+    name: "Qatar",       lat: 25.3,  lon: 51.2,  impact: "negative",
+    impactLabel: "US Base — Target Risk",  magnitude: "High",
+    reasons: [
+      "Al-Udeid Air Base — largest US military base in the Middle East — primary operational hub",
+      "Iranian missile threat to Al-Udeid is existential for US forward operations",
+      "LNG exports disrupted by Hormuz partial blockade; Qatar GDP at risk",
+    ],
+  },
+  {
+    name: "Turkey",      lat: 39.9,  lon: 32.9,  impact: "mixed",
+    impactLabel: "NATO Ally / Iran Trade Partner",  magnitude: "Medium",
+    reasons: [
+      "NATO ally under pressure to provide logistics and airspace for US operations",
+      "Significant Iran-Turkey trade ($10B/yr) severely disrupted",
+      "Erdogan positioning as potential mediator — geopolitical opportunity",
+      "Refugee flows from Iraq and Lebanon already straining southeastern Turkey",
+    ],
+  },
+  {
+    name: "Greece",      lat: 37.9,  lon: 23.7,  impact: "negative",
+    impactLabel: "Oil Import Shock",  magnitude: "Medium",
+    reasons: [
+      "60% of Greek oil imports transiting Suez/Hormuz — price shock hits hard",
+      "Shipping sector (world's largest fleet) exposed to Red Sea/Hormuz insurance surge",
+      "Tourism-dependent economy vulnerable to regional instability deterring travel",
+      "ECB rate cut path delayed by oil-driven inflation spike → mortgage burden remains high",
+    ],
+  },
+  {
+    name: "India",       lat: 20.6,  lon: 78.9,  impact: "negative",
+    impactLabel: "Oil Import Dependency",  magnitude: "High",
+    reasons: [
+      "India imports 85% of its oil; 60% transits Hormuz — direct price shock",
+      "Iran was India's 3rd largest oil supplier pre-war; supply now cut",
+      "Rupee under pressure as import bill surges; RBI burning through reserves",
+      "Had maintained strategic ambiguity on Iran relations; now forced to choose sides",
+    ],
+  },
+  {
+    name: "Pakistan",    lat: 30.4,  lon: 69.3,  impact: "negative",
+    impactLabel: "Regional Destabilization",  magnitude: "Medium",
+    reasons: [
+      "Shares 900km border with Iran; cross-border militant spillover risk",
+      "US pressure to support operations creates domestic political crisis",
+      "Own energy costs surge — economy already under IMF restructuring",
+    ],
+  },
+  {
+    name: "Germany",     lat: 51.2,  lon: 10.5,  impact: "negative",
+    impactLabel: "Energy Cost Spike",  magnitude: "Medium",
+    reasons: [
+      "Energy-intensive industry hit by $126/bbl oil and LNG scarcity",
+      "Already in recession; oil shock may tip mild recession into severe contraction",
+      "NATO obligations demand increased defense spending — fiscal pressure mounts",
+    ],
+  },
+  {
+    name: "Japan",       lat: 36.2,  lon: 138.3, impact: "negative",
+    impactLabel: "Oil Import Crisis",  magnitude: "High",
+    reasons: [
+      "90% of Japanese oil imports transit the Strait of Hormuz",
+      "Yen weakening accelerates as import costs surge — stagflation risk",
+      "Japan-Iran energy deals collapsed; scrambling for alternative LNG suppliers",
+      "BOJ rate hike path complicated by oil shock stagflation vs currency pressure",
+    ],
+  },
+  {
+    name: "Egypt",       lat: 26.8,  lon: 30.1,  impact: "mixed",
+    impactLabel: "Suez Canal Revenues / Instability",  magnitude: "Medium",
+    reasons: [
+      "Suez Canal toll revenues under threat as shipping reroutes around Cape of Good Hope",
+      "Regional instability on Egypt's eastern border (Gaza, Sinai spillover risk)",
+      "Oil price benefit limited — Egypt is a net importer with domestic subsidies",
+    ],
+  },
+  {
+    name: "Norway",      lat: 60.5,  lon: 8.5,   impact: "positive",
+    impactLabel: "Oil & Gas Windfall",  magnitude: "Medium",
+    reasons: [
+      "Europe's largest oil and gas supplier; $126/bbl = record government fund revenues",
+      "European buyers locked into Norwegian LNG at spot premiums as Iranian supply cut",
+      "Government Pension Fund (GPFG) energy holdings surging in value",
+    ],
+  },
+  {
+    name: "Azerbaijan",  lat: 40.4,  lon: 49.9,  impact: "positive",
+    impactLabel: "Oil Export Premium",  magnitude: "Medium",
+    reasons: [
+      "Baku-Tbilisi-Ceyhan pipeline bypasses Hormuz — premium pricing for safe delivery",
+      "European and Asian buyers paying surcharge for Azeri crude as Iranian supply cut",
+    ],
+  },
+]
+
 // ─── EXPORT ───────────────────────────────────────────────────────────────────
 export default function UsIranWar20260322() {
   return (
@@ -472,6 +667,7 @@ export default function UsIranWar20260322() {
       politicalComments={politicalComments}
       verdict={strategicVerdict}
       gaps={analysisGaps}
+      affectedCountries={affectedCountries}
     />
   )
 }
