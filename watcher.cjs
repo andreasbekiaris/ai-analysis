@@ -76,30 +76,14 @@ async function getSmeeUrl() {
     }
   }
 
-  // Create a new channel
+  // Create a new channel using smee-client's built-in static method
   log('Creating new smee.io channel...');
   const SmeeClient = (await import('smee-client')).default;
-  const url = await new Promise((resolve, reject) => {
-    https_get('https://smee.io/new', (res) => {
-      // smee.io/new redirects to the new channel URL
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        resolve(res.headers.location);
-      } else {
-        // Read the response to get the URL from the body/redirect
-        let data = '';
-        res.on('data', (chunk) => data += chunk);
-        res.on('end', () => resolve(data.trim()));
-      }
-    }).on('error', reject);
-  });
+  const url = await SmeeClient.createChannel();
 
   fs.writeFileSync(CONFIG.smeeUrlFile, url);
   log(`Created smee channel: ${url}`);
   return url;
-}
-
-function https_get(url, callback) {
-  return require('https').get(url, callback);
 }
 
 /**
@@ -142,7 +126,7 @@ async function startSmeeClient(smeeUrl) {
     logger: { info: () => {}, error: logError },
   });
 
-  smee.start();
+  await smee.start();
   log(`Smee client connected: ${smeeUrl} -> localhost:${CONFIG.port}`);
 }
 
