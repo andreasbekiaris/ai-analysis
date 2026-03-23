@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { BarChart3, Globe2, TrendingUp, Clock, Plus, Send, CheckCircle, AlertCircle, Loader, BookOpen } from 'lucide-react'
+import { BarChart3, Globe2, TrendingUp, Clock, Plus, Send, CheckCircle, AlertCircle, Loader, BookOpen, RotateCw } from 'lucide-react'
 
 // Import dashboards here as they are created
 import UsIranWar from './dashboards/geopolitical/us-iran-war-2026-03-22'
@@ -11,6 +11,44 @@ const dashboards = [
   { path: '/geo/us-iran-war', component: UsIranWar, title: 'US–Iran War: Operation Epic Fury', type: 'geopolitical', date: '2026-03-22' },
   { path: '/stocks/alpha', component: AlphaBank, title: 'Alpha Bank (ALPHA.AT / ALBKY)', type: 'stocks', date: '2026-03-22' },
 ]
+
+function RefreshButton() {
+  const [spinning, setSpinning] = useState(false)
+
+  const handleRefresh = useCallback(() => {
+    if (spinning) return
+    setSpinning(true)
+    // Brief animation, then hard-reload to pick up the latest Vercel deployment
+    setTimeout(() => window.location.reload(), 600)
+  }, [spinning])
+
+  return (
+    <button
+      onClick={handleRefresh}
+      disabled={spinning}
+      title="Check for new analyses"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.35rem',
+        color: spinning ? '#06b6d4' : '#94a3b8',
+        fontSize: '0.78rem',
+        fontWeight: 600,
+        background: '#0a0f1e',
+        border: `1px solid ${spinning ? '#06b6d4' : '#1e293b'}`,
+        borderRadius: '6px',
+        padding: '0.3rem 0.7rem',
+        cursor: spinning ? 'default' : 'pointer',
+        transition: 'color 0.2s, border-color 0.2s',
+      }}
+      onMouseEnter={e => { if (!spinning) { e.currentTarget.style.color = '#06b6d4'; e.currentTarget.style.borderColor = '#06b6d4' } }}
+      onMouseLeave={e => { if (!spinning) { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.borderColor = '#1e293b' } }}
+    >
+      <RotateCw size={12} style={{ animation: spinning ? 'spin 0.6s linear infinite' : 'none' }} />
+      {spinning ? 'Refreshing…' : 'Refresh'}
+    </button>
+  )
+}
 
 function NewAnalysisForm() {
   const [prompt, setPrompt] = useState('')
@@ -140,18 +178,21 @@ function Home() {
                 Analysis Dashboard Hub
               </h1>
             </div>
-            <Link to="/help" style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600,
-              textDecoration: 'none', padding: '0.45rem 1rem',
-              border: '1px solid #1e293b', borderRadius: '6px',
-              backgroundColor: '#111827',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#06b6d4'; e.currentTarget.style.color = '#06b6d4' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.color = '#94a3b8' }}
-            >
-              <BookOpen size={14} /> Glossary
-            </Link>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <RefreshButton />
+              <Link to="/help" style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600,
+                textDecoration: 'none', padding: '0.45rem 1rem',
+                border: '1px solid #1e293b', borderRadius: '6px',
+                backgroundColor: '#111827',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#06b6d4'; e.currentTarget.style.color = '#06b6d4' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.color = '#94a3b8' }}
+              >
+                <BookOpen size={14} /> Glossary
+              </Link>
+            </div>
           </div>
           <p style={{ color: '#94a3b8', fontSize: '1.1rem', margin: 0 }}>
             Geopolitical & Financial Intelligence Dashboards
