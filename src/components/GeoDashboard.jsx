@@ -235,7 +235,7 @@ function WorldImpactMap({ countries }) {
       <div className="g-map-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 215px', gap: '1rem', marginBottom: '1rem' }}>
 
         {/* ──── SVG MAP ──── */}
-        <div style={{ background: 'linear-gradient(180deg, #030a18 0%, #071020 50%, #030a14 100%)', borderRadius: 12, overflow: 'hidden', border: '1px solid #162038', lineHeight: 0, position: 'relative', maxHeight: 420 }}>
+        <div style={{ background: 'linear-gradient(180deg, #061222 0%, #081828 50%, #050f1e 100%)', borderRadius: 12, overflow: 'hidden', border: '1px solid #1a3352', lineHeight: 0, position: 'relative' }}>
           {loading && (
             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155', fontSize: '0.82rem', zIndex: 2 }}>
               Loading world map…
@@ -254,29 +254,29 @@ function WorldImpactMap({ countries }) {
                 )
               })}
               <radialGradient id="oceanGrad" cx="50%" cy="40%" r="60%">
-                <stop offset="0%" stopColor="#081828" />
-                <stop offset="100%" stopColor="#030a14" />
+                <stop offset="0%" stopColor="#0e2840" />
+                <stop offset="100%" stopColor="#060f1e" />
               </radialGradient>
             </defs>
 
             {/* Globe/ocean */}
             {geo?.path ? (
               <>
-                <rect x={VB_X} y={VB_Y} width={VB_W} height={VB_H} fill="#030a14" />
-                <path d={geo.path({ type: 'Sphere' })} fill="url(#oceanGrad)" stroke="#0f2240" strokeWidth={1} />
+                <rect x={VB_X} y={VB_Y} width={VB_W} height={VB_H} fill="#060f1e" />
+                <path d={geo.path({ type: 'Sphere' })} fill="url(#oceanGrad)" stroke="#1a3a5c" strokeWidth={1.5} />
               </>
             ) : (
-              <rect x={VB_X} y={VB_Y} width={VB_W} height={VB_H} fill="#030a14" />
+              <rect x={VB_X} y={VB_Y} width={VB_W} height={VB_H} fill="#060f1e" />
             )}
 
             {/* Graticule grid */}
             {geo?.path && geo.graticule && (
-              <path d={geo.path(geo.graticule)} fill="none" stroke="#0b1628" strokeWidth={0.4} />
+              <path d={geo.path(geo.graticule)} fill="none" stroke="#0f2035" strokeWidth={0.5} />
             )}
 
             {/* Country polygons from TopoJSON */}
             {worldGeo && geo?.path && worldGeo.features.map((f, i) => (
-              <path key={i} d={geo.path(f)} fill="#0d1f36" stroke="#162a46" strokeWidth={0.45} />
+              <path key={i} d={geo.path(f)} fill="#102444" stroke="#1e3d62" strokeWidth={0.6} />
             ))}
 
             {/* Country markers */}
@@ -285,7 +285,7 @@ function WorldImpactMap({ countries }) {
               const cfg  = IMPACT_CFG[c.impact] || IMPACT_CFG.neutral
               const isSel = selected === i
               const dim   = !inFilter(c) && filter !== 'all'
-              const r = c.magnitude === 'Critical' ? 9 : c.magnitude === 'High' ? 7 : c.magnitude === 'Medium' ? 5.5 : 4
+              const r = c.magnitude === 'Critical' ? 11 : c.magnitude === 'High' ? 8.5 : c.magnitude === 'Medium' ? 6.5 : 5
               return (
                 <g key={i} opacity={dim ? 0.08 : 1} style={{ cursor: 'pointer', transition: 'opacity 0.25s ease' }}
                   onClick={() => setSelected(selected === i ? null : i)}>
@@ -307,17 +307,17 @@ function WorldImpactMap({ countries }) {
                   {/* Core */}
                   <circle cx={cx} cy={cy} r={2.5} fill={cfg.color} opacity={0.95} />
                   {/* Score badge above marker */}
-                  {c.impactScore != null && (isSel || r >= 7) && (
+                  {c.impactScore != null && (isSel || r >= 8) && (
                     <text x={cx} y={cy - r - 4} textAnchor="middle" dominantBaseline="auto"
-                      fill={cfg.color} fontSize={6.5} fontWeight="800"
+                      fill={cfg.color} fontSize={7} fontWeight="800"
                       style={{ pointerEvents: 'none' }}>
                       {c.impactScore}
                     </text>
                   )}
                   {/* Icon inside marker */}
-                  {(isSel || r >= 7) && (
+                  {(isSel || r >= 8) && (
                     <text x={cx} y={cy + 0.5} textAnchor="middle" dominantBaseline="central"
-                      fill={cfg.color} fontSize={r >= 9 ? 7 : 6} fontWeight="bold"
+                      fill={cfg.color} fontSize={r >= 11 ? 8 : 7} fontWeight="bold"
                       style={{ pointerEvents: 'none' }}>
                       {cfg.icon}
                     </text>
@@ -329,7 +329,7 @@ function WorldImpactMap({ countries }) {
         </div>
 
         {/* ── Country list sidebar ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, overflowY: 'auto', maxHeight: 420, paddingRight: 2 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, overflowY: 'auto', maxHeight: 500, paddingRight: 2 }}>
           <div style={{ color: '#3e5170', fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', padding: '0 0 0.45rem', marginBottom: '0.4rem', borderBottom: '1px solid #162038', flexShrink: 0 }}>
             {filter === 'all' ? `${countries.length} countries affected` : `${listItems.length} ${IMPACT_CFG[filter]?.legend || filter}`}
           </div>
