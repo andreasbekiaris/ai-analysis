@@ -10,7 +10,7 @@ import {
   AlertTriangle, Shield, Globe2, TrendingDown, Zap, Clock,
   Target, Activity, Eye, Users, DollarSign,
   Crosshair, Radio, Flag, BookOpen, ArrowRight, Home, MessageSquare,
-  BarChart3
+  BarChart3, Sparkles, Send, ChevronDown, ChevronUp
 } from 'lucide-react'
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -92,7 +92,7 @@ function FeasibilityRow({ dim, data }) {
 
 // ─── WORLD IMPACT MAP ─────────────────────────────────────────────────────────
 
-const MW = 920, MH = 440
+const MW = 960, MH = 460
 
 function merc(lat, lon) {
   const x = ((lon + 180) / 360) * MW
@@ -106,163 +106,390 @@ function polyPath(pts) {
   return pts.map(([la, lo], i) => `${i ? 'L' : 'M'}${merc(la, lo).join(',')}`).join('') + 'Z'
 }
 
-// Simplified continent outlines [lat, lon]
 const LAND = [
-  // North America
   [[70,-160],[70,-140],[60,-140],[49,-126],[37,-122],[32,-117],[20,-106],[15,-90],[9,-79],[11,-83],[20,-87],[26,-97],[30,-81],[38,-75],[41,-70],[44,-66],[47,-52],[60,-64],[63,-66],[68,-73],[72,-68],[73,-58],[76,-27],[72,-22],[65,-14],[63,-52],[70,-160]],
-  // South America
   [[12,-72],[10,-62],[5,-52],[0,-50],[-5,-35],[-24,-43],[-35,-57],[-55,-67],[-55,-70],[-43,-73],[-30,-71],[-18,-70],[-5,-82],[0,-80],[5,-77],[12,-72]],
-  // Europe (mainland + W Russia)
   [[37,-9],[44,-8],[48,-5],[51,2],[54,10],[60,25],[65,25],[55,37],[47,39],[41,29],[37,25],[37,10],[36,-6],[37,-9]],
-  // Scandinavia
   [[57,8],[60,5],[62,5],[65,14],[68,18],[70,28],[65,25],[60,25],[58,10],[57,8]],
-  // Russia (Siberia body)
   [[55,37],[72,60],[72,100],[72,142],[55,145],[55,110],[55,80],[55,37]],
-  // Africa
   [[37,-10],[37,10],[37,37],[22,38],[12,52],[0,42],[-12,40],[-26,33],[-34,26],[-34,18],[-22,14],[0,8],[4,-8],[15,-17],[22,-17],[37,-10]],
-  // Arabian Peninsula
   [[22,38],[12,44],[12,54],[22,60],[28,58],[32,50],[28,47],[22,38]],
-  // Middle East + Iran + Central Asia
   [[37,37],[55,37],[55,80],[40,68],[37,72],[28,63],[24,62],[22,60],[28,58],[37,50],[37,43],[37,37]],
-  // Indian Subcontinent
   [[28,72],[20,73],[8,77],[8,80],[22,90],[28,97],[28,72]],
-  // East Asia + SE Asia mainland
   [[55,80],[55,145],[45,141],[38,122],[22,122],[20,110],[5,100],[5,103],[22,100],[28,97],[28,72],[40,68],[55,80]],
-  // SE Asia islands (rough)
   [[-8,105],[-5,115],[0,119],[-5,130],[-8,141],[0,140],[0,128],[-5,120],[-8,108],[-8,105]],
-  // Australia
   [[-18,122],[-14,130],[-14,140],[-18,147],[-22,150],[-38,147],[-39,143],[-38,140],[-35,117],[-22,114],[-18,122]],
-  // Japan
   [[34,130],[36,136],[36,141],[40,141],[43,141],[43,143],[41,141],[37,137],[34,130]],
-  // UK
   [[50,-5],[58,-5],[55,0],[52,2],[50,0],[49,-2],[50,-5]],
-  // Greenland
   [[83,-40],[83,-15],[72,-23],[65,-40],[65,-52],[73,-58],[76,-30],[83,-40]],
-  // Iceland
   [[64,-25],[66,-24],[66,-14],[63,-14],[63,-22],[64,-25]],
-  // New Zealand (rough)
   [[-36,174],[-38,176],[-46,170],[-44,168],[-36,174]],
 ]
 
+const CTLABELS = [
+  { name: 'N. AMERICA', lat: 50, lon: -100 },
+  { name: 'S. AMERICA', lat: -18, lon: -58 },
+  { name: 'EUROPE',     lat: 53,  lon: 13  },
+  { name: 'AFRICA',     lat: 3,   lon: 22  },
+  { name: 'RUSSIA',     lat: 63,  lon: 92  },
+  { name: 'ASIA',       lat: 38,  lon: 102 },
+  { name: 'AUSTRALIA',  lat: -28, lon: 135 },
+]
+
 const IMPACT_CFG = {
-  direct:    { color: '#ef4444', label: 'Direct Involvement',  icon: '⚔',  legend: 'At War / Direct Party' },
-  negative:  { color: '#f97316', label: 'Negative Impact',     icon: '↓',  legend: 'Harmed / At Risk' },
-  positive:  { color: '#10b981', label: 'Economic Beneficiary',icon: '↑',  legend: 'Benefits from Conflict' },
-  mixed:     { color: '#f59e0b', label: 'Mixed Impact',         icon: '↕',  legend: 'Mixed/Uncertain Impact' },
-  strategic: { color: '#8b5cf6', label: 'Strategic Risk',      icon: '⚡', legend: 'Heightened Strategic Risk' },
-  neutral:   { color: '#64748b', label: 'Minimal Impact',       icon: '→',  legend: 'Indirect / Minor Impact' },
+  direct:    { color: '#ef4444', label: 'Direct Involvement',   icon: '⚔',  legend: 'At War' },
+  negative:  { color: '#f97316', label: 'Harmed / At Risk',     icon: '↓',  legend: 'Harmed' },
+  positive:  { color: '#10b981', label: 'Economic Beneficiary', icon: '↑',  legend: 'Benefits' },
+  mixed:     { color: '#f59e0b', label: 'Mixed Impact',          icon: '↕',  legend: 'Mixed' },
+  strategic: { color: '#8b5cf6', label: 'Strategic Risk',       icon: '⚡', legend: 'Strategic Risk' },
+  neutral:   { color: '#64748b', label: 'Minimal Impact',        icon: '→',  legend: 'Minimal' },
 }
 
 function WorldImpactMap({ countries }) {
   const [selected, setSelected] = useState(null)
-  if (!countries || countries.length === 0) return null
-  const sel = selected !== null ? countries[selected] : null
+  const [filter, setFilter]     = useState('all')
+  if (!countries?.length) return null
+
+  const sel    = selected !== null ? countries[selected] : null
+  const selCfg = sel ? (IMPACT_CFG[sel.impact] || IMPACT_CFG.neutral) : null
+
+  const counts = {}
+  countries.forEach(c => { counts[c.impact] = (counts[c.impact] || 0) + 1 })
+
+  const listItems = filter === 'all' ? countries : countries.filter(c => c.impact === filter)
+  const inFilter  = (c) => filter === 'all' || c.impact === filter
+
+  const chipBtn = (active, color, children, onClick) => (
+    <button onClick={onClick} style={{
+      padding: '0.28rem 0.7rem', borderRadius: 4, cursor: 'pointer', fontSize: '0.72rem',
+      fontWeight: active ? 700 : 500, border: `1px solid ${active ? color : '#1e293b'}`,
+      background: active ? `${color}1a` : 'transparent', color: active ? color : '#64748b',
+      transition: 'all 0.1s', whiteSpace: 'nowrap',
+    }}>{children}</button>
+  )
 
   return (
     <div>
-      {/* Map SVG */}
-      <div style={{ position: 'relative', background: '#040c18', borderRadius: 8, overflow: 'hidden', border: '1px solid #1e293b' }}>
-        <svg viewBox={`0 0 ${MW} ${MH}`} style={{ width: '100%', display: 'block' }} preserveAspectRatio="xMidYMid meet">
-          <defs>
-            <clipPath id="mapclip"><rect width={MW} height={MH} /></clipPath>
-          </defs>
-
-          {/* Ocean */}
-          <rect width={MW} height={MH} fill="#040c18" />
-
-          {/* Lat/lon grid */}
-          {[-60,-30,0,30,60].map(lat => {
-            const [,y] = merc(lat, 0)
-            return y >= 0 && y <= MH ? <line key={lat} x1={0} y1={y} x2={MW} y2={y} stroke="#0b1929" strokeWidth={0.6} /> : null
-          })}
-          {[-150,-120,-90,-60,-30,0,30,60,90,120,150].map(lon => {
-            const [x] = merc(0, lon)
-            return <line key={lon} x1={x} y1={0} x2={x} y2={MH} stroke="#0b1929" strokeWidth={0.6} />
-          })}
-
-          {/* Equator highlight */}
-          {(() => { const [,y] = merc(0,0); return <line x1={0} y1={y} x2={MW} y2={y} stroke="#0d2744" strokeWidth={1} /> })()}
-
-          {/* Land masses */}
-          <g clipPath="url(#mapclip)">
-            {LAND.map((pts, i) => (
-              <path key={i} d={polyPath(pts)} fill="#182840" stroke="#0d1e32" strokeWidth={0.7} />
-            ))}
-          </g>
-
-          {/* Country impact markers */}
-          <g clipPath="url(#mapclip)">
-            {countries.map((c, i) => {
-              const [cx, cy] = merc(c.lat, c.lon)
-              const cfg = IMPACT_CFG[c.impact] || IMPACT_CFG.neutral
-              const r = c.magnitude === 'Critical' ? 14 : c.magnitude === 'High' ? 11 : c.magnitude === 'Medium' ? 9 : 7
-              const isSel = selected === i
-              return (
-                <g key={i} style={{ cursor: 'pointer' }} onClick={() => setSelected(selected === i ? null : i)}>
-                  {/* Glow ring */}
-                  {isSel && <circle cx={cx} cy={cy} r={r + 10} fill="none" stroke={cfg.color} strokeWidth={0.8} opacity={0.25} />}
-                  <circle cx={cx} cy={cy} r={r + 5} fill="none" stroke={cfg.color} strokeWidth={isSel ? 1.5 : 0.5} opacity={isSel ? 0.5 : 0.2} />
-                  {/* Fill circle */}
-                  <circle cx={cx} cy={cy} r={r} fill={`${cfg.color}28`} stroke={cfg.color} strokeWidth={1.8} />
-                  {/* Icon */}
-                  <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central"
-                    fill={cfg.color} fontSize={r < 9 ? 7 : 8} fontWeight="bold" style={{ pointerEvents: 'none' }}>
-                    {cfg.icon}
-                  </text>
-                  {/* Country label */}
-                  <text x={cx} y={cy + r + 9} textAnchor="middle" fill={cfg.color}
-                    fontSize={8.5} fontWeight={isSel ? '700' : '500'}
-                    stroke="#040c18" strokeWidth={2.5} paintOrder="stroke"
-                    style={{ pointerEvents: 'none' }}>
-                    {c.name}
-                  </text>
-                </g>
-              )
-            })}
-          </g>
-        </svg>
-      </div>
-
-      {/* Legend */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1rem', marginTop: '0.75rem' }}>
-        {Object.entries(IMPACT_CFG).map(([key, cfg]) => (
-          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <div style={{ width: 9, height: 9, borderRadius: '50%', background: cfg.color, flexShrink: 0 }} />
-            <span style={{ color: '#64748b', fontSize: '0.7rem' }}>{cfg.legend}</span>
-          </div>
+      {/* ── Filter chips ── */}
+      <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '1rem', padding: '0.6rem 0.75rem', background: '#080e1a', borderRadius: 8, border: '1px solid #1e293b' }}>
+        {chipBtn(filter === 'all', '#06b6d4', `🌍 All (${countries.length})`, () => { setFilter('all'); setSelected(null) })}
+        {Object.entries(IMPACT_CFG).filter(([k]) => counts[k] > 0).map(([key, cfg]) => (
+          <span key={key}>
+            {chipBtn(filter === key, cfg.color, `${cfg.icon} ${cfg.legend} (${counts[key]})`, () => { setFilter(key); setSelected(null) })}
+          </span>
         ))}
       </div>
 
-      {/* Tap hint */}
-      <p style={{ color: '#334155', fontSize: '0.68rem', margin: '0.3rem 0 0.75rem', fontStyle: 'italic' }}>
-        Tap a country circle to see its full impact breakdown
-      </p>
+      {/* ── Map + Sidebar ── */}
+      <div className="g-map-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 215px', gap: '1rem', marginBottom: '1rem' }}>
 
-      {/* Selected country detail */}
-      {sel && (() => {
-        const cfg = IMPACT_CFG[sel.impact] || IMPACT_CFG.neutral
-        return (
-          <div style={{ background: `${cfg.color}0d`, border: `1px solid ${cfg.color}44`, borderRadius: 8, padding: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${cfg.color}22`, border: `2px solid ${cfg.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
-                {cfg.icon}
-              </div>
-              <div>
-                <div style={{ color: '#f8fafc', fontWeight: 800, fontSize: '1.05rem' }}>{sel.name}</div>
-                <div style={{ display: 'flex', gap: '0.4rem', marginTop: 3, flexWrap: 'wrap' }}>
-                  <span style={s.tag(cfg.color)}>{sel.impactLabel}</span>
-                  <span style={s.tag('#475569')}>Magnitude: {sel.magnitude}</span>
-                </div>
+        {/* SVG Map */}
+        <div style={{ background: '#020810', borderRadius: 10, overflow: 'hidden', border: '1px solid #1e293b', lineHeight: 0 }}>
+          <svg viewBox={`0 0 ${MW} ${MH}`} style={{ width: '100%', display: 'block' }} preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <clipPath id="mc"><rect width={MW} height={MH} /></clipPath>
+              {/* Per-country radial glow */}
+              {countries.map((c, i) => {
+                const col = (IMPACT_CFG[c.impact] || IMPACT_CFG.neutral).color
+                return (
+                  <radialGradient key={i} id={`g${i}`} cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor={col} stopOpacity="0.6" />
+                    <stop offset="100%" stopColor={col} stopOpacity="0" />
+                  </radialGradient>
+                )
+              })}
+            </defs>
+
+            {/* Ocean */}
+            <rect width={MW} height={MH} fill="#020810" />
+
+            {/* Grid lines */}
+            {[-60,-30,0,30,60].map(lat => {
+              const [,y] = merc(lat, 0)
+              return (y > 0 && y < MH) ? <line key={lat} x1={0} y1={y} x2={MW} y2={y} stroke={lat===0 ? '#0d2444' : '#090f1e'} strokeWidth={lat===0 ? 1.2 : 0.7}/> : null
+            })}
+            {[-150,-120,-90,-60,-30,0,30,60,90,120,150].map(lon => {
+              const [x] = merc(0, lon)
+              return <line key={lon} x1={x} y1={0} x2={x} y2={MH} stroke="#090f1e" strokeWidth={0.7}/>
+            })}
+
+            {/* Land */}
+            <g clipPath="url(#mc)">
+              {LAND.map((pts, i) => <path key={i} d={polyPath(pts)} fill="#0e1c30" stroke="#07121e" strokeWidth={0.8}/>)}
+            </g>
+
+            {/* Continent labels */}
+            <g clipPath="url(#mc)" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+              {CTLABELS.map(ct => {
+                const [x, y] = merc(ct.lat, ct.lon)
+                return (
+                  <text key={ct.name} x={x} y={y} textAnchor="middle" dominantBaseline="central"
+                    fill="#1a2e48" fontSize={10} fontWeight={800} letterSpacing={1.5}
+                    style={{ fontFamily: 'system-ui' }}>
+                    {ct.name}
+                  </text>
+                )
+              })}
+            </g>
+
+            {/* Country markers — no text labels */}
+            <g clipPath="url(#mc)">
+              {countries.map((c, i) => {
+                const [cx, cy] = merc(c.lat, c.lon)
+                const cfg  = IMPACT_CFG[c.impact] || IMPACT_CFG.neutral
+                const isSel = selected === i
+                const dim   = !inFilter(c) && filter !== 'all'
+                const r = c.magnitude === 'Critical' ? 14 : c.magnitude === 'High' ? 11 : c.magnitude === 'Medium' ? 8 : 6
+                return (
+                  <g key={i} opacity={dim ? 0.12 : 1} style={{ cursor: 'pointer' }}
+                    onClick={() => setSelected(selected === i ? null : i)}>
+                    {/* Glow halo */}
+                    <circle cx={cx} cy={cy} r={r + 16} fill={`url(#g${i})`}
+                      opacity={isSel ? 0.6 : c.magnitude === 'Critical' ? 0.3 : 0.15}/>
+                    {/* Outer ring */}
+                    <circle cx={cx} cy={cy} r={r + 5} fill="none" stroke={cfg.color}
+                      strokeWidth={isSel ? 1.5 : 0.7} opacity={isSel ? 0.8 : 0.3}/>
+                    {/* Body */}
+                    <circle cx={cx} cy={cy} r={r} fill={`${cfg.color}25`} stroke={cfg.color} strokeWidth={1.8}/>
+                    {/* Core dot */}
+                    <circle cx={cx} cy={cy} r={3} fill={cfg.color} opacity={0.9}/>
+                    {/* Icon — only on selected or large markers */}
+                    {(isSel || r >= 11) && (
+                      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central"
+                        fill={cfg.color} fontSize={r >= 14 ? 9 : 7} fontWeight="bold"
+                        style={{ pointerEvents: 'none' }}>
+                        {cfg.icon}
+                      </text>
+                    )}
+                  </g>
+                )
+              })}
+            </g>
+          </svg>
+        </div>
+
+        {/* ── Country list sidebar ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0', overflowY: 'auto', maxHeight: 420 }}>
+          <div style={{ color: '#334155', fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', padding: '0 0 0.5rem', marginBottom: '0.5rem', borderBottom: '1px solid #1e293b', flexShrink: 0 }}>
+            {filter === 'all' ? `${countries.length} countries affected` : `${listItems.length} ${IMPACT_CFG[filter]?.legend || filter}`}
+          </div>
+          {listItems.map((c) => {
+            const origIdx = countries.indexOf(c)
+            const cfg     = IMPACT_CFG[c.impact] || IMPACT_CFG.neutral
+            const isSel   = selected === origIdx
+            return (
+              <button key={origIdx} onClick={() => setSelected(isSel ? null : origIdx)} style={{
+                display: 'flex', alignItems: 'center', gap: '0.45rem',
+                padding: '0.42rem 0.55rem', borderRadius: 5, cursor: 'pointer', textAlign: 'left',
+                background: isSel ? `${cfg.color}18` : 'transparent',
+                border: `1px solid ${isSel ? cfg.color : 'transparent'}`,
+                marginBottom: '0.2rem', transition: 'all 0.1s',
+              }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: cfg.color, flexShrink: 0, boxShadow: `0 0 5px ${cfg.color}88` }}/>
+                <span style={{ flex: 1, color: isSel ? '#f8fafc' : '#94a3b8', fontSize: '0.78rem', fontWeight: isSel ? 700 : 400 }}>{c.name}</span>
+                <span style={{ fontSize: '0.72rem', color: cfg.color }}>{cfg.icon}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── Country detail card ── */}
+      {sel ? (
+        <div style={{ background: `${selCfg.color}0b`, border: `1px solid ${selCfg.color}40`, borderRadius: 10, padding: '1.1rem 1.25rem', marginTop: '0.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem', marginBottom: '0.85rem', flexWrap: 'wrap' }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+              background: `${selCfg.color}18`, border: `2px solid ${selCfg.color}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.25rem',
+            }}>{selCfg.icon}</div>
+            <div>
+              <div style={{ color: '#f8fafc', fontWeight: 800, fontSize: '1.15rem', lineHeight: 1.2, marginBottom: '0.35rem' }}>{sel.name}</div>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <span style={s.tag(selCfg.color)}>{sel.impactLabel}</span>
+                <span style={s.tag('#475569')}>Magnitude: {sel.magnitude}</span>
               </div>
             </div>
-            <ul style={{ margin: 0, padding: '0 0 0 1.1rem' }}>
-              {sel.reasons.map((r, i) => (
-                <li key={i} style={{ color: '#94a3b8', fontSize: '0.8rem', lineHeight: 1.65, marginBottom: '0.25rem' }}>{r}</li>
-              ))}
-            </ul>
+            <button onClick={() => setSelected(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#475569', cursor: 'pointer', fontSize: '1rem', padding: '0.2rem' }}>✕</button>
           </div>
-        )
-      })()}
+          <ul style={{ margin: 0, padding: '0 0 0 1.1rem', borderTop: `1px solid ${selCfg.color}25`, paddingTop: '0.75rem' }}>
+            {sel.reasons.map((r, i) => (
+              <li key={i} style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.7, marginBottom: '0.2rem' }}>{r}</li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div style={{ color: '#334155', fontSize: '0.72rem', textAlign: 'center', padding: '0.75rem', fontStyle: 'italic' }}>
+          Click a marker on the map or a country name in the list to see its full impact breakdown
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── AI ANALYST ───────────────────────────────────────────────────────────────
+
+function AIAnalyst({ data, verdict }) {
+  const [mode, setMode]       = useState('question')
+  const [input, setInput]     = useState('')
+  const [messages, setMessages] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState('')
+
+  const QPROMPTS = [
+    'What is the most likely ceasefire timeline?',
+    'How does this affect global oil prices long-term?',
+    'What sectors benefit most from this conflict?',
+    'What is the single biggest tail risk?',
+    'How should a retail investor position right now?',
+    'Who has the most leverage in peace negotiations?',
+  ]
+  const SPROMPTS = [
+    'What if Iran successfully hits a US carrier?',
+    'What if Russia enters the conflict on Iran\'s side?',
+    'What if oil prices spike to $200/barrel?',
+    'What if the US Congress blocks war funding?',
+    'What if China brokers a surprise ceasefire?',
+  ]
+
+  const buildCtx = () => {
+    const scens = data.scenarios.map(sc => `  • ${sc.name} (${sc.probability}%): ${sc.description?.slice(0,120)}...`).join('\n')
+    return `ANALYSIS: ${data.title} | Date: ${data.date} | Confidence: ${data.overallConfidence}
+VERDICT: ${verdict.stance} | ${verdict.timing} | Conviction: ${verdict.conviction}
+PRIMARY SCENARIO: ${verdict.primaryScenario} (${verdict.primaryProb}%)
+SCENARIOS:\n${scens}
+CONTEXT: ${data.situation.context?.slice(0, 350)}...`
+  }
+
+  const submit = async (text) => {
+    const q = (text || input).trim()
+    if (!q || loading) return
+    setInput('')
+    setMessages(prev => [...prev, { role: 'user', text: q }])
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q, context: buildCtx(), mode }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Gemini API error')
+      setMessages(prev => [...prev, { role: 'ai', text: json.text }])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const modeBtn = (id, icon, label, desc) => (
+    <button onClick={() => { setMode(id); setMessages([]); setError('') }} style={{
+      flex: 1, padding: '0.75rem 1rem', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+      background: mode === id ? 'rgba(6,182,212,0.07)' : '#0a0f1e',
+      border: `1px solid ${mode === id ? '#06b6d4' : '#1e293b'}`,
+      transition: 'all 0.12s',
+    }}>
+      <div style={{ color: mode === id ? '#06b6d4' : '#94a3b8', fontWeight: 700, fontSize: '0.85rem', marginBottom: 3 }}>
+        {icon} {label}
+      </div>
+      <div style={{ color: '#475569', fontSize: '0.7rem' }}>{desc}</div>
+    </button>
+  )
+
+  const prompts = mode === 'question' ? QPROMPTS : SPROMPTS
+
+  return (
+    <div>
+      {/* Mode switch */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
+        {modeBtn('question', '💬', 'Quick Question', 'Ask anything about this analysis')}
+        {modeBtn('simulation', '⚡', 'Fast Simulation', 'Run a "what-if" scenario instantly')}
+      </div>
+
+      {/* Prompt chips */}
+      <div style={{ marginBottom: '1rem' }}>
+        <div style={{ color: '#334155', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
+          {mode === 'question' ? 'Quick prompts' : 'Scenario starters'}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+          {prompts.map((p, i) => (
+            <button key={i} onClick={() => submit(p)} disabled={loading} style={{
+              padding: '0.28rem 0.7rem', borderRadius: 4, border: '1px solid #1e293b',
+              background: 'transparent', color: '#64748b', fontSize: '0.72rem',
+              cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.1s',
+            }}>{p}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Message thread */}
+      {messages.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem', maxHeight: 500, overflowY: 'auto', padding: '0.25rem 0' }}>
+          {messages.map((m, i) => (
+            <div key={i} style={{
+              padding: '0.85rem 1rem',
+              background: m.role === 'user' ? 'rgba(6,182,212,0.05)' : '#0d1525',
+              border: `1px solid ${m.role === 'user' ? 'rgba(6,182,212,0.18)' : '#1e293b'}`,
+              borderRadius: 8,
+              borderLeft: `3px solid ${m.role === 'user' ? '#06b6d4' : '#8b5cf6'}`,
+            }}>
+              <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem', color: m.role === 'user' ? '#06b6d4' : '#8b5cf6' }}>
+                {m.role === 'user' ? '▸ You' : '✦ Gemini AI Analyst'}
+              </div>
+              <div style={{ color: '#cbd5e1', fontSize: '0.83rem', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>{m.text}</div>
+            </div>
+          ))}
+          {loading && (
+            <div style={{ padding: '0.85rem 1rem', background: '#0d1525', border: '1px solid #1e293b', borderRadius: 8, borderLeft: '3px solid #8b5cf6' }}>
+              <div style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem', color: '#8b5cf6' }}>✦ Gemini AI Analyst</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#475569', fontSize: '0.8rem' }}>
+                <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>◌</span>
+                {mode === 'simulation' ? 'Running simulation...' : 'Analyzing...'}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {error && (
+        <div style={{ color: '#ef4444', fontSize: '0.8rem', padding: '0.5rem 0.75rem', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, marginBottom: '0.75rem' }}>
+          ⚠ {error}
+        </div>
+      )}
+
+      {/* Input bar */}
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && submit()}
+          placeholder={mode === 'question' ? 'Ask any question about this analysis...' : 'Describe a what-if scenario... e.g. "What if Iran strikes a US carrier?"'}
+          disabled={loading}
+          style={{
+            flex: 1, background: '#0a0f1e', border: '1px solid #334155', borderRadius: 8,
+            padding: '0.65rem 1rem', color: '#f8fafc', fontSize: '0.85rem', outline: 'none',
+          }}
+          onFocus={e => e.target.style.borderColor = '#06b6d4'}
+          onBlur={e => e.target.style.borderColor = '#334155'}
+        />
+        <button onClick={() => submit()} disabled={!input.trim() || loading} style={{
+          display: 'flex', alignItems: 'center', gap: '0.35rem',
+          padding: '0.65rem 1.25rem', borderRadius: 8, border: 'none', cursor: !input.trim() || loading ? 'not-allowed' : 'pointer',
+          background: !input.trim() || loading ? '#1e293b' : mode === 'simulation' ? '#8b5cf6' : '#06b6d4',
+          color: !input.trim() || loading ? '#475569' : '#0a0f1e',
+          fontWeight: 700, fontSize: '0.85rem', transition: 'all 0.15s',
+        }}>
+          {loading ? '...' : mode === 'simulation' ? '⚡ Run' : <><Send size={14}/> Ask</>}
+        </button>
+      </div>
+      <div style={{ color: '#1e3a5f', fontSize: '0.65rem', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+        <span>Powered by</span>
+        <span style={{ color: '#1a4a80', fontWeight: 700 }}>Google Gemini 2.0 Flash</span>
+        <span>· Free tier · AI-generated responses are for informational purposes only</span>
+      </div>
     </div>
   )
 }
@@ -285,6 +512,7 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
     { id: 'indicators', label: 'Indicators',       icon: Eye },
     { id: 'experts',    label: 'Expert Views',     icon: Users },
     { id: 'decisions',  label: 'Decision Tree',    icon: Crosshair },
+    { id: 'ai',         label: '✦ AI Analyst',     icon: Sparkles },
   ]
 
   const radarData = ['Military', 'Economic', 'Diplomatic', 'Humanitarian', 'Regional', 'Global'].map(dim => ({
@@ -1114,6 +1342,16 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {/* TAB: AI ANALYST                                                    */}
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {activeTab === 'ai' && (
+          <div style={s.panel}>
+            <div style={s.panelTitle}><Sparkles size={13} /> AI Analyst — Powered by Google Gemini 2.0 Flash</div>
+            <AIAnalyst data={d} verdict={verdict} />
           </div>
         )}
 
