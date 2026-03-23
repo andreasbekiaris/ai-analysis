@@ -599,6 +599,9 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
   const [fetchError, setFetchError] = useState('')
   const [stagedSignals, setStagedSignals] = useState([])
   const [liveSignals, setLiveSignals] = useState([])
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null)
+  const [autoUpdateState, setAutoUpdateState] = useState('idle') // idle | loading | done | error
+  const autoFetchedRef = useRef(false)
 
   const d = data
   const scenario = d.scenarios[activeScenario]
@@ -626,7 +629,62 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
   const marketData = d.marketData || d.oilPriceData || []
   const marketDataLabel = d.marketDataLabel || 'Brent Crude ($/bbl)'
 
-  // ── Fetch live signals via Gemini + Google Search ────────────────────────────
+  // ── Active event detection ───────────────────────────────────────────────────
+  // isActive flag in data, OR analysis date within last 30 days
+  const isEventActive = d.isActive === true || (() => {
+    if (!d.date) return false
+    const analysisDate = new Date(d.date)
+    const daysSince = (Date.now() - analysisDate.getTime()) / (1000 * 60 * 60 * 24)
+    return daysSince <= 30
+  })()
+
+  // ── Shared fetch helper ──────────────────────────────────────────────────────
+  const doFetch = async ({ actors, platforms, hours, autoMode = false }) => {
+    try {
+      const res = await fetch('/api/fetch-signals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actors, platforms, analysisTitle: d.title, hoursBack: hours }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Fetch failed')
+      return json.signals || []
+    } catch (err) {
+      if (!autoMode) throw err
+      return []
+    }
+  }
+
+  // ── Auto-update: fetch all actors × all platforms, add directly to feed ──────
+  const autoUpdateSignals = async () => {
+    const actors = (d.situation?.actors || []).map(a => a.name)
+    if (!actors.length) return
+
+    setAutoUpdateState('loading')
+    const allPlatforms = Object.values(PLATFORM_API_LABELS)
+
+    const signals = await doFetch({ actors, platforms: allPlatforms, hours: 48, autoMode: true })
+
+    setLiveSignals(prev => {
+      const existingKeys = new Set(
+        [...politicalComments, ...prev].map(c => c.quote?.slice(0, 60))
+      )
+      const novel = signals.filter(sig => !existingKeys.has(sig.quote?.slice(0, 60)))
+      return [...novel.map(sig => ({ ...sig, isLive: true })), ...prev]
+    })
+    setLastUpdatedAt(new Date())
+    setAutoUpdateState('done')
+  }
+
+  // ── Auto-update on signals tab open (active events only) ────────────────────
+  useEffect(() => {
+    if (activeTab === 'signals' && isEventActive && !autoFetchedRef.current) {
+      autoFetchedRef.current = true
+      autoUpdateSignals()
+    }
+  }, [activeTab]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Manual fetch (staged review) ────────────────────────────────────────────
   const fetchLiveSignals = async () => {
     const actors = searchActor.trim()
       ? [searchActor.trim()]
@@ -639,19 +697,12 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
 
     try {
       const platforms = [...selectedPlatforms].map(p => PLATFORM_API_LABELS[p] || p)
-      const res = await fetch('/api/fetch-signals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ actors, platforms, analysisTitle: d.title, hoursBack }),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Fetch failed')
+      const signals = await doFetch({ actors, platforms, hours: hoursBack })
 
-      // Deduplicate against existing signals
       const existingKeys = new Set(
         [...politicalComments, ...liveSignals].map(c => c.quote?.slice(0, 60))
       )
-      const novel = (json.signals || []).filter(sig => !existingKeys.has(sig.quote?.slice(0, 60)))
+      const novel = signals.filter(sig => !existingKeys.has(sig.quote?.slice(0, 60)))
       setStagedSignals(novel)
       setFetchState(novel.length > 0 ? 'success' : 'empty')
     } catch (err) {
@@ -1097,15 +1148,56 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
               )}
             </div>
 
-            {/* ── Legend ── */}
-            <div style={{ ...s.panel, marginBottom: '0.75rem', background: 'rgba(6,182,212,0.05)', border: '1px solid rgba(6,182,212,0.2)' }}>
-              <div style={{ color: '#94a3b8', fontSize: '0.8rem', lineHeight: 1.6 }}>
-                Real statements, posts, and broadcasts from key actors — sorted newest first.
-                Signal types: <span style={{ color: '#ef4444', fontWeight: 700 }}>Escalatory</span> ·{' '}
-                <span style={{ color: '#10b981', fontWeight: 700 }}>De-escalatory</span> ·{' '}
-                <span style={{ color: '#06b6d4', fontWeight: 700 }}>Diplomatic</span> ·{' '}
-                <span style={{ color: '#f59e0b', fontWeight: 700 }}>Economic</span> ·{' '}
-                <span style={{ color: '#64748b', fontWeight: 700 }}>Ambiguous</span>
+            {/* ── Status bar: active event auto-update indicator ── */}
+            <div style={{
+              ...s.panel, marginBottom: '0.75rem',
+              background: isEventActive ? 'rgba(6,182,212,0.05)' : 'rgba(100,116,139,0.05)',
+              border: `1px solid ${isEventActive ? 'rgba(6,182,212,0.2)' : '#1e293b'}`,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.8rem', lineHeight: 1.6 }}>
+                  Real statements, posts, and broadcasts — sorted newest first.{' '}
+                  Signal types: <span style={{ color: '#ef4444', fontWeight: 700 }}>Escalatory</span> ·{' '}
+                  <span style={{ color: '#10b981', fontWeight: 700 }}>De-escalatory</span> ·{' '}
+                  <span style={{ color: '#06b6d4', fontWeight: 700 }}>Diplomatic</span> ·{' '}
+                  <span style={{ color: '#f59e0b', fontWeight: 700 }}>Economic</span> ·{' '}
+                  <span style={{ color: '#64748b', fontWeight: 700 }}>Ambiguous</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
+                  {isEventActive && (
+                    <>
+                      {/* Active event badge */}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.65rem', fontWeight: 700, color: '#10b981', letterSpacing: '0.06em' }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 6px #10b981' }} />
+                        ACTIVE EVENT
+                      </span>
+                      {/* Last updated */}
+                      {lastUpdatedAt && (
+                        <span style={{ color: '#64748b', fontSize: '0.68rem' }}>
+                          Updated {lastUpdatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                      {/* Update Now button */}
+                      <button
+                        onClick={() => {
+                          autoFetchedRef.current = true
+                          autoUpdateSignals()
+                        }}
+                        disabled={autoUpdateState === 'loading'}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '0.35rem',
+                          padding: '0.28rem 0.65rem',
+                          background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.3)',
+                          borderRadius: '4px', color: '#06b6d4',
+                          fontSize: '0.72rem', fontWeight: 600, cursor: autoUpdateState === 'loading' ? 'wait' : 'pointer',
+                        }}
+                      >
+                        <RefreshCw size={11} style={autoUpdateState === 'loading' ? { animation: 'spin 1s linear infinite' } : {}} />
+                        {autoUpdateState === 'loading' ? 'Updating…' : 'Update Now'}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
