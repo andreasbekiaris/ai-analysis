@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import AddToAnalysis from './AddToAnalysis'
+import SiteNavBar from './SiteNavBar'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -8,7 +9,7 @@ import {
 } from 'recharts'
 import {
   TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Info,
-  ArrowUpRight, ArrowDownRight, Home, BookOpen, ExternalLink,
+  ArrowUpRight, ArrowDownRight, ExternalLink,
   Globe2, Shield,
 } from 'lucide-react'
 
@@ -176,31 +177,13 @@ export default function StockDashboard({
         }
       `}</style>
 
+      <SiteNavBar />
+
       {/* ── HEADER ── */}
       <div className="s-outer-pad" style={{ background: '#0d1424', borderBottom: `1px solid ${T.border}`, padding: '1.25rem 2rem' }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           <div className="s-header-main" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <Link to="/" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-                  color: T.muted, fontSize: '0.75rem', fontWeight: 600,
-                  textDecoration: 'none', padding: '0.25rem 0.6rem',
-                  border: `1px solid ${T.border}`, borderRadius: '5px', backgroundColor: T.bg,
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.cyan; e.currentTarget.style.color = T.cyan }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted }}
-                ><Home size={11} /> Home</Link>
-                <Link to="/help" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-                  color: T.muted, fontSize: '0.75rem', fontWeight: 600,
-                  textDecoration: 'none', padding: '0.25rem 0.6rem',
-                  border: `1px solid ${T.border}`, borderRadius: '5px', backgroundColor: T.bg,
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.cyan; e.currentTarget.style.color = T.cyan }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted }}
-                ><BookOpen size={11} /> Glossary</Link>
-              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
                 <span className="s-stock-name" style={{ fontSize: '1.6rem', fontWeight: 800, color: T.text }}>{stock.name}</span>
                 <Badge color={T.cyan}>{stock.ticker}</Badge>

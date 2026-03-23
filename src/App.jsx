@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { BarChart3, Globe2, TrendingUp, Clock, Plus, Send, CheckCircle, AlertCircle, Loader, BookOpen } from 'lucide-react'
+import { BarChart3, Globe2, TrendingUp, Clock, Plus, Send, CheckCircle, AlertCircle, Loader } from 'lucide-react'
+import SiteNavBar from './components/SiteNavBar'
 
 // Import dashboards here as they are created
 import UsIranWar from './dashboards/geopolitical/us-iran-war-2026-03-22'
@@ -129,29 +130,16 @@ function NewAnalysisForm() {
 
 function Home() {
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0a0f1e', padding: '2rem', boxSizing: 'border-box' }}>
-      <div className="home-container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0a0f1e', boxSizing: 'border-box' }}>
+      <SiteNavBar />
+      <div className="home-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
         {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <BarChart3 size={32} color="#06b6d4" />
-              <h1 className="home-title" style={{ fontSize: '2rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-                Analysis Dashboard Hub
-              </h1>
-            </div>
-            <Link to="/help" style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600,
-              textDecoration: 'none', padding: '0.45rem 1rem',
-              border: '1px solid #1e293b', borderRadius: '6px',
-              backgroundColor: '#111827',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#06b6d4'; e.currentTarget.style.color = '#06b6d4' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.color = '#94a3b8' }}
-            >
-              <BookOpen size={14} /> Glossary
-            </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+            <BarChart3 size={32} color="#06b6d4" />
+            <h1 className="home-title" style={{ fontSize: '2rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+              Analysis Dashboard Hub
+            </h1>
           </div>
           <p style={{ color: '#94a3b8', fontSize: '1.1rem', margin: 0 }}>
             Geopolitical & Financial Intelligence Dashboards

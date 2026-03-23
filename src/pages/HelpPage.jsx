@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Home, BookOpen, TrendingUp, Globe2, BarChart3, Search, ChevronRight } from 'lucide-react'
+import { TrendingUp, Globe2, BarChart3, Search, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
+import SiteNavBar from '../components/SiteNavBar'
 
 const glossary = {
   financial: [
@@ -91,6 +92,105 @@ const categories = [
   { id: 'dashboard', label: 'Dashboard Guide', icon: BarChart3, color: '#8b5cf6', count: glossary.dashboard.length },
 ]
 
+function TermCard({ item, accentColor }) {
+  const [aiState, setAiState] = useState('idle') // idle | loading | done | error
+  const [aiText, setAiText] = useState('')
+  const [expanded, setExpanded] = useState(false)
+
+  const explain = async () => {
+    if (aiState === 'done') { setExpanded(p => !p); return }
+    setAiState('loading')
+    setExpanded(true)
+    try {
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: `Explain "${item.term}" (${item.full}) in depth. Give a concrete, practical example relevant to financial markets or geopolitical analysis. Keep it under 120 words. Be direct — no preamble.`,
+          context: `Term: ${item.term} — ${item.full}\nDefinition: ${item.definition}`,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed')
+      setAiText(data.text)
+      setAiState('done')
+    } catch (err) {
+      setAiText(err.message)
+      setAiState('error')
+    }
+  }
+
+  return (
+    <div style={{
+      backgroundColor: '#111827', border: '1px solid #1e293b',
+      borderRadius: '8px', padding: '0.9rem 1.1rem',
+    }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '0 1rem', alignItems: 'start' }}>
+        {/* Term */}
+        <div style={{ minWidth: '80px', paddingTop: '0.05rem' }}>
+          <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.9rem', color: accentColor, whiteSpace: 'nowrap' }}>
+            {item.term}
+          </span>
+        </div>
+        {/* Definition */}
+        <div>
+          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem' }}>
+            {item.full}
+          </div>
+          <div style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: 1.6 }}>
+            {item.definition}
+          </div>
+          {/* AI explanation */}
+          {expanded && aiState !== 'idle' && (
+            <div style={{
+              marginTop: '0.65rem', padding: '0.65rem 0.85rem',
+              background: 'rgba(139,92,246,0.07)', border: '1px solid rgba(139,92,246,0.2)',
+              borderRadius: '6px', borderLeft: '3px solid #8b5cf6',
+            }}>
+              {aiState === 'loading' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#8b5cf6', fontSize: '0.78rem' }}>
+                  <Sparkles size={12} style={{ animation: 'spin 1s linear infinite' }} /> Explaining…
+                </div>
+              )}
+              {aiState === 'done' && (
+                <div style={{ color: '#c4b5fd', fontSize: '0.8rem', lineHeight: 1.65 }}>{aiText}</div>
+              )}
+              {aiState === 'error' && (
+                <div style={{ color: '#ef4444', fontSize: '0.78rem' }}>Error: {aiText}</div>
+              )}
+            </div>
+          )}
+        </div>
+        {/* Explain button */}
+        <div style={{ paddingTop: '0.05rem' }}>
+          <button
+            onClick={explain}
+            disabled={aiState === 'loading'}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+              padding: '0.25rem 0.55rem',
+              background: aiState === 'done' ? 'rgba(139,92,246,0.12)' : 'transparent',
+              border: `1px solid ${aiState === 'done' ? 'rgba(139,92,246,0.35)' : '#1e293b'}`,
+              borderRadius: '4px', cursor: aiState === 'loading' ? 'wait' : 'pointer',
+              color: aiState === 'done' ? '#8b5cf6' : '#64748b',
+              fontSize: '0.7rem', fontWeight: 600, whiteSpace: 'nowrap',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { if (aiState !== 'loading') { e.currentTarget.style.borderColor = '#8b5cf6'; e.currentTarget.style.color = '#8b5cf6' } }}
+            onMouseLeave={e => { if (aiState !== 'done') { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.color = '#64748b' } }}
+          >
+            {aiState === 'loading'
+              ? <Sparkles size={10} style={{ animation: 'spin 1s linear infinite' }} />
+              : <Sparkles size={10} />
+            }
+            {aiState === 'done' ? (expanded ? 'Hide' : 'Show') : '✦ Explain'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function HelpPage() {
   const [activeCategory, setActiveCategory] = useState('financial')
   const [search, setSearch] = useState('')
@@ -107,36 +207,24 @@ export default function HelpPage() {
   const activeCat = categories.find(c => c.id === activeCategory)
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0a0f1e', color: '#f8fafc', fontFamily: 'system-ui, sans-serif', padding: '1.5rem' }}>
-      <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0a0f1e', color: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
+      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
+
+      <SiteNavBar />
+
+      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '1.5rem' }}>
 
         {/* Header */}
-        <div style={{ marginBottom: '2rem', borderBottom: '1px solid #1e293b', paddingBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-                <BookOpen size={22} color="#06b6d4" />
-                <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '-0.02em' }}>
-                  Glossary & Reference
-                </h1>
-              </div>
-              <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
-                Definitions for financial, geopolitical, and dashboard terms used across analyses
-              </p>
-            </div>
-            <Link to="/" style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-              color: '#94a3b8', fontSize: '0.78rem', fontWeight: 600,
-              textDecoration: 'none', padding: '0.4rem 0.85rem',
-              border: '1px solid #1e293b', borderRadius: '6px',
-              backgroundColor: '#111827',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#06b6d4'; e.currentTarget.style.color = '#06b6d4' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e293b'; e.currentTarget.style.color = '#94a3b8' }}
-            >
-              <Home size={13} /> Home
-            </Link>
+        <div style={{ marginBottom: '1.75rem', borderBottom: '1px solid #1e293b', paddingBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+            <BarChart3 size={22} color="#06b6d4" />
+            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '-0.02em' }}>
+              Glossary & Reference
+            </h1>
           </div>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
+            Definitions for financial, geopolitical, and dashboard terms · Click <span style={{ color: '#8b5cf6', fontWeight: 600 }}>✦ Explain</span> on any term for an AI deep-dive
+          </p>
         </div>
 
         {/* Search */}
@@ -158,7 +246,7 @@ export default function HelpPage() {
           />
         </div>
 
-        {/* Category tabs — hide when searching */}
+        {/* Category tabs */}
         {!search.trim() && (
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
             {categories.map(cat => {
@@ -186,7 +274,7 @@ export default function HelpPage() {
           </div>
         )}
 
-        {/* Search result header */}
+        {/* Search result count */}
         {search.trim() && (
           <div style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: '1rem' }}>
             {filtered.length} result{filtered.length !== 1 ? 's' : ''} for "{search}"
@@ -200,29 +288,11 @@ export default function HelpPage() {
               No terms found for "{search}"
             </div>
           ) : filtered.map((item, i) => (
-            <div key={i} style={{
-              backgroundColor: '#111827', border: '1px solid #1e293b',
-              borderRadius: '8px', padding: '0.9rem 1.1rem',
-              display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0 1rem', alignItems: 'start',
-            }}>
-              <div style={{ minWidth: '80px', paddingTop: '0.05rem' }}>
-                <span style={{
-                  fontFamily: 'monospace', fontWeight: 800, fontSize: '0.9rem',
-                  color: search.trim() ? '#06b6d4' : activeCat?.color ?? '#06b6d4',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {item.term}
-                </span>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem' }}>
-                  {item.full}
-                </div>
-                <div style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: 1.6 }}>
-                  {item.definition}
-                </div>
-              </div>
-            </div>
+            <TermCard
+              key={i}
+              item={item}
+              accentColor={search.trim() ? '#06b6d4' : activeCat?.color ?? '#06b6d4'}
+            />
           ))}
         </div>
 
