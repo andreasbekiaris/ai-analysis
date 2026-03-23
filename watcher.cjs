@@ -224,7 +224,7 @@ function updateIssue(issueNumber, status, comment) {
  */
 function runClaudeCode(analysisRequest, issueNumber) {
   return new Promise((resolve, reject) => {
-    const fullPrompt = `${analysisRequest}. After creating the dashboard JSX file, update App.jsx to include routing for it, then commit all changes with a descriptive message and push to origin main.`;
+    const fullPrompt = `${analysisRequest}. After creating the dashboard JSX file, update App.jsx to include routing for it, then commit all changes with a descriptive message, run 'git pull --rebase origin main' to sync with remote, and push to origin main.`;
 
     log(`Launching Claude Code: "${analysisRequest}"`);
 
@@ -297,6 +297,15 @@ async function processIssue(issue) {
   const fullRequest = `${title}${additionalContext}`;
 
   log(`Processing issue #${number}: "${title}"`);
+
+  // Sync with remote before spawning Claude so pushes don't get rejected
+  try {
+    log('Pulling latest changes from origin/main...');
+    execSync('git pull --rebase origin main', { cwd: CONFIG.projectPath, encoding: 'utf-8', stdio: 'pipe' });
+    log('  Repo synced.');
+  } catch (err) {
+    logError(`git pull failed: ${err.message} — continuing anyway`);
+  }
 
   updateIssue(number, 'processing', 'Analysis started. Claude Code is working on this. You will be notified when the dashboard is live.');
 
