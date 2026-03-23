@@ -10,7 +10,8 @@ import {
   AlertTriangle, Shield, Globe2, TrendingDown, Zap, Clock,
   Target, Activity, Eye, Users, DollarSign,
   Crosshair, Radio, Flag, BookOpen, ArrowRight, Home, MessageSquare,
-  BarChart3, Sparkles, Send, ChevronDown, ChevronUp
+  BarChart3, Sparkles, Send, ChevronDown, ChevronUp,
+  RefreshCw, Search, Plus, X as XIcon
 } from 'lucide-react'
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -571,9 +572,34 @@ CONTEXT: ${data.situation.context?.slice(0, 350)}...`
 }
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
+const SIGNAL_PLATFORMS = [
+  { id: 'x',           label: 'X / Twitter',  color: '#f8fafc' },
+  { id: 'truth_social',label: 'Truth Social',  color: '#ef4444' },
+  { id: 'telegram',    label: 'Telegram',      color: '#06b6d4' },
+  { id: 'facebook',    label: 'Facebook',      color: '#3b82f6' },
+  { id: 'instagram',   label: 'Instagram',     color: '#ec4899' },
+  { id: 'youtube',     label: 'YouTube',       color: '#ef4444' },
+]
+
+const PLATFORM_API_LABELS = {
+  x: 'X/Twitter', truth_social: 'Truth Social', telegram: 'Telegram',
+  facebook: 'Facebook', instagram: 'Instagram', youtube: 'YouTube',
+}
+
 export default function GeoDashboard({ data, politicalComments, verdict, gaps, affectedCountries }) {
   const [activeScenario, setActiveScenario] = useState(0)
   const [activeTab, setActiveTab] = useState('verdict')
+
+  // ── Live signal fetch state ──────────────────────────────────────────────────
+  const [showFetchPanel, setShowFetchPanel] = useState(false)
+  const [selectedPlatforms, setSelectedPlatforms] = useState(new Set(['x', 'truth_social', 'telegram']))
+  const [searchActor, setSearchActor] = useState('')
+  const [hoursBack, setHoursBack] = useState(48)
+  const [fetchState, setFetchState] = useState('idle') // idle | loading | success | empty | error
+  const [fetchError, setFetchError] = useState('')
+  const [stagedSignals, setStagedSignals] = useState([])
+  const [liveSignals, setLiveSignals] = useState([])
+
   const d = data
   const scenario = d.scenarios[activeScenario]
 
@@ -599,6 +625,58 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
 
   const marketData = d.marketData || d.oilPriceData || []
   const marketDataLabel = d.marketDataLabel || 'Brent Crude ($/bbl)'
+
+  // ── Fetch live signals via Gemini + Google Search ────────────────────────────
+  const fetchLiveSignals = async () => {
+    const actors = searchActor.trim()
+      ? [searchActor.trim()]
+      : (d.situation?.actors || []).map(a => a.name)
+    if (!actors.length) return
+
+    setFetchState('loading')
+    setFetchError('')
+    setStagedSignals([])
+
+    try {
+      const platforms = [...selectedPlatforms].map(p => PLATFORM_API_LABELS[p] || p)
+      const res = await fetch('/api/fetch-signals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actors, platforms, analysisTitle: d.title, hoursBack }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Fetch failed')
+
+      // Deduplicate against existing signals
+      const existingKeys = new Set(
+        [...politicalComments, ...liveSignals].map(c => c.quote?.slice(0, 60))
+      )
+      const novel = (json.signals || []).filter(sig => !existingKeys.has(sig.quote?.slice(0, 60)))
+      setStagedSignals(novel)
+      setFetchState(novel.length > 0 ? 'success' : 'empty')
+    } catch (err) {
+      setFetchError(err.message)
+      setFetchState('error')
+    }
+  }
+
+  const addSignalToFeed = (signal) => {
+    setLiveSignals(prev => [...prev, { ...signal, isLive: true }])
+    setStagedSignals(prev => prev.filter(s => s !== signal))
+  }
+
+  const dismissStagedSignal = (signal) => {
+    setStagedSignals(prev => prev.filter(s => s !== signal))
+  }
+
+  const togglePlatform = (id) => {
+    setSelectedPlatforms(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   return (
     <div style={s.page} className="g-page">
@@ -630,6 +708,7 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
           h1 { font-size: 1.3rem !important; }
           .g-header-tags { flex-wrap: wrap !important; gap: 0.3rem !important; }
         }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
 
       <div style={s.container}>
@@ -823,6 +902,202 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
         {/* ═══════════════════════════════════════════════════════════════════ */}
         {activeTab === 'signals' && (
           <div>
+
+            {/* ── Fetch Live Signals Panel ── */}
+            <div style={{
+              ...s.panel, marginBottom: '0.75rem',
+              border: showFetchPanel ? '1px solid rgba(6,182,212,0.4)' : '1px solid #1e293b',
+              transition: 'border-color 0.2s',
+            }}>
+              {/* Header row — always visible */}
+              <div
+                onClick={() => setShowFetchPanel(p => !p)}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <RefreshCw size={13} color="#06b6d4" />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#06b6d4' }}>
+                    Fetch Live Signals
+                  </span>
+                  {liveSignals.length > 0 && (
+                    <span style={{ fontSize: '0.62rem', background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '3px', padding: '1px 6px', fontWeight: 700 }}>
+                      {liveSignals.length} LIVE
+                    </span>
+                  )}
+                  {stagedSignals.length > 0 && (
+                    <span style={{ fontSize: '0.62rem', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '3px', padding: '1px 6px', fontWeight: 700 }}>
+                      {stagedSignals.length} PENDING
+                    </span>
+                  )}
+                </div>
+                {showFetchPanel ? <ChevronUp size={14} color="#64748b" /> : <ChevronDown size={14} color="#64748b" />}
+              </div>
+
+              {/* Expanded panel */}
+              {showFetchPanel && (
+                <div style={{ marginTop: '1rem' }}>
+
+                  {/* Platform toggles */}
+                  <div style={{ marginBottom: '0.85rem' }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
+                      Platforms
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      {SIGNAL_PLATFORMS.map(p => {
+                        const active = selectedPlatforms.has(p.id)
+                        return (
+                          <button
+                            key={p.id}
+                            onClick={() => togglePlatform(p.id)}
+                            style={{
+                              padding: '0.28rem 0.65rem',
+                              fontSize: '0.72rem', fontWeight: 600,
+                              borderRadius: '4px', cursor: 'pointer',
+                              border: `1px solid ${active ? p.color : '#334155'}`,
+                              backgroundColor: active ? `${p.color}18` : 'transparent',
+                              color: active ? p.color : '#64748b',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            {p.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Actor + time range + search button */}
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '0.85rem' }}>
+                    <div style={{ flex: 1, minWidth: '180px' }}>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>
+                        Actor — leave blank for all
+                      </div>
+                      <input
+                        type="text"
+                        value={searchActor}
+                        onChange={e => setSearchActor(e.target.value)}
+                        placeholder="e.g. Donald Trump, Netanyahu…"
+                        list="actor-suggestions"
+                        style={{
+                          width: '100%', padding: '0.42rem 0.7rem',
+                          background: '#0a0f1e', border: '1px solid #1e293b', borderRadius: '5px',
+                          color: '#f8fafc', fontSize: '0.8rem', outline: 'none', fontFamily: 'system-ui',
+                        }}
+                      />
+                      <datalist id="actor-suggestions">
+                        {(d.situation?.actors || []).map(a => <option key={a.name} value={a.name} />)}
+                      </datalist>
+                    </div>
+
+                    <div style={{ minWidth: '150px' }}>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>
+                        Time Window
+                      </div>
+                      <select
+                        value={hoursBack}
+                        onChange={e => setHoursBack(Number(e.target.value))}
+                        style={{
+                          width: '100%', padding: '0.42rem 0.7rem',
+                          background: '#0a0f1e', border: '1px solid #1e293b', borderRadius: '5px',
+                          color: '#f8fafc', fontSize: '0.8rem', outline: 'none', cursor: 'pointer',
+                        }}
+                      >
+                        <option value={24}>Last 24 hours</option>
+                        <option value={48}>Last 48 hours</option>
+                        <option value={168}>Last 7 days</option>
+                        <option value={720}>Last 30 days</option>
+                      </select>
+                    </div>
+
+                    <button
+                      onClick={fetchLiveSignals}
+                      disabled={fetchState === 'loading' || selectedPlatforms.size === 0}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        padding: '0.42rem 1rem',
+                        background: fetchState === 'loading' ? 'rgba(6,182,212,0.08)' : 'rgba(6,182,212,0.15)',
+                        border: '1px solid rgba(6,182,212,0.4)',
+                        borderRadius: '5px', color: '#06b6d4',
+                        fontSize: '0.8rem', fontWeight: 600,
+                        cursor: fetchState === 'loading' ? 'wait' : 'pointer',
+                        opacity: selectedPlatforms.size === 0 ? 0.4 : 1,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {fetchState === 'loading'
+                        ? <><RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> Searching…</>
+                        : <><Search size={13} /> Search</>
+                      }
+                    </button>
+                  </div>
+
+                  {/* Error */}
+                  {fetchState === 'error' && (
+                    <div style={{ padding: '0.55rem 0.8rem', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '5px', color: '#ef4444', fontSize: '0.78rem', marginBottom: '0.75rem' }}>
+                      Error: {fetchError}
+                    </div>
+                  )}
+
+                  {/* Empty */}
+                  {fetchState === 'empty' && (
+                    <div style={{ padding: '0.55rem 0.8rem', background: 'rgba(100,116,139,0.08)', border: '1px solid #1e293b', borderRadius: '5px', color: '#94a3b8', fontSize: '0.78rem', marginBottom: '0.75rem' }}>
+                      No new signals found for the selected actors and platforms in this time window.
+                    </div>
+                  )}
+
+                  {/* Staged results */}
+                  {stagedSignals.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
+                        {stagedSignals.length} signal{stagedSignals.length !== 1 ? 's' : ''} found — review before adding to feed
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {stagedSignals.map((sig, i) => {
+                          const sigColors = { escalatory: '#ef4444', 'de-escalatory': '#10b981', diplomatic: '#06b6d4', economic: '#f59e0b', ambiguous: '#64748b' }
+                          const scol = sigColors[sig.signalType] || '#64748b'
+                          return (
+                            <div key={i} style={{ background: '#0a0f1e', border: `1px solid ${scol}44`, borderRadius: '6px', padding: '0.7rem', borderLeft: `3px solid ${scol}` }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.45rem' }}>
+                                <div>
+                                  <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.85rem' }}>{sig.actor}</span>
+                                  <span style={{ color: '#64748b', fontSize: '0.72rem', marginLeft: '0.5rem' }}>{sig.role}</span>
+                                  <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
+                                    <span style={{ ...s.tag('#334155'), fontSize: '0.62rem' }}>{sig.platform}</span>
+                                    <span style={{ ...s.tag(scol), fontSize: '0.62rem', textTransform: 'capitalize' }}>{sig.signalType}</span>
+                                    <span style={{ color: '#64748b', fontSize: '0.68rem' }}>{sig.date}{sig.time ? ` · ${sig.time}` : ''}</span>
+                                    {sig.verified === false && <span style={{ ...s.tag('#f59e0b'), fontSize: '0.6rem' }}>PARAPHRASE</span>}
+                                  </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
+                                  <button
+                                    onClick={() => addSignalToFeed(sig)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.6rem', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '4px', color: '#10b981', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
+                                  >
+                                    <Plus size={11} /> Add
+                                  </button>
+                                  <button
+                                    onClick={() => dismissStagedSignal(sig)}
+                                    style={{ display: 'flex', alignItems: 'center', padding: '0.28rem 0.5rem', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '4px', color: '#64748b', cursor: 'pointer' }}
+                                  >
+                                    <XIcon size={11} />
+                                  </button>
+                                </div>
+                              </div>
+                              <blockquote style={{ margin: '0 0 0.4rem', padding: '0.4rem 0.65rem', background: `${scol}0a`, borderLeft: `2px solid ${scol}44`, borderRadius: '0 4px 4px 0', color: '#e2e8f0', fontSize: '0.8rem', fontStyle: 'italic', lineHeight: 1.5 }}>
+                                "{sig.quote}"
+                              </blockquote>
+                              <div style={{ color: '#94a3b8', fontSize: '0.72rem', lineHeight: 1.4 }}>{sig.scenarioImplication}</div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ── Legend ── */}
             <div style={{ ...s.panel, marginBottom: '0.75rem', background: 'rgba(6,182,212,0.05)', border: '1px solid rgba(6,182,212,0.2)' }}>
               <div style={{ color: '#94a3b8', fontSize: '0.8rem', lineHeight: 1.6 }}>
                 Real statements, posts, and broadcasts from key actors — sorted newest first.
@@ -833,70 +1108,73 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
                 <span style={{ color: '#64748b', fontWeight: 700 }}>Ambiguous</span>
               </div>
             </div>
+
+            {/* ── Signal feed (static + live merged) ── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {[...politicalComments].sort((a, b) => new Date(b.date) - new Date(a.date)).map((c, i) => {
-                const signalColors = {
-                  escalatory: '#ef4444',
-                  'de-escalatory': '#10b981',
-                  diplomatic: '#06b6d4',
-                  economic: '#f59e0b',
-                  ambiguous: '#64748b',
-                }
-                const col = signalColors[c.signalType] || '#64748b'
-                return (
-                  <div key={i} style={{ ...s.panel, marginBottom: 0, borderLeft: `3px solid ${col}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.6rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <div style={{
-                          width: 32, height: 32, borderRadius: '50%',
-                          background: `${col}22`, border: `1px solid ${col}44`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '0.75rem', fontWeight: 800, color: col, flexShrink: 0,
-                        }}>
-                          {c.actor.split(' ').map(w => w[0]).slice(0, 2).join('')}
+              {[...liveSignals, ...politicalComments]
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .map((c, i) => {
+                  const signalColors = { escalatory: '#ef4444', 'de-escalatory': '#10b981', diplomatic: '#06b6d4', economic: '#f59e0b', ambiguous: '#64748b' }
+                  const col = signalColors[c.signalType] || '#64748b'
+                  return (
+                    <div key={i} style={{ ...s.panel, marginBottom: 0, borderLeft: `3px solid ${col}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.6rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <div style={{
+                            width: 32, height: 32, borderRadius: '50%',
+                            background: `${col}22`, border: `1px solid ${col}44`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '0.75rem', fontWeight: 800, color: col, flexShrink: 0,
+                          }}>
+                            {c.actor.split(' ').map(w => w[0]).slice(0, 2).join('')}
+                          </div>
+                          <div>
+                            <div style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.9rem' }}>{c.actor}</div>
+                            <div style={{ color: '#64748b', fontSize: '0.72rem' }}>{c.role}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          {c.isLive && (
+                            <span style={{ fontSize: '0.62rem', background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '3px', padding: '1px 6px', fontWeight: 700 }}>
+                              ● LIVE
+                            </span>
+                          )}
+                          <span style={{ ...s.tag('#334155'), fontSize: '0.65rem' }}>{c.platform}</span>
+                          <span style={{ ...s.tag(col), fontSize: '0.65rem', textTransform: 'capitalize' }}>{c.signalType}</span>
+                          <span style={{ color: '#64748b', fontSize: '0.72rem' }}>{c.date}{c.time ? ` · ${c.time}` : ''}</span>
+                          {c.verified === false && <span style={{ ...s.tag('#f59e0b'), fontSize: '0.62rem' }}>PARAPHRASE</span>}
+                        </div>
+                      </div>
+                      <blockquote style={{
+                        margin: '0 0 0.75rem',
+                        padding: '0.6rem 0.85rem',
+                        background: `${col}0a`,
+                        borderLeft: `2px solid ${col}66`,
+                        borderRadius: '0 6px 6px 0',
+                        color: '#e2e8f0',
+                        fontSize: '0.85rem',
+                        fontStyle: 'italic',
+                        lineHeight: 1.55,
+                      }}>
+                        "{c.quote}"
+                      </blockquote>
+                      <div className="g-signals-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                        <div>
+                          <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>Context</div>
+                          <div style={{ color: '#94a3b8', fontSize: '0.75rem', lineHeight: 1.4 }}>{c.context}</div>
                         </div>
                         <div>
-                          <div style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.9rem' }}>{c.actor}</div>
-                          <div style={{ color: '#64748b', fontSize: '0.72rem' }}>{c.role}</div>
+                          <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>Market Impact</div>
+                          <div style={{ color: '#94a3b8', fontSize: '0.75rem', lineHeight: 1.4 }}>{c.marketImpact}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>Scenario Implication</div>
+                          <div style={{ color: '#94a3b8', fontSize: '0.75rem', lineHeight: 1.4 }}>{c.scenarioImplication}</div>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                        <span style={{ ...s.tag('#334155'), fontSize: '0.65rem' }}>{c.platform}</span>
-                        <span style={{ ...s.tag(col), fontSize: '0.65rem', textTransform: 'capitalize' }}>{c.signalType}</span>
-                        <span style={{ color: '#64748b', fontSize: '0.72rem' }}>{c.date}{c.time ? ` · ${c.time}` : ''}</span>
-                        {c.verified === false && <span style={{ ...s.tag('#f59e0b'), fontSize: '0.62rem' }}>PARAPHRASE</span>}
-                      </div>
                     </div>
-                    <blockquote style={{
-                      margin: '0 0 0.75rem',
-                      padding: '0.6rem 0.85rem',
-                      background: `${col}0a`,
-                      borderLeft: `2px solid ${col}66`,
-                      borderRadius: '0 6px 6px 0',
-                      color: '#e2e8f0',
-                      fontSize: '0.85rem',
-                      fontStyle: 'italic',
-                      lineHeight: 1.55,
-                    }}>
-                      "{c.quote}"
-                    </blockquote>
-                    <div className="g-signals-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
-                      <div>
-                        <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>Context</div>
-                        <div style={{ color: '#94a3b8', fontSize: '0.75rem', lineHeight: 1.4 }}>{c.context}</div>
-                      </div>
-                      <div>
-                        <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>Market Impact</div>
-                        <div style={{ color: '#94a3b8', fontSize: '0.75rem', lineHeight: 1.4 }}>{c.marketImpact}</div>
-                      </div>
-                      <div>
-                        <div style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.2rem' }}>Scenario Implication</div>
-                        <div style={{ color: '#94a3b8', fontSize: '0.75rem', lineHeight: 1.4 }}>{c.scenarioImplication}</div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
             </div>
           </div>
         )}
