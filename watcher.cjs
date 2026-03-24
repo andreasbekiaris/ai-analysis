@@ -224,7 +224,17 @@ function updateIssue(issueNumber, status, comment) {
  */
 function runClaudeCode(analysisRequest, issueNumber) {
   return new Promise((resolve, reject) => {
-    const fullPrompt = `${analysisRequest}. After creating the dashboard JSX file, update App.jsx to include routing for it, then commit all changes with a descriptive message, run 'git pull --rebase origin main' to sync with remote, and push to origin main.`;
+    const fullPrompt = [
+      analysisRequest,
+      '',
+      'FAST-PATH INSTRUCTIONS — follow these exactly to minimize time:',
+      '1. Read CLAUDE.md first to understand the skill (geopolitical or stock) and data structure.',
+      '2. Use the shared GeoDashboard component at src/components/GeoDashboard.jsx — do NOT rebuild the UI. Your job is only to produce the DATA file (analysisData, politicalComments, strategicVerdict, analysisGaps, affectedCountries) and export a thin wrapper component that passes them to <GeoDashboard />.',
+      '3. Run all web searches in parallel — do not do them sequentially.',
+      '4. Skip generating a Word document — dashboard only.',
+      '5. After writing the .jsx file: update App.jsx routing, git add the new file + App.jsx, commit, then push.',
+      '6. The commit message must follow: feat: [type] analysis - [subject] - [YYYY-MM-DD]',
+    ].join('\n');
 
     log(`Launching Claude Code: "${analysisRequest}"`);
 
