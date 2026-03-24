@@ -668,6 +668,7 @@ export default function UsIranWar20260322() {
       verdict={strategicVerdict}
       gaps={analysisGaps}
       affectedCountries={affectedCountries}
+      dashboardFile="src/dashboards/geopolitical/us-iran-war-2026-03-22.jsx"
     />
   )
 }

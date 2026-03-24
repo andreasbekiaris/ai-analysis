@@ -12,7 +12,7 @@ import {
   Target, Activity, Eye, Users, DollarSign,
   Crosshair, Radio, Flag, ArrowRight, MessageSquare,
   BarChart3, Sparkles, Send, ChevronDown, ChevronUp,
-  RefreshCw, Search, Plus, X as XIcon
+  RefreshCw, Search, Plus, X as XIcon, CheckCircle, AlertCircle
 } from 'lucide-react'
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -587,7 +587,7 @@ const PLATFORM_API_LABELS = {
   facebook: 'Facebook', instagram: 'Instagram', youtube: 'YouTube',
 }
 
-export default function GeoDashboard({ data, politicalComments, verdict, gaps, affectedCountries }) {
+export default function GeoDashboard({ data, politicalComments, verdict, gaps, affectedCountries, dashboardFile }) {
   const [activeScenario, setActiveScenario] = useState(0)
   const [activeTab, setActiveTab] = useState('verdict')
 
@@ -603,6 +603,8 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null)
   const [autoUpdateState, setAutoUpdateState] = useState('idle') // idle | loading | done | error
   const autoFetchedRef = useRef(false)
+  // Per-staged-signal save state: index → { state: 'idle'|'saving'|'accepted'|'rejected', importance, reason }
+  const [signalSaveState, setSignalSaveState] = useState({})
 
   const d = data
   const scenario = d.scenarios[activeScenario]
@@ -695,6 +697,7 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
     setFetchState('loading')
     setFetchError('')
     setStagedSignals([])
+    setSignalSaveState({})
 
     try {
       const platforms = [...selectedPlatforms].map(p => PLATFORM_API_LABELS[p] || p)
@@ -712,9 +715,52 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
     }
   }
 
-  const addSignalToFeed = (signal) => {
+  const addSignalToFeed = async (signal, idx) => {
+    if (!dashboardFile) {
+      // No file configured — just add to live feed without saving
+      setLiveSignals(prev => [...prev, { ...signal, isLive: true }])
+      setStagedSignals(prev => prev.filter((_, i) => i !== idx))
+      return
+    }
+
+    setSignalSaveState(prev => ({ ...prev, [idx]: { state: 'saving' } }))
+
+    try {
+      const res = await fetch('/api/save-signal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signal, dashboardFile }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Save failed')
+
+      if (data.accepted) {
+        setSignalSaveState(prev => ({
+          ...prev,
+          [idx]: { state: 'accepted', importance: data.importance, reason: data.reason },
+        }))
+        setLiveSignals(prev => [...prev, { ...signal, isLive: true, permanentlySaved: true }])
+        // Remove from staged after short delay so user sees the success state
+        setTimeout(() => setStagedSignals(prev => prev.filter((_, i) => i !== idx)), 2000)
+      } else {
+        setSignalSaveState(prev => ({
+          ...prev,
+          [idx]: { state: 'rejected', importance: data.importance, reason: data.reason },
+        }))
+      }
+    } catch (err) {
+      setSignalSaveState(prev => ({
+        ...prev,
+        [idx]: { state: 'rejected', importance: 0, reason: err.message },
+      }))
+    }
+  }
+
+  const forceAddToFeed = (signal, idx) => {
     setLiveSignals(prev => [...prev, { ...signal, isLive: true }])
-    setStagedSignals(prev => prev.filter(s => s !== signal))
+    setStagedSignals(prev => prev.filter((_, i) => i !== idx))
+    setSignalSaveState(prev => { const next = { ...prev }; delete next[idx]; return next })
   }
 
   const dismissStagedSignal = (signal) => {
@@ -1085,8 +1131,12 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
                         {stagedSignals.map((sig, i) => {
                           const sigColors = { escalatory: '#ef4444', 'de-escalatory': '#10b981', diplomatic: '#06b6d4', economic: '#f59e0b', ambiguous: '#64748b' }
                           const scol = sigColors[sig.signalType] || '#64748b'
+                          const saveInfo = signalSaveState[i] || { state: 'idle' }
+                          const isSaving = saveInfo.state === 'saving'
+                          const isAccepted = saveInfo.state === 'accepted'
+                          const isRejected = saveInfo.state === 'rejected'
                           return (
-                            <div key={i} style={{ background: '#0a0f1e', border: `1px solid ${scol}44`, borderRadius: '6px', padding: '0.7rem', borderLeft: `3px solid ${scol}` }}>
+                            <div key={i} style={{ background: '#0a0f1e', border: `1px solid ${isAccepted ? '#10b98144' : isRejected ? '#f59e0b44' : scol + '44'}`, borderRadius: '6px', padding: '0.7rem', borderLeft: `3px solid ${isAccepted ? '#10b981' : isRejected ? '#f59e0b' : scol}` }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.45rem' }}>
                                 <div>
                                   <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.85rem' }}>{sig.actor}</span>
@@ -1099,24 +1149,60 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
                                   </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
-                                  <button
-                                    onClick={() => addSignalToFeed(sig)}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.6rem', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '4px', color: '#10b981', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
-                                  >
-                                    <Plus size={11} /> Add
-                                  </button>
-                                  <button
-                                    onClick={() => dismissStagedSignal(sig)}
-                                    style={{ display: 'flex', alignItems: 'center', padding: '0.28rem 0.5rem', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '4px', color: '#64748b', cursor: 'pointer' }}
-                                  >
-                                    <XIcon size={11} />
-                                  </button>
+                                  {!isAccepted && !isRejected && (
+                                    <button
+                                      onClick={() => addSignalToFeed(sig, i)}
+                                      disabled={isSaving}
+                                      style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.6rem', background: isSaving ? 'rgba(100,116,139,0.1)' : 'rgba(16,185,129,0.1)', border: `1px solid ${isSaving ? 'rgba(100,116,139,0.3)' : 'rgba(16,185,129,0.3)'}`, borderRadius: '4px', color: isSaving ? '#64748b' : '#10b981', fontSize: '0.72rem', fontWeight: 600, cursor: isSaving ? 'wait' : 'pointer' }}
+                                    >
+                                      {isSaving
+                                        ? <><RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} /> Judging…</>
+                                        : <><Plus size={11} /> Add</>
+                                      }
+                                    </button>
+                                  )}
+                                  {isAccepted && (
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.6rem', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.35)', borderRadius: '4px', color: '#10b981', fontSize: '0.72rem', fontWeight: 600 }}>
+                                      <CheckCircle size={11} /> Saved
+                                    </span>
+                                  )}
+                                  {isRejected && (
+                                    <button
+                                      onClick={() => forceAddToFeed(sig, i)}
+                                      style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.6rem', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '4px', color: '#f59e0b', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
+                                    >
+                                      <Plus size={11} /> Force Add
+                                    </button>
+                                  )}
+                                  {!isAccepted && (
+                                    <button
+                                      onClick={() => dismissStagedSignal(sig)}
+                                      style={{ display: 'flex', alignItems: 'center', padding: '0.28rem 0.5rem', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '4px', color: '#64748b', cursor: 'pointer' }}
+                                    >
+                                      <XIcon size={11} />
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                               <blockquote style={{ margin: '0 0 0.4rem', padding: '0.4rem 0.65rem', background: `${scol}0a`, borderLeft: `2px solid ${scol}44`, borderRadius: '0 4px 4px 0', color: '#e2e8f0', fontSize: '0.8rem', fontStyle: 'italic', lineHeight: 1.5 }}>
                                 "{sig.quote}"
                               </blockquote>
                               <div style={{ color: '#94a3b8', fontSize: '0.72rem', lineHeight: 1.4 }}>{sig.scenarioImplication}</div>
+                              {/* AI verdict banner */}
+                              {isAccepted && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.5rem', padding: '0.3rem 0.6rem', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '4px' }}>
+                                  <CheckCircle size={11} color="#10b981" />
+                                  <span style={{ color: '#10b981', fontSize: '0.68rem', fontWeight: 600 }}>AI score {saveInfo.importance}/10 — permanently saved to analysis</span>
+                                  <span style={{ color: '#64748b', fontSize: '0.65rem', marginLeft: '0.25rem' }}>· {saveInfo.reason}</span>
+                                </div>
+                              )}
+                              {isRejected && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.5rem', padding: '0.3rem 0.6rem', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '4px' }}>
+                                  <AlertCircle size={11} color="#f59e0b" />
+                                  <span style={{ color: '#f59e0b', fontSize: '0.68rem', fontWeight: 600 }}>AI score {saveInfo.importance}/10 — below threshold, not saved</span>
+                                  <span style={{ color: '#64748b', fontSize: '0.65rem', marginLeft: '0.25rem' }}>· {saveInfo.reason}</span>
+                                </div>
+                              )}
                             </div>
                           )
                         })}
