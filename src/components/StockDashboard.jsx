@@ -10,7 +10,7 @@ import {
 import {
   TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Info,
   ArrowUpRight, ArrowDownRight, ExternalLink,
-  Globe2, Shield,
+  Globe2, Shield, RefreshCw, Plus, RotateCcw, AlertCircle, Search,
 } from 'lucide-react'
 
 /* ─── THEME ──────────────────────────────────────────────────── */
@@ -95,12 +95,23 @@ export default function StockDashboard({
   stock, priceHistory, maData, technicals, fundamentalData,
   financials, capitalMetrics, peerComparison, radarPeer,
   analystTargets, eventImpacts, keyMetrics, newsItems,
-  geoOverlay, riskNotices, verdict, analysisGaps,
+  geoOverlay, riskNotices, verdict, analysisGaps, dashboardFile,
 }) {
   const [activeTab, setActiveTab]     = useState('verdict')
   const [peerMetric, setPeerMetric]   = useState('pe')
   const [capital, setCapital]         = useState('')
   const [risk, setRisk]               = useState('moderate')
+
+  // Reanalyze state
+  const [reanalyzeState, setReanalyzeState] = useState('idle') // idle | confirm | running | done | error
+  const [reanalyzeStage, setReanalyzeStage] = useState('')
+  const [reanalyzeResult, setReanalyzeResult] = useState(null)
+
+  // Fetch news state
+  const [fetchNewsState, setFetchNewsState] = useState('idle') // idle | loading | success | empty | error
+  const [stagedNews, setStagedNews] = useState([])
+  const [liveNews, setLiveNews] = useState([])
+  const [newsSaveState, setNewsSaveState] = useState({})
 
   const tabs = [
     { id: 'verdict',      label: 'Verdict',       highlight: true },
@@ -134,6 +145,82 @@ export default function StockDashboard({
       riskReward:(t1Gain / maxLoss).toFixed(1),
     }
   }, [capital, risk, stock.price, verdict])
+
+  const runReanalyze = async () => {
+    if (!dashboardFile) return
+    setReanalyzeState('running')
+    setReanalyzeResult(null)
+    const stages = ['Fetching latest news…', 'Analyzing what changed…', 'Updating verdict…', 'Saving to repository…']
+    let si = 0
+    setReanalyzeStage(stages[si])
+    const stageTimer = setInterval(() => {
+      si = Math.min(si + 1, stages.length - 1)
+      setReanalyzeStage(stages[si])
+    }, 6000)
+    try {
+      const res = await fetch('/api/reanalyze-stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dashboardFile, analysisTitle: `${stock.name} (${stock.ticker})`, ticker: stock.ticker }),
+      })
+      clearInterval(stageTimer)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Reanalysis failed')
+      setReanalyzeResult(data)
+      setReanalyzeState('done')
+    } catch (err) {
+      clearInterval(stageTimer)
+      setReanalyzeResult({ error: err.message })
+      setReanalyzeState('error')
+    }
+  }
+
+  const fetchLatestNews = async () => {
+    setFetchNewsState('loading')
+    setStagedNews([])
+    setNewsSaveState({})
+    try {
+      const res = await fetch('/api/fetch-news', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticker: stock.ticker, companyName: stock.name, hoursBack: 48 }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Fetch failed')
+      const existingKeys = new Set([...newsItems, ...liveNews].map(n => n.headline?.slice(0, 60).toLowerCase()))
+      const novel = (data.news || []).filter(n => !existingKeys.has(n.headline?.slice(0, 60).toLowerCase()))
+      setStagedNews(novel)
+      setFetchNewsState(novel.length > 0 ? 'success' : 'empty')
+    } catch {
+      setFetchNewsState('error')
+    }
+  }
+
+  const addNewsItem = async (item, idx) => {
+    if (!dashboardFile) {
+      setLiveNews(prev => [...prev, { ...item, isLive: true }])
+      setStagedNews(prev => prev.filter((_, i) => i !== idx))
+      return
+    }
+    setNewsSaveState(prev => ({ ...prev, [idx]: { state: 'saving' } }))
+    try {
+      const res = await fetch('/api/save-news', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newsItem: item, dashboardFile }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Save failed')
+      if (data.accepted) {
+        setNewsSaveState(prev => ({ ...prev, [idx]: { state: 'accepted', importance: data.importance, reason: data.reason } }))
+        setLiveNews(prev => [...prev, { ...item, isLive: true }])
+      } else {
+        setNewsSaveState(prev => ({ ...prev, [idx]: { state: 'rejected', importance: data.importance, reason: data.reason } }))
+      }
+    } catch {
+      setNewsSaveState(prev => ({ ...prev, [idx]: { state: 'error' } }))
+    }
+  }
 
   const upside = (((stock.avgTarget - stock.price) / stock.price) * 100).toFixed(1)
   const isUp   = stock.change >= 0
@@ -175,6 +262,7 @@ export default function StockDashboard({
           .s-outer-pad { padding-left: 0.6rem !important; padding-right: 0.6rem !important; }
           .s-page-pad { padding: 0.6rem 0.6rem !important; }
         }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
 
       <SiteNavBar />
@@ -385,13 +473,103 @@ export default function StockDashboard({
                   </div>
                   <p style={{ color: T.muted, fontSize: '0.85rem', lineHeight: 1.65, margin: 0, maxWidth: 780 }}>{verdict.timingDetail}</p>
                 </div>
-                <div style={{ textAlign: 'center', flexShrink: 0 }}>
-                  <div style={{ color: T.dim, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Conviction</div>
-                  <div style={{ color: verdict.stanceColor, fontWeight: 800, fontSize: '1rem' }}>{verdict.conviction}</div>
-                  <div style={{ color: T.dim, fontSize: '0.65rem', marginTop: 4 }}>R:R {verdict.riskReward}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem', flexShrink: 0 }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ color: T.dim, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Conviction</div>
+                    <div style={{ color: verdict.stanceColor, fontWeight: 800, fontSize: '1rem' }}>{verdict.conviction}</div>
+                    <div style={{ color: T.dim, fontSize: '0.65rem', marginTop: 4 }}>R:R {verdict.riskReward}</div>
+                  </div>
+                  {dashboardFile && reanalyzeState === 'idle' && (
+                    <button
+                      onClick={() => setReanalyzeState('confirm')}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.65rem', background: 'rgba(100,116,139,0.1)', border: '1px solid #334155', borderRadius: '5px', color: '#64748b', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = T.amber; e.currentTarget.style.color = T.amber }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.color = '#64748b' }}
+                    >
+                      <RotateCcw size={11} /> Reanalyze
+                    </button>
+                  )}
                 </div>
               </div>
             </Card>
+
+            {/* Reanalyze panel */}
+            {reanalyzeState !== 'idle' && (
+              <Card style={{ gridColumn: '1 / -1', border: `1px solid ${reanalyzeState === 'error' ? T.crimson + '44' : reanalyzeState === 'done' ? T.emerald + '44' : T.amber + '44'}` }}>
+                {reanalyzeState === 'confirm' && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <RotateCcw size={14} color={T.amber} />
+                      <span style={{ color: T.text, fontWeight: 700, fontSize: '0.875rem' }}>Reanalyze this stock?</span>
+                    </div>
+                    <p style={{ color: T.dim, fontSize: '0.8rem', margin: '0 0 0.85rem', lineHeight: 1.6 }}>
+                      Will fetch the latest 24h news, update the verdict and conviction.<br />
+                      <strong style={{ color: T.muted }}>Unchanged:</strong> entry zone, stop loss, targets, fundamentals, technicals.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={runReanalyze}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.85rem', background: `${T.amber}22`, border: `1px solid ${T.amber}`, borderRadius: '5px', color: T.amber, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        <RotateCcw size={12} /> Confirm Reanalyze
+                      </button>
+                      <button
+                        onClick={() => setReanalyzeState('idle')}
+                        style={{ padding: '0.35rem 0.75rem', background: 'transparent', border: `1px solid ${T.border}`, borderRadius: '5px', color: T.dim, fontSize: '0.8rem', cursor: 'pointer' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {reanalyzeState === 'running' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <RefreshCw size={14} color={T.amber} style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ color: T.amber, fontWeight: 700, fontSize: '0.82rem' }}>Reanalyzing…</div>
+                      <div style={{ color: T.dim, fontSize: '0.75rem', marginTop: 2 }}>{reanalyzeStage}</div>
+                    </div>
+                  </div>
+                )}
+                {reanalyzeState === 'done' && reanalyzeResult && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <CheckCircle size={14} color={T.emerald} />
+                      <span style={{ color: T.emerald, fontWeight: 700, fontSize: '0.875rem' }}>Reanalysis complete — deploying now</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.65rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: T.muted }}>
+                        <strong style={{ color: T.text }}>{reanalyzeResult.newsAdded}</strong> news items added
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: T.muted }}>
+                        <strong style={{ color: reanalyzeResult.verdictUpdated ? T.amber : '#475569' }}>{reanalyzeResult.verdictUpdated ? 'Verdict updated' : 'Verdict unchanged'}</strong>
+                      </span>
+                      {reanalyzeResult.newStance && (
+                        <span style={{ fontSize: '0.75rem', color: T.muted }}>
+                          New stance: <strong style={{ color: T.amber }}>{reanalyzeResult.newStance}</strong>
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ color: '#475569', fontSize: '0.72rem' }}>
+                      Changes committed to GitHub. Page will reflect new data after Vercel deploys (~30s).
+                      <button onClick={() => window.location.reload()} style={{ marginLeft: '0.5rem', background: 'none', border: 'none', color: T.cyan, fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
+                        Reload now
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {reanalyzeState === 'error' && reanalyzeResult && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <AlertCircle size={14} color={T.crimson} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <div>
+                      <div style={{ color: T.crimson, fontWeight: 700, fontSize: '0.82rem', marginBottom: '0.3rem' }}>Reanalysis failed</div>
+                      <div style={{ color: T.dim, fontSize: '0.75rem', marginBottom: '0.5rem' }}>{reanalyzeResult.error}</div>
+                      <button onClick={() => setReanalyzeState('idle')} style={{ background: 'none', border: 'none', color: T.cyan, fontSize: '0.75rem', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>Dismiss</button>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            )}
 
             {/* Entry / Stop / Targets */}
             <Card>
@@ -567,6 +745,95 @@ export default function StockDashboard({
                   <span style={{ color: T.emerald, fontSize: '0.65rem', fontWeight: 700 }}>75% Bullish</span>
                   <span style={{ color: T.dim, fontSize: '0.65rem' }}>Bullish</span>
                 </div>
+              </div>
+
+              {/* ── Fetch Latest News ── */}
+              <div style={{ marginTop: '1rem', borderTop: `1px solid ${T.border}`, paddingTop: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ color: T.dim, fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Live Feed</span>
+                  <button
+                    onClick={fetchLatestNews}
+                    disabled={fetchNewsState === 'loading'}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.65rem', background: fetchNewsState === 'loading' ? 'rgba(100,116,139,0.1)' : `${T.cyan}1a`, border: `1px solid ${fetchNewsState === 'loading' ? '#334155' : T.cyan + '66'}`, borderRadius: '4px', color: fetchNewsState === 'loading' ? T.dim : T.cyan, fontSize: '0.72rem', fontWeight: 600, cursor: fetchNewsState === 'loading' ? 'wait' : 'pointer' }}
+                  >
+                    {fetchNewsState === 'loading'
+                      ? <><RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} /> Fetching…</>
+                      : <><Search size={11} /> Fetch Latest News</>
+                    }
+                  </button>
+                </div>
+
+                {/* Live news already added this session */}
+                {liveNews.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                    {liveNews.map((n, i) => (
+                      <div key={`live-${i}`} style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start', padding: '0.45rem 0.6rem', background: `${T.emerald}08`, border: `1px solid ${T.emerald}22`, borderRadius: 5 }}>
+                        <div style={{ width: 7, height: 7, borderRadius: '50%', marginTop: 5, flexShrink: 0, background: sentimentColor[n.sentiment] || T.dim }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: T.text, fontSize: '0.8rem', lineHeight: 1.35 }}>{n.headline}</div>
+                          <div style={{ color: T.dim, fontSize: '0.68rem', marginTop: 2 }}>{n.date} · {n.source} · <span style={{ color: T.emerald }}>Added</span></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {fetchNewsState === 'empty' && (
+                  <div style={{ color: T.dim, fontSize: '0.75rem', padding: '0.4rem 0' }}>No new news found in the last 48 hours.</div>
+                )}
+                {fetchNewsState === 'error' && (
+                  <div style={{ color: T.crimson, fontSize: '0.75rem', padding: '0.4rem 0' }}>Failed to fetch news — check API configuration.</div>
+                )}
+
+                {/* Staged news for review */}
+                {stagedNews.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <div style={{ color: T.dim, fontSize: '0.68rem', marginBottom: 2 }}>
+                      {stagedNews.length} new item{stagedNews.length !== 1 ? 's' : ''} found — review and add:
+                    </div>
+                    {stagedNews.map((n, i) => {
+                      const ss = newsSaveState[i]
+                      const isAccepted = ss?.state === 'accepted'
+                      const isRejected = ss?.state === 'rejected'
+                      const isSaving   = ss?.state === 'saving'
+                      return (
+                        <div key={i} style={{ padding: '0.6rem 0.7rem', background: isAccepted ? `${T.emerald}0a` : isRejected ? `${T.crimson}0a` : T.bg, border: `1px solid ${isAccepted ? T.emerald + '44' : isRejected ? T.crimson + '44' : T.border}`, borderRadius: 6 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ color: T.text, fontSize: '0.8rem', lineHeight: 1.4, marginBottom: '0.2rem' }}>{n.headline}</div>
+                              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                <span style={{ color: T.dim, fontSize: '0.68rem' }}>{n.date} · {n.source}</span>
+                                <span style={{ padding: '1px 5px', borderRadius: 3, fontSize: '0.6rem', fontWeight: 700, background: `${sentimentColor[n.sentiment] || T.dim}22`, color: sentimentColor[n.sentiment] || T.dim, border: `1px solid ${sentimentColor[n.sentiment] || T.dim}44`, textTransform: 'uppercase' }}>{n.sentiment}</span>
+                              </div>
+                              {n.summary && <div style={{ color: T.dim, fontSize: '0.71rem', marginTop: '0.25rem', lineHeight: 1.4 }}>{n.summary}</div>}
+                              {ss?.reason && (
+                                <div style={{ fontSize: '0.68rem', color: isAccepted ? T.emerald : T.crimson, marginTop: '0.2rem' }}>
+                                  {isAccepted ? '✓ Saved:' : '✗ Skipped:'} {ss.reason} (score {ss.importance}/10)
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ flexShrink: 0 }}>
+                              {!isAccepted && !isRejected && (
+                                <button
+                                  onClick={() => addNewsItem(n, i)}
+                                  disabled={isSaving}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.6rem', background: isSaving ? 'rgba(100,116,139,0.1)' : `${T.emerald}1a`, border: `1px solid ${isSaving ? 'rgba(100,116,139,0.3)' : T.emerald + '44'}`, borderRadius: '4px', color: isSaving ? T.dim : T.emerald, fontSize: '0.72rem', fontWeight: 600, cursor: isSaving ? 'wait' : 'pointer' }}
+                                >
+                                  {isSaving
+                                    ? <><RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} /> Judging…</>
+                                    : <><Plus size={11} /> Add</>
+                                  }
+                                </button>
+                              )}
+                              {isAccepted && <CheckCircle size={14} color={T.emerald} />}
+                              {isRejected && <AlertCircle size={14} color={T.crimson} />}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </Card>
 

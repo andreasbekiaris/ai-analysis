@@ -326,6 +326,7 @@ export default function AlphaBankAnalysis() {
       riskNotices={riskNotices}
       verdict={verdict}
       analysisGaps={analysisGaps}
+      dashboardFile="src/dashboards/stocks/alpha-analysis-2026-03-22.jsx"
     />
   )
 }
