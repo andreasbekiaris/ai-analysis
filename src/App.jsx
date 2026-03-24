@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { BarChart3, Globe2, TrendingUp, Clock, Plus, Send, CheckCircle, AlertCircle, Loader } from 'lucide-react'
+import { BarChart3, Globe2, TrendingUp, Clock, Plus, Send, CheckCircle, AlertCircle, Loader, Hourglass, RefreshCw, ExternalLink } from 'lucide-react'
 import SiteNavBar from './components/SiteNavBar'
 
 // Import dashboards here as they are created
@@ -128,6 +128,127 @@ function NewAnalysisForm() {
   )
 }
 
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  return `${d}d ago`
+}
+
+function PendingAnalysisPanel() {
+  const [issues, setIssues] = useState([])
+  const [state, setState] = useState('loading') // loading | done | error
+  const [refreshing, setRefreshing] = useState(false)
+
+  const load = async (soft = false) => {
+    if (soft) setRefreshing(true)
+    else setState('loading')
+    try {
+      const res = await fetch('/api/get-issues')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed')
+      setIssues(data.issues || [])
+      setState('done')
+    } catch {
+      setState('error')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  useEffect(() => { load() }, [])
+
+  if (state === 'loading') {
+    return (
+      <div style={{ background: '#111827', border: '1px solid #1e293b', borderRadius: '12px', padding: '1.25rem 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#64748b', fontSize: '0.875rem' }}>
+        <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading analysis queue…
+      </div>
+    )
+  }
+
+  if (state === 'error') return null
+
+  return (
+    <div style={{ background: '#111827', border: '1px solid #1e293b', borderRadius: '12px', padding: '1.25rem 1.5rem', marginBottom: '2rem' }}>
+      {/* Panel header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: issues.length ? '1rem' : 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Hourglass size={16} color="#f59e0b" />
+          <span style={{ color: '#f8fafc', fontWeight: 600, fontSize: '0.95rem' }}>Analysis Queue</span>
+          {issues.length > 0 && (
+            <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 7px', borderRadius: '4px', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', letterSpacing: '0.04em' }}>
+              {issues.length} pending
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => load(true)}
+          disabled={refreshing}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'transparent', border: '1px solid #1e293b', borderRadius: '6px', padding: '0.25rem 0.6rem', color: '#64748b', fontSize: '0.72rem', cursor: refreshing ? 'wait' : 'pointer' }}
+        >
+          <RefreshCw size={11} style={refreshing ? { animation: 'spin 1s linear infinite' } : {}} />
+          Refresh
+        </button>
+      </div>
+
+      {issues.length === 0 ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', fontSize: '0.82rem' }}>
+          <CheckCircle size={14} /> All caught up — no analyses pending
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          {issues.map((issue, i) => (
+            <div key={issue.number} style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              padding: '0.6rem 0.85rem',
+              background: '#0a0f1e',
+              border: '1px solid #1e293b',
+              borderRadius: '8px',
+              borderLeft: '3px solid #f59e0b',
+            }}>
+              {/* Queue position */}
+              <span style={{ fontFamily: 'monospace', fontSize: '0.68rem', fontWeight: 700, color: '#475569', minWidth: '1.25rem', textAlign: 'center' }}>
+                #{i + 1}
+              </span>
+              {/* Title */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: '#f8fafc', fontSize: '0.85rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {issue.title}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                    <Clock size={10} /> {timeAgo(issue.createdAt)}
+                  </span>
+                  {issue.labels?.map(label => (
+                    <span key={label} style={{ fontSize: '0.6rem', padding: '1px 6px', borderRadius: '3px', background: '#1e293b', color: '#94a3b8', fontWeight: 600 }}>
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {/* Issue number + GitHub link */}
+              <a
+                href={issue.url}
+                target="_blank"
+                rel="noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#475569', fontSize: '0.68rem', fontWeight: 600, textDecoration: 'none', flexShrink: 0, padding: '0.2rem 0.45rem', border: '1px solid #1e293b', borderRadius: '4px' }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#06b6d4'; e.currentTarget.style.borderColor = '#06b6d4' }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#475569'; e.currentTarget.style.borderColor = '#1e293b' }}
+              >
+                #{issue.number} <ExternalLink size={9} />
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Home() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0a0f1e', boxSizing: 'border-box' }}>
@@ -147,6 +268,8 @@ function Home() {
         </div>
 
         <NewAnalysisForm />
+
+        <PendingAnalysisPanel />
 
         {/* Dashboard Grid */}
         {dashboards.length === 0 ? (
