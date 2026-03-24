@@ -12,7 +12,7 @@ import {
   Target, Activity, Eye, Users, DollarSign,
   Crosshair, Radio, Flag, ArrowRight, MessageSquare,
   BarChart3, Sparkles, Send, ChevronDown, ChevronUp,
-  RefreshCw, Search, Plus, X as XIcon, CheckCircle, AlertCircle
+  RefreshCw, Search, Plus, X as XIcon, CheckCircle, AlertCircle, BookOpen
 } from 'lucide-react'
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
