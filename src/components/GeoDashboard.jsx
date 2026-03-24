@@ -12,7 +12,7 @@ import {
   Target, Activity, Eye, Users, DollarSign,
   Crosshair, Radio, Flag, ArrowRight, MessageSquare,
   BarChart3, Sparkles, Send, ChevronDown, ChevronUp,
-  RefreshCw, Search, Plus, X as XIcon, CheckCircle, AlertCircle, BookOpen
+  RefreshCw, Search, Plus, X as XIcon, CheckCircle, AlertCircle, BookOpen, RotateCcw
 } from 'lucide-react'
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -606,6 +606,47 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
   // Per-staged-signal save state: index → { state: 'idle'|'saving'|'accepted'|'rejected', importance, reason }
   const [signalSaveState, setSignalSaveState] = useState({})
 
+  // Reanalyze state
+  const [reanalyzeState, setReanalyzeState] = useState('idle') // idle | confirm | running | done | error
+  const [reanalyzeStage, setReanalyzeStage] = useState('')
+  const [reanalyzeResult, setReanalyzeResult] = useState(null)
+
+  const runReanalyze = async () => {
+    if (!dashboardFile) return
+    setReanalyzeState('running')
+    setReanalyzeResult(null)
+
+    const stages = [
+      'Fetching latest signals…',
+      'Analyzing what changed…',
+      'Updating verdict & probabilities…',
+      'Saving to repository…',
+    ]
+    let si = 0
+    setReanalyzeStage(stages[si])
+    const stageTimer = setInterval(() => {
+      si = Math.min(si + 1, stages.length - 1)
+      setReanalyzeStage(stages[si])
+    }, 6000)
+
+    try {
+      const res = await fetch('/api/reanalyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dashboardFile, analysisTitle: d.title }),
+      })
+      clearInterval(stageTimer)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Reanalysis failed')
+      setReanalyzeResult(data)
+      setReanalyzeState('done')
+    } catch (err) {
+      clearInterval(stageTimer)
+      setReanalyzeResult({ error: err.message })
+      setReanalyzeState('error')
+    }
+  }
+
   const d = data
   const scenario = d.scenarios[activeScenario]
 
@@ -878,7 +919,7 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
             <div style={{ ...s.panel, border: `2px solid ${verdict.stanceColor}66`, background: 'rgba(245,158,11,0.06)', marginBottom: '1rem' }}>
               <div className="g-verdict-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.6rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.6rem', flexWrap: 'wrap' }}>
                     <div style={{
                       padding: '0.3rem 1rem', borderRadius: '6px',
                       background: `${verdict.stanceColor}22`, border: `2px solid ${verdict.stanceColor}`,
@@ -889,13 +930,110 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
                   </div>
                   <p style={{ ...s.muted, lineHeight: 1.65, margin: 0, maxWidth: 780, fontSize: '0.875rem' }}>{verdict.timingDetail}</p>
                 </div>
-                <div style={{ textAlign: 'center', flexShrink: 0 }}>
-                  <div style={{ ...s.dim, marginBottom: 2 }}>Primary Scenario</div>
-                  <div style={{ color: '#f59e0b', fontWeight: 800, fontFamily: 'monospace', fontSize: '1.1rem' }}>{verdict.primaryProb}%</div>
-                  <div style={{ ...s.dim }}>{verdict.primaryScenario}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem', flexShrink: 0 }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ ...s.dim, marginBottom: 2 }}>Primary Scenario</div>
+                    <div style={{ color: '#f59e0b', fontWeight: 800, fontFamily: 'monospace', fontSize: '1.1rem' }}>{verdict.primaryProb}%</div>
+                    <div style={{ ...s.dim }}>{verdict.primaryScenario}</div>
+                  </div>
+                  {/* Reanalyze button */}
+                  {dashboardFile && reanalyzeState === 'idle' && (
+                    <button
+                      onClick={() => setReanalyzeState('confirm')}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.65rem', background: 'rgba(100,116,139,0.1)', border: '1px solid #334155', borderRadius: '5px', color: '#64748b', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#f59e0b'; e.currentTarget.style.color = '#f59e0b' }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = '#334155'; e.currentTarget.style.color = '#64748b' }}
+                    >
+                      <RotateCcw size={11} /> Reanalyze
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
+
+            {/* Reanalyze panel */}
+            {reanalyzeState !== 'idle' && (
+              <div style={{ marginBottom: '1rem', background: '#111827', border: `1px solid ${reanalyzeState === 'error' ? '#ef444433' : reanalyzeState === 'done' ? '#10b98133' : '#f59e0b33'}`, borderRadius: '8px', padding: '1rem 1.25rem' }}>
+                {reanalyzeState === 'confirm' && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <RotateCcw size={14} color="#f59e0b" />
+                      <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.875rem' }}>Reanalyze this situation?</span>
+                    </div>
+                    <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '0 0 0.85rem', lineHeight: 1.6 }}>
+                      Will fetch the latest 24h signals, update the verdict and scenario probabilities. <br />
+                      <strong style={{ color: '#94a3b8' }}>Unchanged:</strong> scenario descriptions, actors, expert views, feasibility, analysis gaps.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={runReanalyze}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.85rem', background: 'rgba(245,158,11,0.15)', border: '1px solid #f59e0b', borderRadius: '5px', color: '#f59e0b', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        <RotateCcw size={12} /> Confirm Reanalyze
+                      </button>
+                      <button
+                        onClick={() => setReanalyzeState('idle')}
+                        style={{ padding: '0.35rem 0.75rem', background: 'transparent', border: '1px solid #1e293b', borderRadius: '5px', color: '#64748b', fontSize: '0.8rem', cursor: 'pointer' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {reanalyzeState === 'running' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <RefreshCw size={14} color="#f59e0b" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.82rem' }}>Reanalyzing…</div>
+                      <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 2 }}>{reanalyzeStage}</div>
+                    </div>
+                  </div>
+                )}
+
+                {reanalyzeState === 'done' && reanalyzeResult && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <CheckCircle size={14} color="#10b981" />
+                      <span style={{ color: '#10b981', fontWeight: 700, fontSize: '0.875rem' }}>Reanalysis complete — deploying now</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.65rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        <strong style={{ color: '#f8fafc' }}>{reanalyzeResult.signalsAdded}</strong> new signals added
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        <strong style={{ color: reanalyzeResult.verdictUpdated ? '#f59e0b' : '#475569' }}>{reanalyzeResult.verdictUpdated ? 'Verdict updated' : 'Verdict unchanged'}</strong>
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        <strong style={{ color: reanalyzeResult.probabilitiesChanged > 0 ? '#06b6d4' : '#475569' }}>{reanalyzeResult.probabilitiesChanged} probability shifts</strong>
+                      </span>
+                      {reanalyzeResult.newStance && (
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                          New stance: <strong style={{ color: '#f59e0b' }}>{reanalyzeResult.newStance}</strong>
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ color: '#475569', fontSize: '0.72rem' }}>
+                      Changes committed to GitHub. Page will reflect new data after Vercel deploys (~30s).
+                      <button onClick={() => window.location.reload()} style={{ marginLeft: '0.5rem', background: 'none', border: 'none', color: '#06b6d4', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
+                        Reload now
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {reanalyzeState === 'error' && reanalyzeResult && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <AlertCircle size={14} color="#ef4444" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <div>
+                      <div style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.82rem', marginBottom: '0.3rem' }}>Reanalysis failed</div>
+                      <div style={{ color: '#64748b', fontSize: '0.75rem', marginBottom: '0.5rem' }}>{reanalyzeResult.error}</div>
+                      <button onClick={() => setReanalyzeState('idle')} style={{ background: 'none', border: 'none', color: '#06b6d4', fontSize: '0.75rem', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>Dismiss</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="g-grid2" style={s.grid2}>
               {/* Immediate watchpoints */}
