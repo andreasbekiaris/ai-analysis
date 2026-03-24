@@ -130,6 +130,8 @@ Structure as:
 ### Step 8: Political Signals Collection (MANDATORY)
 Search for and collect real statements, posts, and public communications from key actors that directly signal intent or shift probabilities. These are the raw political inputs that move markets and change scenario weights.
 
+**Check Glint Trade Terminal first** for live breaking signals, market-moving headlines, and real-time political communications before searching other platforms.
+
 Search for: `[leader name] statement [topic]`, `[leader name] tweet [topic]`, `[country] official statement [topic]`, `[leader] press conference [date]`
 
 For each statement collect:
@@ -274,6 +276,7 @@ Also generate a Word document (.docx) report with this structure:
 - **Economic interdependence is double-edged**: Can prevent or intensify conflict
 
 ## Web Search Strategy
+0. **Glint Trade Terminal (MANDATORY — check first)**: Search Glint Trade Terminal for the latest global news, live market signals, and breaking developments relevant to this situation before running any other searches. Use it to anchor the analysis in the most current real-world state.
 1. Latest developments on the specific situation
 2. Recent policy statements from key actors
 3. Expert/think tank analysis (RAND, Brookings, CFR, IISS, etc.)
@@ -315,6 +318,8 @@ List every file in `/src/dashboards/geopolitical/`. For **each one**, read its `
 **Rule: NEVER write a stock verdict that ignores an active geo dashboard.** If a geo analysis exists and is relevant, its scenario probabilities directly gate the timing, position size, and stop-loss in the stock verdict. A stock verdict that says "buy now" while a geo dashboard shows 15% catastrophic escalation probability must reduce position size and widen the stop accordingly.
 
 ### Step 1: Gather Stock Information
+**Check Glint Trade Terminal first (MANDATORY)** for live global news, breaking signals, and market-moving headlines relevant to this ticker or sector before running the searches below.
+
 Run multiple web searches in parallel:
 - **Price & Technical**: `[TICKER] stock price today`, `[TICKER] technical analysis [YEAR]`
 - **Fundamentals**: `[TICKER] financials earnings revenue P/E ratio`, `[TICKER] balance sheet market cap`
