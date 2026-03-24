@@ -39,7 +39,7 @@ const analysisData = {
       {
         name: "North Korea",
         role: "Russian Ally",
-        stance: "~12,000 troops deployed in Kursk/Belgorod area; continuous artillery shell supply",
+        stance: "~11,000 troops deployed in Kursk Oblast; providing ~50% of Russian artillery shells; $14B military aid sent to Russia (Bloomberg, Mar 18 2026)",
         power: 28,
       },
       {
@@ -56,16 +56,18 @@ const analysisData = {
       },
     ],
     context:
-      "The Russia–Ukraine war entered its fourth year on February 24, 2026, with no decisive military breakthrough on either side. Russia holds approximately 20% of Ukrainian territory — including Crimea (since 2014), the Donbas oblasts (Donetsk and Luhansk), and large portions of Zaporizhzhia and Kherson. The front line stretches over 1,100km. A pivotal diplomatic rupture occurred on February 28, 2026, when President Trump and Vice President Vance publicly confronted President Zelensky in the Oval Office, accusing him of ingratitude and preventing a deal. The US subsequently froze a major military aid tranche. European nations have pledged to compensate, but the abrupt US pivot has created a dangerous window of Ukrainian vulnerability. Peace negotiations are being driven by Trump envoy Gen. Keith Kellogg, with proposals centered on a ceasefire along current lines — terms that fall far short of Ukrainian territorial integrity but may be the most achievable outcome.",
+      "The Russia–Ukraine war entered its fourth year on February 24, 2026, with no decisive military breakthrough on either side. Russia holds approximately 20% of Ukrainian territory — including Crimea (since 2014), the Donbas oblasts (Donetsk and Luhansk), and large portions of Zaporizhzhia and Kherson. The front line stretches over 1,100km. A pivotal diplomatic rupture occurred on March 3, 2025, when President Trump and Vice President Vance publicly confronted President Zelensky in the Oval Office, accusing him of ingratitude and blocking a deal. The US subsequently froze military aid, which was partially restored before being frozen again. In 2026, peace talks have accelerated: January 6 Paris Coalition of the Willing summit, February 17 Geneva talks, and a March 9 Trump-Putin phone call. However, as of March 10, 2026, peace talks have been placed on hold — both Russia and Ukraine claiming front-line progress as justification for waiting. The core sticking point: Putin demands Ukraine withdraw from the remaining 30% of Donetsk it controls; Zelensky has flatly rejected this as unconstitutional. North Korea sent up to $14 billion in military aid to Russia (Bloomberg, March 18, 2026), providing approximately 50% of Russian artillery shells.",
     triggers: [
-      "Trump–Vance–Zelensky Oval Office confrontation (Feb 28, 2026): US paused military aid, demanding Zelensky be 'more cooperative'",
-      "US froze $7.8B military aid tranche (Mar 4, 2026); intelligence-sharing reportedly reduced",
-      "Russia captured Pokrovsk (Donetsk hub) in January 2026 after months of grinding siege",
-      "North Korean troop deployment (~12,000 troops) absorbed into Russian assault units in Kursk Oblast",
-      "Ukraine's Kursk incursion (Aug 2024) largely reversed by Russian-DPRK forces by Feb 2026",
-      "European 'Coalition of the Willing' announced (UK, France, Germany, Poland, Nordic states) with pledged peacekeeping force if ceasefire achieved",
-      "Trump mineral deal proposal: US access to Ukrainian rare earths and titanium in exchange for continued support",
-      "Russia struck Ukrainian energy grid with coordinated attacks (Dec 2025 – Jan 2026), leaving 40% of population without reliable heat/power",
+      "Trump–Vance–Zelensky Oval Office confrontation (Mar 3, 2025): US paused military aid, demanding Zelensky be 'more cooperative'; partially restored, then frozen again in 2026",
+      "Peace talks placed on hold (Mar 10, 2026): Russia and Ukraine both citing front-line advances as reason to wait before negotiating",
+      "Trump-Putin phone call (Mar 9, 2026): Trump told Putin 'you can be more helpful by ending the war'; Trump said he 'trusts Putin more than European allies'",
+      "Russia captured Pokrovsk (Donetsk hub) in January 2026 after months of grinding siege; no major advance west since",
+      "North Korean troop deployment (~11,000 troops, ~6,000 casualties); $14B in DPRK military aid to Russia (Bloomberg, Mar 18 2026); ~50% of Russian artillery shells",
+      "Ukraine's Kursk incursion (Aug 2024) largely reversed; foothold reduced to ~4 sq miles",
+      "Coalition of the Willing (35 countries, Jan 6 Paris summit): UK and France pledged to deploy peacekeeping troops post-ceasefire",
+      "US-Ukraine minerals deal signed (May 2025): US gets preferential access to rare earths; Ukraine dropped demand for US security guarantees",
+      "Russia struck Ukrainian energy grid Dec 2025–Jan 2026, leaving 40%+ population without reliable heat/power",
+      "Ukraine reconstruction cost: $588B over 10 years (World Bank/UN, Feb 23, 2026) — nearly 3x Ukraine's annual GDP",
     ],
     keyMetrics: [
       { label: "Days of War",              value: "1,489",    color: "#ef4444" },
@@ -73,8 +75,9 @@ const analysisData = {
       { label: "Est. Ukrainian KIA",        value: "~80K+",   color: "#f59e0b" },
       { label: "Est. Russian KIA",          value: "~190K+",  color: "#f97316" },
       { label: "Displaced Persons",         value: "~10M",    color: "#8b5cf6" },
-      { label: "Reconstruction Cost Est.",  value: "$524B",   color: "#06b6d4" },
-      { label: "US Aid (2022–2026)",        value: "$175B+",  color: "#10b981" },
+      { label: "Reconstruction Cost Est.",  value: "$588B",   color: "#06b6d4" },
+      { label: "EU Total Aid",              value: "~$197B",  color: "#10b981" },
+      { label: "DPRK Aid to Russia",        value: "~$14B",   color: "#ef4444" },
       { label: "Front Line Length",         value: "~1,100km",color: "#94a3b8" },
     ],
   },
@@ -397,120 +400,120 @@ const politicalComments = [
   {
     actor: "Donald Trump",
     role: "US President",
-    platform: "Press Conference",
-    date: "2026-02-28",
-    time: "16:45 ET",
+    platform: "Oval Office / Press Pool",
+    date: "2025-03-03",
+    time: "15:30 ET",
     quote:
       "He can make a deal or he can fight for another three years and lose everything. The choice is his. We've been very generous — very, very generous — and we're not going to keep writing blank checks.",
     context:
-      "Oval Office confrontation with Zelensky; Trump and Vance publicly challenged Zelensky, accusing him of ingratitude and refusing to negotiate. Zelensky departed without the press conference originally planned.",
+      "Oval Office confrontation with Zelensky (March 3, 2025); Trump and Vance publicly challenged Zelensky, accusing him of ingratitude and blocking a deal. US subsequently paused military aid. This was the first major rupture in US-Ukraine relations under the Trump administration.",
     signalType: "escalatory",
     marketImpact:
-      "European defense stocks surged 4-6% on the news as markets priced in longer-term European military self-reliance. Ukrainian hryvnia weakened 2.1% against the euro.",
+      "European defense stocks surged 4-6% as markets priced in longer-term European military self-reliance. Ukrainian hryvnia weakened 2.1%. Rheinmetall, BAE Systems, Thales all re-rated higher.",
     scenarioImplication:
-      "Pivotal signal raising Scenario 3 (Forced Settlement) from 8% to 15%; materially lowers Scenario 4 (European Lifeline) until European response becomes clear.",
+      "Foundational signal that defined 2025-2026 diplomacy; raised Scenario 3 (Forced Settlement) risk and kicked off the European rearmament response (Coalition of the Willing, ReArm Europe plan).",
     verified: true,
   },
   {
     actor: "JD Vance",
     role: "US Vice President",
-    platform: "Press Conference",
-    date: "2026-02-28",
-    time: "16:50 ET",
+    platform: "ABC News Interview",
+    date: "2025-08-01",
+    time: "09:00 ET",
     quote:
-      "You're not in a position to be issuing ultimatums to the American people. You have to say thank you for the support you have received and be willing to come to the table. The American people are not obligated to fight your war indefinitely.",
+      "We're done with the funding of the Ukraine war business. Any Ukraine-Russia peace plan has to stop the killing while preserving Ukrainian sovereignty, be acceptable to both Russia and Ukraine, and maximize the chances the war doesn't restart.",
     context:
-      "During the same Oval Office confrontation; Vance was unusually aggressive in publicly dressing down a sitting foreign head of state in front of cameras.",
-    signalType: "escalatory",
-    marketImpact:
-      "Further pressured European defense spending sentiment; NATO credibility discount widened across European bond markets.",
-    scenarioImplication:
-      "Confirms Trump Admin's negotiating posture — maximum pressure on Ukraine, not Russia; raises urgency of Scenario 1 vs. 3 decision point.",
-    verified: true,
-  },
-  {
-    actor: "Volodymyr Zelensky",
-    role: "President of Ukraine",
-    platform: "Press Statement (Kyiv)",
-    date: "2026-03-01",
-    time: "09:15 EET",
-    quote:
-      "Ukraine is ready for a ceasefire. We have always been ready for peace. But peace cannot mean surrender. Peace requires security guarantees — real ones, not words on paper. We will not sign away our territory or our future.",
-    context:
-      "Statement delivered upon return to Kyiv following the White House meeting; aimed at reassuring Ukrainian public while keeping door open to talks.",
-    signalType: "de-escalatory",
-    marketImpact:
-      "Limited immediate market impact; interpreted as tactical repositioning rather than substantive concession.",
-    scenarioImplication:
-      "Keeps Scenario 1 alive; Zelensky is signaling readiness to negotiate but setting minimum conditions (security guarantees). The 'gap' between positions is still large.",
-    verified: true,
-  },
-  {
-    actor: "Vladimir Putin",
-    role: "President of Russia",
-    platform: "State TV (Rossiya 1)",
-    date: "2026-03-05",
-    time: "20:00 MSK",
-    quote:
-      "Russia has always been open to negotiations on the basis of existing realities. The special military operation has achieved its primary objectives. Any future talks must acknowledge the territorial integrity of the Russian Federation, which now includes Donetsk, Luhansk, Zaporizhzhia, and Kherson oblasts.",
-    context:
-      "Prime-time statement following Trump's aid freeze announcement; Putin is trying to lock in maximalist position before negotiations begin.",
+      "Interview summarizing the Trump administration's position after months of aid reviews; Vance also noted that Russia had made 'significant concessions to President Trump for the first time in 3½ years'.",
     signalType: "diplomatic",
     marketImpact:
-      "Russian ruble strengthened 0.8%; European gas futures edged higher (+3%) as markets interpreted Putin's confidence as prolonging conflict risk.",
+      "Confirmed US exit from open-ended Ukraine funding; European defense spending commitments accelerated in response.",
     scenarioImplication:
-      "Putin's maximalist positioning reduces Scenario 1 probability (he wants formal territory recognition); raises Scenario 2/3 probabilities.",
-    verified: true,
-  },
-  {
-    actor: "Emmanuel Macron",
-    role: "President of France",
-    platform: "Élysée Press Conference",
-    date: "2026-03-03",
-    time: "11:30 CET",
-    quote:
-      "Europe will not abandon Ukraine. If the United States steps back, Europe must step forward — and we will. I have spoken to the leaders of the United Kingdom, Germany, Poland, and the Nordic states. We are aligned. France is prepared to lead a European security force for Ukraine if a ceasefire is achieved.",
-    context:
-      "Emergency press conference following the Oval Office incident; Macron was coordinating European response with Starmer, Scholz, and Tusk.",
-    signalType: "de-escalatory",
-    marketImpact:
-      "European defense sector continued to rally; French defense stocks (Thales, Dassault) up 3.2%. Showed European political will to fill US gap.",
-    scenarioImplication:
-      "Macron's commitment directly raises Scenario 4 (European Lifeline) probability; but gap between pledges and deliverables in 6-month window is the key uncertainty.",
-    verified: true,
-  },
-  {
-    actor: "Keir Starmer",
-    role: "Prime Minister of the United Kingdom",
-    platform: "House of Commons Statement",
-    date: "2026-03-04",
-    time: "14:30 GMT",
-    quote:
-      "The United Kingdom's commitment to Ukraine is unconditional, long-term, and backed by resources — not just words. We are announcing an additional £2.5 billion in military aid for 2026, accelerating Storm Shadow deliveries, and I will be visiting Kyiv within the week.",
-    context:
-      "Parliamentary statement; the UK has been the most consistently hawkish European power and is using the US pivot moment to strengthen bilateral UK-Ukraine ties.",
-    signalType: "de-escalatory",
-    marketImpact:
-      "BAE Systems stock +2.1%; broader European defense sector continued rally. Partial offset to US pause signal.",
-    scenarioImplication:
-      "UK commitment is real and consequential but not sufficient alone to replace US role; confirms Scenario 4 directional trend if Germany and France follow.",
+      "Lowers Scenario 4 (European Lifeline) ceiling — Europe must fully self-fund; raises pressure for Scenario 1 ceasefire deal.",
     verified: true,
   },
   {
     actor: "Donald Trump",
     role: "US President",
-    platform: "Truth Social",
-    date: "2026-03-10",
-    time: "08:23 ET",
+    platform: "Reporters / Post-Putin Call",
+    date: "2026-03-09",
+    time: "17:00 ET",
     quote:
-      "Zelensky has agreed to talk. Good. That's what winners do — they negotiate from a position of strength, not weakness. We are getting VERY CLOSE to a deal. Watch this space. The fake news media said it couldn't be done!",
+      "We were talking about Ukraine, which is just a never-ending fight. I told him [Putin] you can be more helpful by ending the war in Ukraine. But I think it was a positive call on that subject.",
     context:
-      "Posted following a phone call between Kellogg and Zelensky's chief of staff; Trump framing the resumption of contact as a personal diplomatic victory.",
+      "Trump-Putin phone call on March 9, 2026; first direct call in weeks. Trump subsequently told reporters he 'trusts Putin much more than European allies' and accused Zelensky of stalling peace talks.",
+    signalType: "diplomatic",
+    marketImpact:
+      "Wheat futures -1.5% on ceasefire optimism; European gas TTF -1.8%; markets parsed Trump's framing of Putin as the more cooperative party.",
+    scenarioImplication:
+      "Trump publicly positioning Putin as the deal-maker and Zelensky as the obstacle — raises Scenario 3 risk if used to justify further Ukraine pressure.",
+    verified: true,
+  },
+  {
+    actor: "Vladimir Putin",
+    role: "President of Russia",
+    platform: "Kremlin Spokesman / Post-Trump Call",
+    date: "2026-03-09",
+    time: "22:00 MSK",
+    quote:
+      "Russian forces are advancing rather successfully in Ukraine. We agree with the proposals to halt the fighting, but we proceed from the assumption that the ceasefire should lead to lasting peace and remove the root causes of the crisis.",
+    context:
+      "Via Kremlin spokesman Yuri Ushakov following the Trump-Putin phone call on March 9, 2026; Putin is demanding Ukraine withdraw from the remaining 30% of Donetsk it controls as a pre-condition — a demand Zelensky flatly rejected as unconstitutional.",
+    signalType: "diplomatic",
+    marketImpact:
+      "Russian ruble strengthened 0.5%; European gas futures edged higher (+2%) as markets interpreted Putin's confidence as hardball rather than genuine flexibility.",
+    scenarioImplication:
+      "Putin framing ceasefire as requiring 'root causes addressed' (i.e., maximalist territorial and NATO demands) is the core reason talks are on hold (Mar 10). Reduces Scenario 1 near-term probability.",
+    verified: true,
+  },
+  {
+    actor: "Emmanuel Macron",
+    role: "President of France",
+    platform: "Paris Summit Press Conference",
+    date: "2026-01-06",
+    time: "18:00 CET",
+    quote:
+      "We've agreed on robust security guarantees for a solid and lasting peace — an operational convergence among allies. These are not combat forces. It's for the day after there is peace, offering a guarantee of peace and security. France could contribute several thousand troops.",
+    context:
+      "Paris 'Coalition of the Willing' summit (January 6, 2026) — Macron, Starmer, Zelensky and 35 other countries signed a declaration of intent for European security guarantees. UK and France committed to deploying peacekeeping troops to Ukraine post-ceasefire.",
     signalType: "de-escalatory",
     marketImpact:
-      "Wheat futures -1.8% on ceasefire optimism; European gas TTF -2.3%; global risk sentiment improved briefly.",
+      "European defense sector broadly re-rated higher; Thales, Dassault, MBDA parent group up 2-4%. ReArm Europe plan (€800B) announced alongside.",
     scenarioImplication:
-      "Raises Scenario 1 probability; but Trump's optimism has repeatedly outpaced actual diplomatic progress — classify as 'encouraging signal, not confirmation'.",
+      "The Paris summit was the turning point establishing European strategic autonomy on Ukraine; directly raises Scenario 4 (European Lifeline) probability. Key caveat: pledges must translate into deliveries.",
+    verified: true,
+  },
+  {
+    actor: "Keir Starmer",
+    role: "Prime Minister of the United Kingdom",
+    platform: "Paris Summit / House of Commons",
+    date: "2026-01-06",
+    time: "19:00 GMT",
+    quote:
+      "The UK will establish military hubs across Ukraine and protected facilities for weapons and military equipment in the event of a ceasefire. Our commitment is unconditional, long-term, and backed by resources — not just words.",
+    context:
+      "Signed the Paris Coalition of the Willing declaration alongside Macron and Zelensky on January 6, 2026. UK subsequently confirmed £2.5B additional military aid for 2026 and accelerated Storm Shadow cruise missile deliveries.",
+    signalType: "de-escalatory",
+    marketImpact:
+      "BAE Systems +2.1%; broader European defense sector continued multi-week rally. UK-Ukraine bilateral defense treaty framework announced.",
+    scenarioImplication:
+      "UK is the most credible and sustained European military supporter; 'military hubs' concept post-ceasefire is a concrete security architecture step that raises Scenario 4 probability.",
+    verified: true,
+  },
+  {
+    actor: "Donald Trump",
+    role: "US President",
+    platform: "Reporters (White House)",
+    date: "2026-03-16",
+    time: "14:00 ET",
+    quote:
+      "The last person we need help from is Zelensky. Putin is willing to make a deal. Zelensky is not. I'm going to have to reassess our whole relationship with him.",
+    context:
+      "Reported to reporters approximately March 16, 2026 amid stalled talks; part of a pattern where Trump has publicly blamed Ukraine for the negotiation impasse. Peace talks had been placed on hold since March 10, with both sides citing front-line advances as justification for waiting.",
+    signalType: "escalatory",
+    marketImpact:
+      "Ukrainian hryvnia fell 1.4%; European defense stocks unchanged (markets now interpret Trump-Ukraine friction as structural, not newsworthy).",
+    scenarioImplication:
+      "Most bearish single signal for Ukraine's near-term position; directly raises Scenario 3 (Forced Settlement) probability if Trump acts on this framing with further aid conditions.",
     verified: true,
   },
   {
@@ -539,7 +542,7 @@ const politicalComments = [
     quote:
       "Germany is committed to Ukraine's security. The Bundestag has approved a special defense fund of €12 billion for 2026, including accelerated delivery of Leopard 2 spare parts, IRIS-T systems, and for the first time, we are authorizing the transfer of Taurus cruise missiles to Ukraine.",
     context:
-      "Landmark Bundestag vote; Germany had resisted Taurus transfer for two years due to escalation concerns. The Oval Office incident shifted domestic German opinion.",
+      "Landmark Bundestag vote; Germany had resisted Taurus transfer for two years due to escalation concerns. The March 2025 Oval Office incident and the subsequent European rearmament consensus shifted domestic German opinion significantly.",
     signalType: "de-escalatory",
     marketImpact:
       "Rheinmetall stock +5.7% (largest European defense supplier); broader European defense index up 2.8%. Significant signal of European resolve.",
@@ -574,19 +577,19 @@ const strategicVerdict = {
   primaryProb: 38,
   timing: "Re-assess in 72–96 hours",
   timingDetail:
-    "The Kellogg shuttle diplomacy track is the key variable — his 'weeks not months' framework language is the nearest-term binary. Watch for formal ceasefire framework announcement OR breakdown signal. Germany's Taurus transfer authorization has shifted military balance slightly in Ukraine's favor, raising the floor for any deal Zelensky can accept. Trump's personal mood and any new Truth Social posts on Ukraine are lagging indicators of actual policy direction. Next hard inflection point: Zelensky-Trump bilateral (rumored for late March/early April 2026).",
+    "CRITICAL CURRENT STATE: Peace talks were placed on hold as of March 10, 2026 — both Russia and Ukraine claiming front-line progress as justification for waiting. Putin is demanding Ukraine withdraw from the remaining 30% of Donetsk it controls (a demand Zelensky has rejected as unconstitutional). Trump's March 16 statement that 'the last person we need help from is Zelensky' is the most bearish near-term signal. Germany's Taurus authorization (March 12) is the most bullish counter-signal. Next hard inflection points: (1) whether talks resume or remain frozen through April; (2) whether Trump conditions resumption of aid on Ukrainian concessions; (3) Kellogg's next public statement after his March 18 'cautiously optimistic' briefing.",
   immediateWatchpoints: [
     {
-      signal: "Kellogg announces ceasefire framework OR talks suspended",
+      signal: "Peace talks resume OR remain on hold beyond April 1",
       timing: "72–96h",
       implication:
-        "Framework → Scenario 1 probability rises to 55%; talks breakdown → Scenario 2/3 weights shift, Ukraine defense stocks correct, gas TTF spikes",
+        "Resumption → Scenario 1 probability rises to 50%+; talks frozen past April → Scenario 2/3 weights shift, European support gap becomes critical, gas TTF spikes",
       urgency: "Critical",
     },
     {
-      signal: "Zelensky-Trump bilateral meeting confirmed or canceled",
+      signal: "Trump conditions Ukraine aid on specific Zelensky concessions (formal announcement)",
       timing: "5–7 days",
-      implication: "Meeting → ceasefire track alive; cancellation → deepening rupture, Scenario 3 risk rises",
+      implication: "Formal conditionality → direct Scenario 3 escalation path; Biden-era aid pipeline depleted without new tranches within 90 days",
       urgency: "Critical",
     },
     {
