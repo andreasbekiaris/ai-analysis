@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { TrendingUp, Globe2, BarChart3, Search, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
+import { TrendingUp, Globe2, BarChart3, Search, Sparkles, CheckCircle, AlertCircle, Plus } from 'lucide-react'
 import SiteNavBar from '../components/SiteNavBar'
 
 const glossary = {
@@ -191,20 +191,228 @@ function TermCard({ item, accentColor }) {
   )
 }
 
+// ── AI Glossary Lookup (shown when search returns 0 results) ─────────────────
+function AiGlossaryLookup({ query, onTermAdded }) {
+  const [state, setAiState] = useState('idle') // idle | loading | relevant | irrelevant | error
+  const [result, setResult] = useState(null)   // { term, full, definition, category, reason }
+  const [saveState, setSaveState] = useState('idle') // idle | saving | saved | error
+  const [saveMsg, setSaveMsg] = useState('')
+  const askedRef = useRef('')
+
+  useEffect(() => {
+    if (!query.trim() || query === askedRef.current) return
+    askedRef.current = query
+
+    const timer = setTimeout(async () => {
+      setAiState('loading')
+      setResult(null)
+      setSaveState('idle')
+      setSaveMsg('')
+
+      try {
+        const res = await fetch('/api/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: `The user searched for "${query}" in a financial and geopolitical analysis glossary but got no results.
+
+Determine:
+1. Is "${query}" related to financial markets, stock analysis, geopolitical analysis, international relations, macroeconomics, or the dashboard/analytical concepts used in such analysis?
+2. If yes, produce a concise glossary entry for it.
+
+Respond ONLY with valid JSON, no markdown:
+{
+  "relevant": true or false,
+  "term": "the term or acronym exactly as it should appear",
+  "full": "full expanded name",
+  "definition": "clear, dense definition under 60 words — specific, no fluff",
+  "category": "financial" or "geopolitical" or "dashboard",
+  "reason": "one sentence explaining relevance or why it doesn't fit"
+}
+
+If not relevant, set relevant: false and leave term/full/definition/category as empty strings.`,
+            context: 'Glossary categories: financial (stocks, ratios, oil, macro), geopolitical (conflicts, treaties, military, international bodies), dashboard (analytical terms, scenario labels, signal types).',
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'AI lookup failed')
+
+        let parsed
+        try {
+          const clean = data.text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+          parsed = JSON.parse(clean)
+        } catch {
+          const match = data.text.match(/\{[\s\S]*?\}/)
+          if (match) parsed = JSON.parse(match[0])
+          else throw new Error('Could not parse AI response')
+        }
+
+        if (parsed.relevant && parsed.term && parsed.definition) {
+          setResult(parsed)
+          setAiState('relevant')
+        } else {
+          setResult(parsed)
+          setAiState('irrelevant')
+        }
+      } catch (err) {
+        setAiState('error')
+        setResult({ reason: err.message })
+      }
+    }, 600) // debounce — wait for user to stop typing
+
+    return () => clearTimeout(timer)
+  }, [query])
+
+  const saveTerm = async () => {
+    if (!result) return
+    setSaveState('saving')
+    setSaveMsg('')
+    try {
+      const res = await fetch('/api/save-glossary-term', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          term: result.term,
+          full: result.full,
+          definition: result.definition,
+          category: result.category,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Save failed')
+      setSaveState('saved')
+      setSaveMsg(`"${result.term}" added to ${result.category} glossary — will appear after the next page refresh.`)
+      if (onTermAdded) onTermAdded(result)
+    } catch (err) {
+      setSaveState('error')
+      setSaveMsg(err.message)
+    }
+  }
+
+  const catColor = { financial: '#10b981', geopolitical: '#f59e0b', dashboard: '#8b5cf6' }
+
+  return (
+    <div style={{ marginTop: '1.5rem' }}>
+      {state === 'loading' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1.25rem', background: '#111827', border: '1px solid #1e293b', borderRadius: '8px', color: '#8b5cf6', fontSize: '0.85rem' }}>
+          <Sparkles size={14} style={{ animation: 'spin 1s linear infinite' }} />
+          AI is looking up "{query}"…
+        </div>
+      )}
+
+      {state === 'relevant' && result && (
+        <div style={{ background: '#111827', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', borderLeft: '3px solid #8b5cf6', overflow: 'hidden' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', background: 'rgba(139,92,246,0.06)', borderBottom: '1px solid rgba(139,92,246,0.15)' }}>
+            <Sparkles size={13} color="#8b5cf6" />
+            <span style={{ color: '#8b5cf6', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              AI Lookup — not in glossary yet
+            </span>
+            {result.category && (
+              <span style={{ marginLeft: 'auto', fontSize: '0.62rem', fontWeight: 700, padding: '2px 7px', borderRadius: '3px', background: `${catColor[result.category] || '#64748b'}20`, color: catColor[result.category] || '#64748b', textTransform: 'capitalize' }}>
+                {result.category}
+              </span>
+            )}
+          </div>
+
+          {/* Term */}
+          <div style={{ padding: '0.9rem 1.1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '0 1rem', alignItems: 'start' }}>
+              <div style={{ minWidth: '80px' }}>
+                <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.9rem', color: catColor[result.category] || '#8b5cf6' }}>
+                  {result.term}
+                </span>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem' }}>{result.full}</div>
+                <div style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: 1.6 }}>{result.definition}</div>
+              </div>
+              {/* Add button */}
+              <div>
+                {saveState === 'idle' && (
+                  <button
+                    onClick={saveTerm}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.65rem', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.35)', borderRadius: '5px', color: '#8b5cf6', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    <Plus size={11} /> Add to Glossary
+                  </button>
+                )}
+                {saveState === 'saving' && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.65rem', color: '#64748b', fontSize: '0.72rem', fontWeight: 600 }}>
+                    <Sparkles size={11} style={{ animation: 'spin 1s linear infinite' }} /> Saving…
+                  </span>
+                )}
+                {saveState === 'saved' && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.65rem', color: '#10b981', fontSize: '0.72rem', fontWeight: 700 }}>
+                    <CheckCircle size={11} /> Added
+                  </span>
+                )}
+                {saveState === 'error' && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.28rem 0.65rem', color: '#ef4444', fontSize: '0.72rem', fontWeight: 600 }}>
+                    <AlertCircle size={11} /> Failed
+                  </span>
+                )}
+              </div>
+            </div>
+            {saveMsg && (
+              <div style={{ marginTop: '0.6rem', fontSize: '0.72rem', color: saveState === 'saved' ? '#10b981' : '#ef4444', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                {saveState === 'saved' ? <CheckCircle size={11} /> : <AlertCircle size={11} />}
+                {saveMsg}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {state === 'irrelevant' && result && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 1.25rem', background: '#111827', border: '1px solid #1e293b', borderRadius: '8px', color: '#64748b', fontSize: '0.82rem' }}>
+          <AlertCircle size={13} color="#475569" />
+          <span>
+            <strong style={{ color: '#94a3b8' }}>"{query}"</strong> doesn't appear to relate to financial markets or geopolitical analysis. {result.reason}
+          </span>
+        </div>
+      )}
+
+      {state === 'error' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 1.25rem', background: '#111827', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.8rem' }}>
+          <AlertCircle size={13} />
+          AI lookup failed: {result?.reason}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function HelpPage() {
   const [activeCategory, setActiveCategory] = useState('financial')
   const [search, setSearch] = useState('')
+  const [localTerms, setLocalTerms] = useState({ financial: [], geopolitical: [], dashboard: [] })
 
-  const allTerms = Object.values(glossary).flat()
+  const allTerms = [
+    ...Object.values(glossary).flat(),
+    ...Object.values(localTerms).flat(),
+  ]
   const filtered = search.trim()
     ? allTerms.filter(t =>
         t.term.toLowerCase().includes(search.toLowerCase()) ||
         t.full.toLowerCase().includes(search.toLowerCase()) ||
         t.definition.toLowerCase().includes(search.toLowerCase())
       )
-    : glossary[activeCategory]
+    : [...glossary[activeCategory], ...(localTerms[activeCategory] || [])]
 
   const activeCat = categories.find(c => c.id === activeCategory)
+  const noResults = search.trim() && filtered.length === 0
+
+  const handleTermAdded = (result) => {
+    // Optimistically add to local state so it shows immediately without a page reload
+    setLocalTerms(prev => ({
+      ...prev,
+      [result.category]: [
+        { term: result.term, full: result.full, definition: result.definition },
+        ...(prev[result.category] || []),
+      ],
+    }))
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0a0f1e', color: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
@@ -223,7 +431,7 @@ export default function HelpPage() {
             </h1>
           </div>
           <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
-            Definitions for financial, geopolitical, and dashboard terms · Click <span style={{ color: '#8b5cf6', fontWeight: 600 }}>✦ Explain</span> on any term for an AI deep-dive
+            Definitions for financial, geopolitical, and dashboard terms · Click <span style={{ color: '#8b5cf6', fontWeight: 600 }}>✦ Explain</span> on any term for an AI deep-dive · Unknown terms are looked up and added automatically
           </p>
         </div>
 
@@ -234,7 +442,7 @@ export default function HelpPage() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search all terms — e.g. P/E, IRGC, bbl, ceasefire..."
+            placeholder="Search all terms — unknown terms are looked up by AI and added to the glossary…"
             style={{
               width: '100%', boxSizing: 'border-box',
               background: '#111827', border: '1px solid #1e293b',
@@ -252,6 +460,7 @@ export default function HelpPage() {
             {categories.map(cat => {
               const Icon = cat.icon
               const active = activeCategory === cat.id
+              const count = cat.count + (localTerms[cat.id]?.length || 0)
               return (
                 <button key={cat.id} onClick={() => setActiveCategory(cat.id)} style={{
                   display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -267,7 +476,7 @@ export default function HelpPage() {
                     fontSize: '0.65rem', padding: '1px 5px', borderRadius: '3px',
                     backgroundColor: active ? `${cat.color}28` : '#1e293b',
                     color: active ? cat.color : '#64748b',
-                  }}>{cat.count}</span>
+                  }}>{count}</span>
                 </button>
               )
             })}
@@ -275,7 +484,7 @@ export default function HelpPage() {
         )}
 
         {/* Search result count */}
-        {search.trim() && (
+        {search.trim() && filtered.length > 0 && (
           <div style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: '1rem' }}>
             {filtered.length} result{filtered.length !== 1 ? 's' : ''} for "{search}"
           </div>
@@ -283,21 +492,22 @@ export default function HelpPage() {
 
         {/* Terms list */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b', fontSize: '0.875rem' }}>
-              No terms found for "{search}"
-            </div>
-          ) : filtered.map((item, i) => (
+          {filtered.map((item, i) => (
             <TermCard
-              key={i}
+              key={`${item.term}-${i}`}
               item={item}
               accentColor={search.trim() ? '#06b6d4' : activeCat?.color ?? '#06b6d4'}
             />
           ))}
         </div>
 
+        {/* AI fallback when search finds nothing */}
+        {noResults && (
+          <AiGlossaryLookup query={search.trim()} onTermAdded={handleTermAdded} />
+        )}
+
         <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#111827', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '0.75rem', color: '#475569', textAlign: 'center' }}>
-          {glossary.financial.length + glossary.geopolitical.length + glossary.dashboard.length} terms across {categories.length} categories · Analysis Dashboard Hub
+          {glossary.financial.length + glossary.geopolitical.length + glossary.dashboard.length + Object.values(localTerms).flat().length} terms across {categories.length} categories · Analysis Dashboard Hub
         </div>
       </div>
     </div>
