@@ -4,7 +4,7 @@ import GeoDashboard from '../../components/GeoDashboard'
 const analysisData = {
   title: "US–Iran War: Operation Epic Fury",
   subtitle: "Trajectory & Outcome Analysis",
-  date: "2026-03-22",
+  date: "2026-03-24",
   warStartDate: "2026-02-28",
   daysElapsed: 22,
   overallConfidence: "Medium",
@@ -296,30 +296,55 @@ const analysisData = {
 
 // ─── STRATEGIC VERDICT ────────────────────────────────────────────────────────
 const strategicVerdict = {
-  stance: 'MONITOR — HOLD POSITIONS',
-  stanceColor: '#f59e0b',
-  primaryScenario: 'Prolonged Stalemate',
+  stance: "MONITOR — HOLD POSITIONS",
+  stanceColor: "#f59e0b",
+  primaryScenario: "Prolonged Stalemate",
   primaryProb: 35,
-  timing: 'Re-assess in 48–72 hours',
-  timingDetail: 'The war has entered a grinding attrition phase at Day 22. The next 48–72 hours are decisive: Trump is expected to make a public statement on the war trajectory, Congress will begin debate on the $200B war funding request, and Brent crude movement will signal whether the Escalation scenario (15%) is rising. Do not change strategic positioning until at least one of these three signals resolves.',
+  timing: "Re-assess in 48–72 hours",
+  timingDetail: "The war has entered a grinding attrition phase at Day 22. The next 48–72 hours are decisive: Trump is expected to make a public statement on the war trajectory, Congress will begin debate on the $200B war funding request, and Brent crude movement will signal whether the Escalation scenario (15%) is rising. Do not change strategic positioning until at least one of these three signals resolves.",
   immediateWatchpoints: [
-    { signal: 'Trump press statement on Iran war trajectory',     timing: '24–48h',    implication: 'Ceasefire signal → oil drops $15–20, risk-on; Escalation → oil > $125, risk-off globally',              urgency: 'Critical' },
-    { signal: 'Congressional vote — $200B war funding',          timing: '7–14 days', implication: 'Defeat forces de-escalation/negotiation (raises Ceasefire prob to 35%+); Passage = Stalemate entrenches', urgency: 'High' },
-    { signal: 'Brent crude sustained above $115/bbl',            timing: 'Ongoing',   implication: 'Signals Escalation scenario rising; revise probability from 15% → 20–25%',                                urgency: 'High' },
-    { signal: 'Oman/Qatar diplomatic shuttle resumes',           timing: 'Watch',     implication: 'Ceasefire probability jumps; adjust all financial market positioning immediately',                         urgency: 'High' },
-    { signal: 'Houthis mass strike on Saudi Aramco',             timing: 'Unknown',   implication: 'Triggers Regional Conflagration — most catastrophic market event',                                        urgency: 'Critical (tail)' },
+    {
+      signal: "Trump press statement on Iran war trajectory",
+      timing: "24–48h",
+      implication: "Ceasefire signal → oil drops $15–20, risk-on; Escalation → oil > $120, risk-off",
+      urgency: "High",
+    },
+    {
+      signal: "Congressional debate on $200B war funding request",
+      timing: "48–72h",
+      implication: "Approval signals continued US commitment, potentially prolonging stalemate or increasing escalation risk. Rejection suggests waning support, increasing pressure for ceasefire.",
+      urgency: "High",
+    },
+    {
+      signal: "Brent crude oil price movement",
+      timing: "Ongoing (critical 24h window)",
+      implication: "Sustained rise above $120 signals increasing regional conflagration risk. Sharp drops suggest de-escalation or ceasefire prospects.",
+      urgency: "Critical",
+    },
   ],
   marketPositioning: [
-    { asset: 'Long Oil (futures/ETF)',                   stance: 'HOLD',     color: '#f59e0b', rationale: 'Stalemate keeps Brent $90–115. Do not add. Set stop if ceasefire signals emerge.' },
-    { asset: 'Long Gold',                               stance: 'HOLD',     color: '#f59e0b', rationale: 'Geopolitical safe-haven premium persists. Add on dips if Congressional vote uncertain.' },
-    { asset: 'Long Defense (RTX, LMT, BAESY)',          stance: 'REDUCE',   color: '#ef4444', rationale: 'Most upside already priced. Take profits on 30–40% of position.' },
-    { asset: 'Peripheral EU Equities (Greek banks, etc.)', stance: 'CAUTIOUS', color: '#ef4444', rationale: 'Sovereign spread widening risk. Wait for war signal to resolve before adding.' },
-    { asset: 'Long USD',                                stance: 'HOLD',     color: '#f59e0b', rationale: 'Safe-haven flows continue. Could unwind sharply on ceasefire — hedge accordingly.' },
-    { asset: 'Short Airlines / Tourism',                stance: 'REDUCE',   color: '#f59e0b', rationale: 'Travel disruption largely priced; upside limited. Cover shorts partially.' },
+    {
+      asset: "Oil (Brent Crude)",
+      stance: "HOLD",
+      color: "#f59e0b",
+      rationale: "Volatile due to geopolitical uncertainty. Awaiting clear signals on war trajectory before adjusting.",
+    },
+    {
+      asset: "US Equities",
+      stance: "HOLD",
+      color: "#f59e0b",
+      rationale: "Sensitive to escalation risk and oil prices. Monitoring Trump's statement and funding debate for direction.",
+    },
+    {
+      asset: "Gold",
+      stance: "HOLD",
+      color: "#f59e0b",
+      rationale: "Safe-haven demand will fluctuate with perceived escalation. Current levels reflect uncertainty.",
+    },
   ],
-  probabilityUpdate: 'No change from base case. Stalemate 35% / Ceasefire 25% / Collapse 20% / Escalation 15% / Nuclear 5%. Next update trigger: Trump statement OR Congressional vote.',
-  conviction: 'Medium',
-  nextReview: '48–72 hours or on any watchpoint signal',
+  probabilityUpdate: "Scenario1 35% / Scenario2 25% / Scenario3 20% / Scenario4 15% / Scenario5 5% — Next trigger: Trump statement, Congressional funding debate, Brent crude movement.",
+  conviction: "Medium-High",
+  nextReview: "48–72 hours",
 }
 
 // ─── ANALYSIS GAPS ────────────────────────────────────────────────────────────
