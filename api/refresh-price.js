@@ -56,7 +56,15 @@ If the price is unavailable, return { "error": "Price unavailable" }.`,
     if (!parsed || parsed.error) return res.status(502).json({ error: parsed?.error || 'Could not parse price response' })
     if (!parsed.price) return res.status(502).json({ error: 'Price not found in response' })
 
-    return res.status(200).json(parsed)
+    // Ensure numeric fields are actual numbers
+    return res.status(200).json({
+      price: Number(parsed.price) || 0,
+      change: Number(parsed.change) || 0,
+      changePct: Number(parsed.changePct) || 0,
+      currency: parsed.currency || '',
+      asOf: parsed.asOf || '',
+      source: parsed.source || '',
+    })
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }

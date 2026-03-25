@@ -129,10 +129,10 @@ export default function StockDashboard({
     }
   }
 
-  // Use live price if available, fall back to static stock data
-  const displayPrice   = livePrice?.price    ?? stock.price
-  const displayChange  = livePrice?.change   ?? stock.change
-  const displayChangePct = livePrice?.changePct ?? stock.changePct
+  // Use live price if available, fall back to static stock data (ensure numeric)
+  const displayPrice     = livePrice?.price    != null ? Number(livePrice.price)    : stock.price
+  const displayChange    = livePrice?.change   != null ? Number(livePrice.change)   : stock.change
+  const displayChangePct = livePrice?.changePct != null ? Number(livePrice.changePct) : stock.changePct
 
   // Fetch news state
   const [fetchNewsState, setFetchNewsState] = useState('idle') // idle | loading | success | empty | error

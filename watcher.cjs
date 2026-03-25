@@ -278,7 +278,7 @@ function runClaudeCode(prompt, issueNumber) {
   return new Promise((resolve, reject) => {
     const fullPrompt = prompt;
 
-    log(`Launching Claude Code: "${analysisRequest}"`);
+    log(`Launching Claude Code for issue #${issueNumber}`);
 
     // Escape double quotes for cmd.exe and wrap prompt in quotes
     const escapedPrompt = fullPrompt.replace(/"/g, '""');
