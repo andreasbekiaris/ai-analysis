@@ -220,21 +220,63 @@ function updateIssue(issueNumber, status, comment) {
 }
 
 /**
+ * Build the Claude Code prompt for a fresh analysis (new dashboard)
+ */
+function buildAnalysisPrompt(analysisRequest) {
+  return [
+    analysisRequest,
+    '',
+    'FAST-PATH INSTRUCTIONS — follow these exactly to minimize time:',
+    '1. Read CLAUDE.md first to understand the skill (geopolitical or stock) and data structure.',
+    '2. Use the shared GeoDashboard component at src/components/GeoDashboard.jsx — do NOT rebuild the UI. Your job is only to produce the DATA file (analysisData, politicalComments, strategicVerdict, analysisGaps, affectedCountries) and export a thin wrapper component that passes them to <GeoDashboard />.',
+    '3. Run all web searches in parallel — do not do them sequentially.',
+    '4. Skip generating a Word document — dashboard only.',
+    '5. After writing the .jsx file: update App.jsx routing, git add the new file + App.jsx, commit, then push.',
+    '6. The commit message must follow: feat: [type] analysis - [subject] - [YYYY-MM-DD]',
+  ].join('\n')
+}
+
+/**
+ * Build the Claude Code prompt for a reanalysis (update existing dashboard)
+ */
+function buildReanalyzePrompt(dashboardFile, analysisTitle, extraContext) {
+  const today = new Date().toISOString().slice(0, 10)
+  const lines = [
+    `Fully reanalyze and update the existing dashboard: ${dashboardFile}`,
+    `Analysis title: ${analysisTitle}`,
+    `Today's date: ${today}`,
+    '',
+    'REANALYSIS INSTRUCTIONS — follow exactly:',
+    '1. Read CLAUDE.md to understand the project structure and data formats.',
+    `2. Read the existing file at ${dashboardFile} in full — understand all current data, actors, scenarios, signals, and verdict.`,
+    '3. Run ALL web searches in parallel:',
+    '   - Latest developments / news (last 24-48h)',
+    '   - Current market prices (all relevant commodities, stocks, indices)',
+    '   - New public statements or signals from all key actors',
+    '   - Expert opinion updates from major think tanks or analysts',
+    '4. UPDATE the existing file with everything you found:',
+    '   - Prepend new political signals / news items to the TOP of their arrays',
+    '   - Revise scenario probabilities to reflect the latest situation',
+    '   - Rewrite the verdict (stance, timing, watchpoints, market positioning)',
+    '   - Update all price and metric values to current figures',
+    '   - Update the analysis date field to today',
+    '   - For stock dashboards: update stock.price, stock.change, stock.changePct, and add a new priceHistory entry',
+    `5. Do NOT create a new file — update ONLY the existing file at ${dashboardFile}`,
+    '6. Do NOT change App.jsx — the route already exists.',
+    `7. git add ${dashboardFile}`,
+    `8. Commit: "refactor: reanalyze — ${analysisTitle} — ${today}"`,
+    '9. Push to origin main',
+  ]
+  if (extraContext) lines.push('', `Additional context: ${extraContext}`)
+  return lines.join('\n')
+}
+
+/**
  * Run Claude Code with the analysis prompt
  */
-function runClaudeCode(analysisRequest, issueNumber) {
+function runClaudeCode(prompt, issueNumber) {
   return new Promise((resolve, reject) => {
-    const fullPrompt = [
-      analysisRequest,
-      '',
-      'FAST-PATH INSTRUCTIONS — follow these exactly to minimize time:',
-      '1. Read CLAUDE.md first to understand the skill (geopolitical or stock) and data structure.',
-      '2. Use the shared GeoDashboard component at src/components/GeoDashboard.jsx — do NOT rebuild the UI. Your job is only to produce the DATA file (analysisData, politicalComments, strategicVerdict, analysisGaps, affectedCountries) and export a thin wrapper component that passes them to <GeoDashboard />.',
-      '3. Run all web searches in parallel — do not do them sequentially.',
-      '4. Skip generating a Word document — dashboard only.',
-      '5. After writing the .jsx file: update App.jsx routing, git add the new file + App.jsx, commit, then push.',
-      '6. The commit message must follow: feat: [type] analysis - [subject] - [YYYY-MM-DD]',
-    ].join('\n');
+    const fullPrompt = prompt;
 
     log(`Launching Claude Code: "${analysisRequest}"`);
 
@@ -303,10 +345,27 @@ async function processIssue(issue) {
 
   processing.add(number);
 
-  const additionalContext = body ? `\n\nAdditional context: ${body}` : '';
-  const fullRequest = `${title}${additionalContext}`;
-
   log(`Processing issue #${number}: "${title}"`);
+
+  // Detect reanalyze issues: "Reanalyze: src/dashboards/... — Analysis Title"
+  const isReanalyze = title.startsWith('Reanalyze:');
+  let prompt;
+
+  if (isReanalyze) {
+    const match = title.match(/^Reanalyze:\s*(.+?)\s*—\s*(.+)$/);
+    if (!match) {
+      updateIssue(number, 'done', 'Could not parse reanalyze request. Expected format: `Reanalyze: path/to/file.jsx — Analysis Title`');
+      processing.delete(number);
+      return;
+    }
+    const dashboardFile = match[1].trim();
+    const analysisTitle = match[2].trim();
+    prompt = buildReanalyzePrompt(dashboardFile, analysisTitle, body || '');
+    log(`  → Reanalyze mode: ${dashboardFile}`);
+  } else {
+    const additionalContext = body ? `\n\nAdditional context: ${body}` : '';
+    prompt = buildAnalysisPrompt(`${title}${additionalContext}`);
+  }
 
   // Sync with remote before spawning Claude so pushes don't get rejected
   try {
@@ -317,10 +376,13 @@ async function processIssue(issue) {
     logError(`git pull failed: ${err.message} — continuing anyway`);
   }
 
-  updateIssue(number, 'processing', 'Analysis started. Claude Code is working on this. You will be notified when the dashboard is live.');
+  const startMsg = isReanalyze
+    ? `Reanalysis started. Claude Code is researching fresh data and updating the dashboard. You will be notified when done (~5–10 minutes).`
+    : `Analysis started. Claude Code is working on this. You will be notified when the dashboard is live.`;
+  updateIssue(number, 'processing', startMsg);
 
   try {
-    await runClaudeCode(fullRequest, number);
+    await runClaudeCode(prompt, number);
 
     const siteUrl = `https://${CONFIG.repo}.vercel.app`;
 

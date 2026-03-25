@@ -150,26 +150,21 @@ export default function StockDashboard({
     if (!dashboardFile) return
     setReanalyzeState('running')
     setReanalyzeResult(null)
-    const stages = ['Fetching latest news…', 'Analyzing what changed…', 'Updating verdict…', 'Saving to repository…']
-    let si = 0
-    setReanalyzeStage(stages[si])
-    const stageTimer = setInterval(() => {
-      si = Math.min(si + 1, stages.length - 1)
-      setReanalyzeStage(stages[si])
-    }, 6000)
+
     try {
-      const res = await fetch('/api/reanalyze-stock', {
+      const res = await fetch('/api/create-issue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dashboardFile, analysisTitle: `${stock.name} (${stock.ticker})`, ticker: stock.ticker }),
+        body: JSON.stringify({
+          title: `Reanalyze: ${dashboardFile} — ${stock.name} (${stock.ticker})`,
+          body: `Full reanalysis requested for: **${stock.name} (${stock.ticker})**\n\nFile: \`${dashboardFile}\`\nRequested: ${new Date().toISOString()}\n\nClaude Code will fetch the current stock price, latest news, and fully update all data in the dashboard.`,
+        }),
       })
-      clearInterval(stageTimer)
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Reanalysis failed')
+      if (!res.ok) throw new Error(data.error || 'Failed to queue reanalysis')
       setReanalyzeResult(data)
       setReanalyzeState('done')
     } catch (err) {
-      clearInterval(stageTimer)
       setReanalyzeResult({ error: err.message })
       setReanalyzeState('error')
     }
@@ -500,11 +495,10 @@ export default function StockDashboard({
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                       <RotateCcw size={14} color={T.amber} />
-                      <span style={{ color: T.text, fontWeight: 700, fontSize: '0.875rem' }}>Reanalyze this stock?</span>
+                      <span style={{ color: T.text, fontWeight: 700, fontSize: '0.875rem' }}>Full reanalysis with Claude Code?</span>
                     </div>
                     <p style={{ color: T.dim, fontSize: '0.8rem', margin: '0 0 0.85rem', lineHeight: 1.6 }}>
-                      Will fetch the latest 24h news, update the verdict and conviction.<br />
-                      <strong style={{ color: T.muted }}>Unchanged:</strong> entry zone, stop loss, targets, fundamentals, technicals.
+                      Claude Code will fetch the current stock price, latest news, analyst updates and fully update <strong style={{ color: T.muted }}>all data</strong> in this dashboard. Takes ~5–10 minutes via the watcher.
                     </p>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button
@@ -525,37 +519,23 @@ export default function StockDashboard({
                 {reanalyzeState === 'running' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <RefreshCw size={14} color={T.amber} style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
-                    <div>
-                      <div style={{ color: T.amber, fontWeight: 700, fontSize: '0.82rem' }}>Reanalyzing…</div>
-                      <div style={{ color: T.dim, fontSize: '0.75rem', marginTop: 2 }}>{reanalyzeStage}</div>
-                    </div>
+                    <div style={{ color: T.amber, fontWeight: 700, fontSize: '0.82rem' }}>Queuing reanalysis…</div>
                   </div>
                 )}
                 {reanalyzeState === 'done' && reanalyzeResult && (
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                       <CheckCircle size={14} color={T.emerald} />
-                      <span style={{ color: T.emerald, fontWeight: 700, fontSize: '0.875rem' }}>Reanalysis complete — deploying now</span>
+                      <span style={{ color: T.emerald, fontWeight: 700, fontSize: '0.875rem' }}>Reanalysis queued — Claude Code is on it</span>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.65rem' }}>
-                      <span style={{ fontSize: '0.75rem', color: T.muted }}>
-                        <strong style={{ color: T.text }}>{reanalyzeResult.newsAdded}</strong> news items added
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: T.muted }}>
-                        <strong style={{ color: reanalyzeResult.verdictUpdated ? T.amber : '#475569' }}>{reanalyzeResult.verdictUpdated ? 'Verdict updated' : 'Verdict unchanged'}</strong>
-                      </span>
-                      {reanalyzeResult.newStance && (
-                        <span style={{ fontSize: '0.75rem', color: T.muted }}>
-                          New stance: <strong style={{ color: T.amber }}>{reanalyzeResult.newStance}</strong>
-                        </span>
-                      )}
+                    <div style={{ color: T.muted, fontSize: '0.8rem', marginBottom: '0.5rem', lineHeight: 1.6 }}>
+                      Issue #{reanalyzeResult.number} created. Claude Code will fetch the latest price and news, then update all data in this dashboard in ~5–10 minutes. Redeploys automatically when done.
                     </div>
-                    <div style={{ color: '#475569', fontSize: '0.72rem' }}>
-                      Changes committed to GitHub. Page will reflect new data after Vercel deploys (~30s).
-                      <button onClick={() => window.location.reload()} style={{ marginLeft: '0.5rem', background: 'none', border: 'none', color: T.cyan, fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
-                        Reload now
-                      </button>
-                    </div>
+                    {reanalyzeResult.url && (
+                      <a href={reanalyzeResult.url} target="_blank" rel="noreferrer" style={{ color: T.cyan, fontSize: '0.75rem', textDecoration: 'none' }}>
+                        View progress on GitHub →
+                      </a>
+                    )}
                   </div>
                 )}
                 {reanalyzeState === 'error' && reanalyzeResult && (

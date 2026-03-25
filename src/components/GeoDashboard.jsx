@@ -616,32 +616,20 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
     setReanalyzeState('running')
     setReanalyzeResult(null)
 
-    const stages = [
-      'Fetching latest signals…',
-      'Analyzing what changed…',
-      'Updating verdict & probabilities…',
-      'Saving to repository…',
-    ]
-    let si = 0
-    setReanalyzeStage(stages[si])
-    const stageTimer = setInterval(() => {
-      si = Math.min(si + 1, stages.length - 1)
-      setReanalyzeStage(stages[si])
-    }, 6000)
-
     try {
-      const res = await fetch('/api/reanalyze', {
+      const res = await fetch('/api/create-issue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dashboardFile, analysisTitle: d.title }),
+        body: JSON.stringify({
+          title: `Reanalyze: ${dashboardFile} — ${d.title}`,
+          body: `Full reanalysis requested for: **${d.title}**\n\nFile: \`${dashboardFile}\`\nRequested: ${new Date().toISOString()}\n\nClaude Code will research fresh data and fully update all prices, signals, scenario probabilities, and the strategic verdict.`,
+        }),
       })
-      clearInterval(stageTimer)
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Reanalysis failed')
+      if (!res.ok) throw new Error(data.error || 'Failed to queue reanalysis')
       setReanalyzeResult(data)
       setReanalyzeState('done')
     } catch (err) {
-      clearInterval(stageTimer)
       setReanalyzeResult({ error: err.message })
       setReanalyzeState('error')
     }
@@ -958,11 +946,10 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                       <RotateCcw size={14} color="#f59e0b" />
-                      <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.875rem' }}>Reanalyze this situation?</span>
+                      <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.875rem' }}>Full reanalysis with Claude Code?</span>
                     </div>
                     <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '0 0 0.85rem', lineHeight: 1.6 }}>
-                      Will fetch the latest 24h signals, update the verdict and scenario probabilities. <br />
-                      <strong style={{ color: '#94a3b8' }}>Unchanged:</strong> scenario descriptions, actors, expert views, feasibility, analysis gaps.
+                      Claude Code will research fresh data and update <strong style={{ color: '#94a3b8' }}>everything</strong>: current prices, new signals, scenario probabilities, verdict, and key metrics. Takes ~5–10 minutes via the watcher.
                     </p>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button
@@ -984,10 +971,7 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
                 {reanalyzeState === 'running' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <RefreshCw size={14} color="#f59e0b" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
-                    <div>
-                      <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.82rem' }}>Reanalyzing…</div>
-                      <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 2 }}>{reanalyzeStage}</div>
-                    </div>
+                    <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.82rem' }}>Queuing reanalysis…</div>
                   </div>
                 )}
 
@@ -995,30 +979,16 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                       <CheckCircle size={14} color="#10b981" />
-                      <span style={{ color: '#10b981', fontWeight: 700, fontSize: '0.875rem' }}>Reanalysis complete — deploying now</span>
+                      <span style={{ color: '#10b981', fontWeight: 700, fontSize: '0.875rem' }}>Reanalysis queued — Claude Code is on it</span>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.65rem' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                        <strong style={{ color: '#f8fafc' }}>{reanalyzeResult.signalsAdded}</strong> new signals added
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                        <strong style={{ color: reanalyzeResult.verdictUpdated ? '#f59e0b' : '#475569' }}>{reanalyzeResult.verdictUpdated ? 'Verdict updated' : 'Verdict unchanged'}</strong>
-                      </span>
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                        <strong style={{ color: reanalyzeResult.probabilitiesChanged > 0 ? '#06b6d4' : '#475569' }}>{reanalyzeResult.probabilitiesChanged} probability shifts</strong>
-                      </span>
-                      {reanalyzeResult.newStance && (
-                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                          New stance: <strong style={{ color: '#f59e0b' }}>{reanalyzeResult.newStance}</strong>
-                        </span>
-                      )}
+                    <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginBottom: '0.5rem', lineHeight: 1.6 }}>
+                      Issue #{reanalyzeResult.number} created. Claude Code will research fresh data and fully update this dashboard in ~5–10 minutes. The page redeploys automatically when done.
                     </div>
-                    <div style={{ color: '#475569', fontSize: '0.72rem' }}>
-                      Changes committed to GitHub. Page will reflect new data after Vercel deploys (~30s).
-                      <button onClick={() => window.location.reload()} style={{ marginLeft: '0.5rem', background: 'none', border: 'none', color: '#06b6d4', fontSize: '0.72rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
-                        Reload now
-                      </button>
-                    </div>
+                    {reanalyzeResult.url && (
+                      <a href={reanalyzeResult.url} target="_blank" rel="noreferrer" style={{ color: '#06b6d4', fontSize: '0.75rem', textDecoration: 'none' }}>
+                        View progress on GitHub →
+                      </a>
+                    )}
                   </div>
                 )}
 
