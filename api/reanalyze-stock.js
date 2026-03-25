@@ -222,9 +222,9 @@ function patchVerdictFields(content, v) {
   for (const field of fields) {
     if (v[field] == null) continue
     const escaped = String(v[field]).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-    // Replace single-line string value for this field
+    // Match either a double-quoted string (may contain single quotes) or a single-quoted string
     block = block.replace(
-      new RegExp(`(\\b${field}:\\s*)["'][^"'\\n]*["']`),
+      new RegExp(`(\\b${field}:\\s*)(?:"[^"\\n]*"|'[^'\\n]*')`),
       `$1"${escaped}"`
     )
   }

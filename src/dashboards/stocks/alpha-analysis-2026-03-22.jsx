@@ -250,7 +250,7 @@ const verdict = {
   stanceColor: "#f59e0b",
   stanceBg: "rgba(245,158,11,0.1)",
   timing: "Wait 24–48 hours, then buy on dip",
-  timingDetail: "President Trump is expected to comment on the US-Iran war trajectory within 24 hours. Markets are pricing in mixed signals — if he signals ceasefire talks, ALPHA could gap up 8–12% on open. If he escalates rhetoric, oil spikes and peripheral EU banks sell off — offering a better entry near €2.85 support. In either case, do not chase today's price. Set a limit order at €2.95–3.05."s price. Set a limit order at €2.95–3.05.",
+  timingDetail: "President Trump is expected to comment on the US-Iran war trajectory within 24 hours. Markets are pricing in mixed signals — if he signals ceasefire talks, ALPHA could gap up 8–12% on open. If he escalates rhetoric, oil spikes and peripheral EU banks sell off — offering a better entry near €2.85 support. In either case, do not chase today's price. Set a limit order at €2.95–3.05.",
   entryZone: { low: 2.85, high: 3.10, ideal: 2.95 },
   stopLoss:  { price: 2.75, pct: -11.0, rationale: 'Break below €2.75 invalidates bullish structure; below Oct 2025 base' },
   targets: [
