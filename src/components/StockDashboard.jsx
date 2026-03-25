@@ -107,6 +107,33 @@ export default function StockDashboard({
   const [reanalyzeStage, setReanalyzeStage] = useState('')
   const [reanalyzeResult, setReanalyzeResult] = useState(null)
 
+  // Live price refresh (Gemini only — display only, no commit)
+  const [priceRefreshState, setPriceRefreshState] = useState('idle') // idle | loading | done | error
+  const [livePrice, setLivePrice] = useState(null) // { price, change, changePct, asOf, source }
+
+  const refreshPrice = async () => {
+    setPriceRefreshState('loading')
+    try {
+      const res = await fetch('/api/refresh-price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticker: stock.ticker, companyName: stock.name }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Price fetch failed')
+      setLivePrice(data)
+      setPriceRefreshState('done')
+    } catch {
+      setPriceRefreshState('error')
+      setTimeout(() => setPriceRefreshState('idle'), 3000)
+    }
+  }
+
+  // Use live price if available, fall back to static stock data
+  const displayPrice   = livePrice?.price    ?? stock.price
+  const displayChange  = livePrice?.change   ?? stock.change
+  const displayChangePct = livePrice?.changePct ?? stock.changePct
+
   // Fetch news state
   const [fetchNewsState, setFetchNewsState] = useState('idle') // idle | loading | success | empty | error
   const [stagedNews, setStagedNews] = useState([])
@@ -218,7 +245,7 @@ export default function StockDashboard({
   }
 
   const upside = (((stock.avgTarget - stock.price) / stock.price) * 100).toFixed(1)
-  const isUp   = stock.change >= 0
+  const isUp   = displayChange >= 0
 
   const priceRange   = technicals?.priceRange  || [1.5, 4.8]
   const oscillators  = technicals?.oscillators  || []
@@ -278,16 +305,44 @@ export default function StockDashboard({
             <div className="s-header-right s-price-block" style={{ display: 'flex', gap: '2.5rem', alignItems: 'flex-end' }}>
               {/* Price block */}
               <div style={{ textAlign: 'right' }}>
-                <div className="s-stock-price" style={{ fontSize: '2.4rem', fontWeight: 800, fontFamily: 'monospace', color: T.text, lineHeight: 1 }}>
-                  {euro(stock.price)}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end', marginBottom: 2 }}>
+                  <div className="s-stock-price" style={{ fontSize: '2.4rem', fontWeight: 800, fontFamily: 'monospace', color: T.text, lineHeight: 1 }}>
+                    {euro(displayPrice)}
+                  </div>
+                  {/* Refresh price button */}
+                  <button
+                    onClick={refreshPrice}
+                    disabled={priceRefreshState === 'loading'}
+                    title="Refresh current price (Gemini live lookup)"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 22, height: 22, padding: 0,
+                      background: priceRefreshState === 'done' ? `${T.emerald}18` : priceRefreshState === 'error' ? `${T.crimson}18` : 'rgba(100,116,139,0.1)',
+                      border: `1px solid ${priceRefreshState === 'done' ? T.emerald : priceRefreshState === 'error' ? T.crimson : '#334155'}`,
+                      borderRadius: 4, cursor: priceRefreshState === 'loading' ? 'wait' : 'pointer', flexShrink: 0,
+                    }}
+                  >
+                    <RefreshCw
+                      size={11}
+                      color={priceRefreshState === 'done' ? T.emerald : priceRefreshState === 'error' ? T.crimson : '#64748b'}
+                      style={priceRefreshState === 'loading' ? { animation: 'spin 1s linear infinite' } : {}}
+                    />
+                  </button>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end', marginTop: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end' }}>
                   {isUp ? <ArrowUpRight size={16} color={T.emerald} /> : <ArrowDownRight size={16} color={T.crimson} />}
                   <span style={{ color: isUp ? T.emerald : T.crimson, fontFamily: 'monospace', fontWeight: 700, fontSize: '1rem' }}>
-                    {pct(stock.changePct)}
+                    {pct(displayChangePct)}
                   </span>
                   <span style={{ color: T.dim, fontSize: '0.8rem' }}>today</span>
                 </div>
+                {/* Live price disclaimer */}
+                {livePrice && (
+                  <div style={{ marginTop: 4, fontSize: '0.62rem', color: '#475569', textAlign: 'right', lineHeight: 1.4 }}>
+                    Live via Gemini · {livePrice.asOf || 'now'} · {livePrice.source || livePrice.currency || ''}<br />
+                    <span style={{ color: '#374151' }}>⚠ Price only — analysis data unchanged</span>
+                  </div>
+                )}
               </div>
 
               {/* Signal badge */}
