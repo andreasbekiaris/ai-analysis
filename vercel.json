@@ -1,5 +1,9 @@
 {
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ]
+  ],
+  "functions": {
+    "api/reanalyze.js": { "maxDuration": 120 },
+    "api/reanalyze-stock.js": { "maxDuration": 120 }
+  }
 }

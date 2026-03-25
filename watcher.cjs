@@ -241,7 +241,7 @@ function runClaudeCode(analysisRequest, issueNumber) {
     // Escape double quotes for cmd.exe and wrap prompt in quotes
     const escapedPrompt = fullPrompt.replace(/"/g, '""');
     const claude = spawn(
-      `claude --dangerously-skip-permissions -p "${escapedPrompt}"`,
+      `claude --model claude-opus-4-6 --dangerously-skip-permissions -p "${escapedPrompt}"`,
       { cwd: CONFIG.projectPath, stdio: ['pipe', 'pipe', 'pipe'], shell: true, timeout: 600000 }
     );
 
