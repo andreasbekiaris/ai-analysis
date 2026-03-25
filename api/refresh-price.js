@@ -18,8 +18,9 @@ export default async function handler(req, res) {
           contents: [{
             role: 'user',
             parts: [{
-              text: `Get the current live stock price for ${companyName || ticker} (ticker: ${ticker}).
-Search for the latest real-time or most recent closing price.
+              text: `Go to Yahoo Finance and get the current stock price for ${companyName || ticker} (ticker: ${ticker}).
+
+Search Yahoo Finance specifically: "yahoo finance ${ticker} stock price" — use the price shown on the Yahoo Finance quote page for this ticker. Yahoo Finance is the primary and preferred source. If Yahoo Finance is unavailable, fall back to Google Finance or MarketWatch.
 
 Return ONLY a JSON object with no markdown:
 {
@@ -28,7 +29,7 @@ Return ONLY a JSON object with no markdown:
   "changePct": number,
   "currency": "EUR" or "USD" or appropriate,
   "asOf": "HH:MM TZ or market session label e.g. 15:32 EEST or Closed",
-  "source": "exchange or data source name"
+  "source": "Yahoo Finance"
 }
 
 If the price is unavailable, return { "error": "Price unavailable" }.`,
