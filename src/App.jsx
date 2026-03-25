@@ -12,7 +12,7 @@ import HelpPage from './pages/HelpPage'
 const dashboards = [
   { path: '/geo/us-iran-war', component: UsIranWar, title: 'US–Iran War: Operation Epic Fury', type: 'geopolitical', date: '2026-03-22' },
   { path: '/geo/russia-ukraine-war', component: RussiaUkraineWar, title: 'Russia–Ukraine War: Year Four', type: 'geopolitical', date: '2026-03-24' },
-  { path: '/stocks/alpha', component: AlphaBank, title: 'Alpha Bank (ALPHA.AT / ALBKY)', type: 'stocks', date: '2026-03-22' },
+  { path: '/stocks/alpha', component: AlphaBank, title: 'Alpha Bank (ALPHA.AT / ALBKY)', type: 'stocks', date: '2026-03-25' },
 ]
 
 function NewAnalysisForm() {
