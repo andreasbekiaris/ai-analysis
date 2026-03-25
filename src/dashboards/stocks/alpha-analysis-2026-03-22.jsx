@@ -156,6 +156,20 @@ const keyMetrics = [
 ]
 
 const newsItems = [
+  {
+    headline: "Announcement – Purchase of Own Shares [24.03.2026]",
+    source: "Alpha Bank",
+    date: "2026-03-24",
+    url: "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGtTEt46BJRyoP2WJqgv25AQS8LYRir7blLejUrihnvV2sv77Z1PKC23Nz8fvnAI3VgUoVBgj60g8n3pZSmUMjZ242pEN7MrGADGsMeR1TjRys_QcgWDWjm7CUydfr5_tn5FLct0mOAn510OkJxhEHaFGFpBj4_wb8Xsy2kCKKWLb9bLY9N4Mn54xckXEdA3vx338Q6RI_D6akomDhoBZ7fubLZjtaxEyUpMA==",
+    sentiment: "positive",
+  },
+  {
+    headline: "Alpha Bank Stock Price Update",
+    source: "Trading Economics",
+    date: "2026-03-24",
+    url: "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHTndZ7Smp10oDbADSjgv6rzGt1Q5E4tz15fCkIsC3g7DnkURfezbSmGK4r5E22HKzr4s-wF-yQ2irIfblzOpShgD33Gjzc30kxB_JR6NtYhqOSpwG5oTH8PT8YrQd50g==",
+    sentiment: "negative",
+  },
   { date: '27 Feb 2026', source: 'Alpha Bank IR',       headline: 'Alpha Bank reports €943.3M net profit for FY2025, up 44% — announces €519M shareholder distribution', sentiment: 'positive', url: 'https://www.alpha.gr/en/investor-relations/financial-results' },
   { date: '19 Mar 2026', source: 'Deutsche Bank Research', headline: 'Deutsche Bank raises Greek bank targets; Alpha Bank to €4.45 (Buy) — second top pick after Eurobank', sentiment: 'positive', url: null },
   { date: '13 Mar 2026', source: 'Reuters',             headline: 'Greek banks draw strong institutional interest entering 2026 — Eurozone re-rating underway',             sentiment: 'positive', url: null },
@@ -250,7 +264,7 @@ const verdict = {
   stanceColor: "#f59e0b",
   stanceBg: "rgba(245,158,11,0.1)",
   timing: "Wait 24–48 hours, then buy on dip",
-  timingDetail: "President Trump is expected to comment on the US-Iran war trajectory within 24 hours. Markets are pricing in mixed signals — if he signals ceasefire talks, ALPHA could gap up 8–12% on open. If he escalates rhetoric, oil spikes and peripheral EU banks sell off — offering a better entry near €2.85 support. In either case, do not chase today's price. Set a limit order at €2.95–3.05.",
+  timingDetail: "President Trump's comments on the US-Iran war trajectory are key. Markets are pricing in mixed signals. The announcement of Alpha Bank's share buyback is positive, but a general stock price update from Trading Economics warrants monitoring. Wait for clarity on geopolitical events before committing.",
   entryZone: { low: 2.85, high: 3.10, ideal: 2.95 },
   stopLoss:  { price: 2.75, pct: -11.0, rationale: 'Break below €2.75 invalidates bullish structure; below Oct 2025 base' },
   targets: [
