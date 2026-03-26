@@ -5,6 +5,7 @@ import SiteNavBar from '../components/SiteNavBar'
 
 const glossary = {
   financial: [
+    { term: "NPE", full: "Non-Performing Exposure", definition: "A loan or other credit exposure where the borrower has failed to make scheduled payments for a significant period, indicating a high risk of default. It's a critical metric for bank health and financial stability." },
     { term: 'P/E', full: 'Price-to-Earnings Ratio', definition: 'Stock price divided by earnings per share. Measures how much investors pay per dollar of earnings. High P/E = growth expectations or overvaluation.' },
     { term: 'EPS', full: 'Earnings Per Share', definition: 'Net income divided by outstanding shares. Core profitability metric used to compare companies.' },
     { term: 'bbl', full: 'Barrel', definition: 'Unit of oil volume = 42 US gallons (159 liters). All oil prices are quoted per barrel.' },
