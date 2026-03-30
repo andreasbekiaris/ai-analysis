@@ -182,7 +182,7 @@ function AnalysisQueue() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/list-issues')
+      const res = await fetch('/api/get-issues')
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to fetch queue')
       setIssues(data.issues || [])
@@ -285,7 +285,7 @@ function AnalysisQueue() {
               #{issue.number}
             </span>
             <span style={{ color: '#475569', fontSize: '0.68rem', flexShrink: 0 }}>
-              {timeAgo(issue.created)}
+              {timeAgo(issue.createdAt || issue.created)}
             </span>
           </a>
         ))}
