@@ -17,7 +17,8 @@ async function geminiSearch(key, query) {
     )
     if (!res.ok) return ''
     const data = await res.json()
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    const parts = data?.candidates?.[0]?.content?.parts || []
+    return parts.map(p => p.text || '').join('').trim()
   } catch { return '' }
 }
 

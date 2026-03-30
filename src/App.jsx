@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { BarChart3, Globe2, TrendingUp, Clock, Plus, Send, CheckCircle, AlertCircle, Loader, ExternalLink } from 'lucide-react'
+import { BarChart3, Globe2, TrendingUp, Clock, Plus, Send, CheckCircle, AlertCircle, Loader, ExternalLink, ListTodo, RefreshCw } from 'lucide-react'
 import SiteNavBar from './components/SiteNavBar'
 
 // Import dashboards here as they are created
@@ -173,6 +173,127 @@ function NewAnalysisForm() {
 }
 
 
+function AnalysisQueue() {
+  const [issues, setIssues] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  const fetchQueue = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/list-issues')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch queue')
+      setIssues(data.issues || [])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchQueue() }, [])
+
+  if (loading && issues.length === 0) {
+    return (
+      <div style={{
+        background: '#111827', border: '1px solid #1e293b', borderRadius: '12px',
+        padding: '1.25rem', marginBottom: '2rem',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem' }}>
+          <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading queue...
+        </div>
+      </div>
+    )
+  }
+
+  if (issues.length === 0 && !error) return null
+
+  const timeAgo = (iso) => {
+    const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
+    if (mins < 1) return 'just now'
+    if (mins < 60) return `${mins}m ago`
+    const hrs = Math.round(mins / 60)
+    if (hrs < 24) return `${hrs}h ago`
+    return `${Math.round(hrs / 24)}d ago`
+  }
+
+  const isReanalyze = (title) => /^reanalyz/i.test(title)
+  const isNewAnalysis = (title) => /^analyz/i.test(title) || /^new.?analys/i.test(title)
+
+  return (
+    <div style={{
+      background: '#111827', border: '1px solid #1e293b', borderRadius: '12px',
+      padding: '1.25rem', marginBottom: '2rem',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <ListTodo size={18} color="#f59e0b" />
+          <span style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem' }}>
+            Pending Queue
+          </span>
+          <span style={{
+            background: '#f59e0b22', color: '#f59e0b', fontSize: '0.7rem', fontWeight: 700,
+            padding: '0.15rem 0.5rem', borderRadius: '9999px',
+          }}>
+            {issues.length}
+          </span>
+        </div>
+        <button onClick={fetchQueue} disabled={loading} style={{
+          background: 'none', border: '1px solid #1e293b', borderRadius: '6px',
+          padding: '0.25rem 0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem',
+          color: '#64748b', fontSize: '0.72rem',
+        }}>
+          <RefreshCw size={11} style={loading ? { animation: 'spin 1s linear infinite' } : {}} /> Refresh
+        </button>
+      </div>
+
+      {error && (
+        <div style={{ color: '#ef4444', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+          <AlertCircle size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.3rem' }} />
+          {error}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {issues.map(issue => (
+          <a
+            key={issue.number}
+            href={issue.url}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              background: '#0a0f1e', border: '1px solid #1e293b', borderRadius: '8px',
+              padding: '0.65rem 0.85rem', textDecoration: 'none', transition: 'border-color 0.2s',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = '#334155'}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = '#1e293b'}
+          >
+            <div style={{
+              width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
+              background: isReanalyze(issue.title) ? '#8b5cf6' : isNewAnalysis(issue.title) ? '#06b6d4' : '#f59e0b',
+              boxShadow: `0 0 6px ${isReanalyze(issue.title) ? '#8b5cf644' : isNewAnalysis(issue.title) ? '#06b6d444' : '#f59e0b44'}`,
+            }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: '#e2e8f0', fontSize: '0.82rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {issue.title}
+              </div>
+            </div>
+            <span style={{ color: '#475569', fontSize: '0.68rem', fontFamily: 'monospace', flexShrink: 0 }}>
+              #{issue.number}
+            </span>
+            <span style={{ color: '#475569', fontSize: '0.68rem', flexShrink: 0 }}>
+              {timeAgo(issue.created)}
+            </span>
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function Home() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0a0f1e', boxSizing: 'border-box' }}>
@@ -192,6 +313,7 @@ function Home() {
         </div>
 
         <NewAnalysisForm />
+        <AnalysisQueue />
 
         {/* Dashboard Grid */}
         {dashboards.length === 0 ? (

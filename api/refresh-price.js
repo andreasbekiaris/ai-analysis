@@ -43,7 +43,8 @@ If the price is unavailable, return { "error": "Price unavailable" }.`,
     if (!geminiRes.ok) return res.status(502).json({ error: `Gemini API error ${geminiRes.status}` })
 
     const data = await geminiRes.json()
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    const parts = data?.candidates?.[0]?.content?.parts || []
+    const text = parts.map(p => p.text || '').join('').trim()
     const clean = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
 
     let parsed
