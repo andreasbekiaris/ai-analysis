@@ -176,21 +176,36 @@ export default function StockDashboard({
   const runReanalyze = async () => {
     if (!dashboardFile) return
     setReanalyzeState('running')
-    setReanalyzeStage('Fetching latest price and news...')
+    setReanalyzeStage('Fetching latest price and market data...')
     setReanalyzeResult(null)
+
+    const stages = [
+      'Fetching latest price and market data...',
+      'Gathering news and analyst ratings...',
+      'Running deep analysis with Claude Opus...',
+      'Regenerating fundamentals and verdict...',
+      'Finalizing and committing to GitHub...',
+    ]
+    let stageIdx = 0
+    const stageTimer = setInterval(() => {
+      stageIdx = Math.min(stageIdx + 1, stages.length - 1)
+      setReanalyzeStage(stages[stageIdx])
+    }, 25000)
 
     try {
       const res = await fetch('/api/reanalyze-stock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dashboardFile, analysisTitle: `${stock.name} (${stock.ticker})`, ticker: stock.ticker }),
-        signal: AbortSignal.timeout(300000),
+        signal: AbortSignal.timeout(360000),
       })
+      clearInterval(stageTimer)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Reanalysis failed')
       setReanalyzeResult(data)
       setReanalyzeState('done')
     } catch (err) {
+      clearInterval(stageTimer)
       setReanalyzeResult({ error: err.name === 'TimeoutError' ? 'Request timed out — try again' : err.message })
       setReanalyzeState('error')
     }
@@ -552,7 +567,7 @@ export default function StockDashboard({
                       <span style={{ color: T.text, fontWeight: 700, fontSize: '0.875rem' }}>Full reanalysis with Claude Code?</span>
                     </div>
                     <p style={{ color: T.dim, fontSize: '0.8rem', margin: '0 0 0.85rem', lineHeight: 1.6 }}>
-                      Claude Code will fetch the current stock price, latest news, analyst updates and fully update <strong style={{ color: T.muted }}>all data</strong> in this dashboard. Takes ~5–10 minutes via the watcher.
+                      Claude will perform a <strong style={{ color: T.muted }}>deep reanalysis</strong> — redoing the entire analysis from scratch using the previous version as a baseline. All stock data, fundamentals, news, and verdicts are regenerated with deeper reasoning. Takes ~2–4 minutes.
                     </p>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button
@@ -583,10 +598,12 @@ export default function StockDashboard({
                       <span style={{ color: T.emerald, fontWeight: 700, fontSize: '0.875rem' }}>Reanalysis complete — deploying now</span>
                     </div>
                     <div style={{ color: T.muted, fontSize: '0.8rem', marginBottom: '0.5rem', lineHeight: 1.6 }}>
-                      {reanalyzeResult.signalsAdded > 0 && `${reanalyzeResult.signalsAdded} new signals added. `}
-                      {reanalyzeResult.newStance && `New stance: ${reanalyzeResult.newStance}. `}
-                      {reanalyzeResult.probabilitiesChanged > 0 && `${reanalyzeResult.probabilitiesChanged} scenario probabilities updated. `}
-                      Refresh the page in ~30 seconds to see the updated dashboard.
+                      Deep reanalysis complete.
+                      {reanalyzeResult.newPrice && ` Price: $${reanalyzeResult.newPrice}.`}
+                      {reanalyzeResult.newsTotal > 0 && ` ${reanalyzeResult.newsTotal} news items.`}
+                      {reanalyzeResult.newStance && ` New stance: ${reanalyzeResult.newStance}.`}
+                      {reanalyzeResult.newConviction && ` Conviction: ${reanalyzeResult.newConviction}.`}
+                      {' '}Refresh the page in ~30 seconds to see the updated dashboard.
                     </div>
                   </div>
                 )}

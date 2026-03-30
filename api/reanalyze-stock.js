@@ -1,7 +1,7 @@
 const REPO = 'andreasbekiaris/ai-analysis'
 
 // ── Gemini Google-Search helper ────────────────────────────────────────────────
-async function geminiSearch(key, query) {
+async function geminiSearch(key, query, maxTokens = 2048) {
   try {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
@@ -11,7 +11,7 @@ async function geminiSearch(key, query) {
         body: JSON.stringify({
           tools: [{ google_search: {} }],
           contents: [{ role: 'user', parts: [{ text: query }] }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
+          generationConfig: { temperature: 0.1, maxOutputTokens: maxTokens },
         }),
       }
     )
@@ -44,110 +44,167 @@ export default async function handler(req, res) {
   const fileData = await fileRes.json()
   const content = Buffer.from(fileData.content, 'base64').toString('utf8')
 
-  const verdictText = extractVerdictText(content)
-  const stockFields = extractStockFields(content)
   const today = new Date().toISOString().slice(0, 10)
   const stockName = analysisTitle || ticker || dashboardFile
-  const tickerStr = ticker || stockFields.ticker || stockName
+  const tickerStr = ticker || stockName
 
-  // ── Step 2: 3 parallel Gemini searches (price ×2 + news) ──────────────────
-  const [pc1Raw, pc2Raw, newsRaw] = await Promise.all([
+  // Extract full previous data blocks as context for deeper reanalysis
+  const prevStock = extractBlock(content, 'const stock')
+  const prevVerdict = extractBlock(content, 'const verdict')
+  const prevNews = extractBlock(content, 'const newsItems')
+  const prevGaps = extractBlock(content, 'const analysisGaps')
+  const prevGeoOverlay = extractBlock(content, 'const geoOverlay')
+  const prevRiskNotices = extractBlock(content, 'const riskNotices')
+
+  // ── Step 2: 5 parallel Gemini searches — comprehensive stock research ─────
+  const [pc1, pc2, news, analysts, sectorMacro] = await Promise.all([
     geminiSearch(geminiKey,
       `PRICE CHECK 1 — Current stock price for ${stockName} (ticker: ${tickerStr}). Today: ${today}. ` +
-      `Search for real-time or latest closing price, daily change (absolute and %), market cap, and trading volume. ` +
-      `Also include any relevant sector index (e.g. Greek banking index, Euro Stoxx Banks). ` +
-      `Return: Field | Value | Source.`
+      `Search for real-time or latest closing price, daily change (absolute and %), ` +
+      `market cap, trading volume, 52-week high/low, beta. ` +
+      `Also include relevant sector index. Return: Field | Value | Source.`
     ),
     geminiSearch(geminiKey,
       `PRICE CHECK 2 — Cross-verify stock price for ${tickerStr} / ${stockName}. Date: ${today}. ` +
-      `Search a different source (Bloomberg, Reuters, Yahoo Finance, or local exchange) to confirm: ` +
-      `current price, intraday high/low, 52-week range update if changed, and analyst consensus target. ` +
+      `Search different sources (Bloomberg, Reuters, Yahoo Finance, local exchange) to confirm: ` +
+      `current price, intraday high/low, 52-week range, analyst consensus target, P/E ratio. ` +
       `Return: Field | Value | Source URL or outlet.`
     ),
     geminiSearch(geminiKey,
-      `Latest financial news for ${stockName} (${tickerStr}) from the last 24 hours. Date: ${today}. ` +
-      `Search for earnings updates, analyst upgrades/downgrades, regulatory news, macro events affecting this stock. ` +
-      `Return a JSON array. Each object: ` +
-      `{ "headline": string, "source": string, "date": "YYYY-MM-DD", "url": string or "", ` +
-      `"sentiment": "positive|neutral|negative", "summary": string }. ` +
-      `Return ONLY the JSON array, or [] if nothing new in 24h.`
+      `Comprehensive financial news for ${stockName} (${tickerStr}). Date: ${today}. ` +
+      `Search for: earnings updates, analyst upgrades/downgrades, regulatory news, ` +
+      `management changes, M&A activity, product launches, legal issues, ` +
+      `competitive developments, insider trading, dividend changes. Cover the last 7 days. ` +
+      `For each: headline, source, date, sentiment (positive/neutral/negative), summary.`,
+      3000
+    ),
+    geminiSearch(geminiKey,
+      `Analyst ratings and research for ${stockName} (${tickerStr}). Date: ${today}. ` +
+      `Search for: recent analyst reports, price target changes, rating changes, ` +
+      `consensus estimates, EPS forecasts, revenue projections. ` +
+      `Include: analyst name, firm, rating, price target, date of report, key thesis.`,
+      3000
+    ),
+    geminiSearch(geminiKey,
+      `Sector and macro analysis affecting ${stockName} (${tickerStr}). Date: ${today}. ` +
+      `Search for: sector trends, industry developments, regulatory changes, ` +
+      `interest rate impacts, trade policy effects, geopolitical risks to this company, ` +
+      `supply chain issues, currency impacts. Include specific data and sources.`,
+      3000
     ),
   ])
 
-  // Parse news
-  let freshNews = []
-  try {
-    const clean = newsRaw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
-    const parsed = JSON.parse(clean)
-    if (Array.isArray(parsed)) freshNews = parsed.filter(n => n?.headline?.length > 5)
-  } catch {
-    const match = newsRaw.match(/\[[\s\S]*\]/)
-    if (match) try { freshNews = JSON.parse(match[0]).filter(n => n?.headline?.length > 5) } catch { /* skip */ }
-  }
+  // ── Step 3: Claude deep reanalysis — full data regeneration ────────────────
+  const claudePrompt = `You are a senior equity analyst performing a COMPREHENSIVE DEEP REANALYSIS of a stock.
 
-  // Dedupe news against existing headlines
-  const existingKeys = new Set(
-    [...content.matchAll(/headline:\s*["'`](.{0,80})/g)].map(m => m[1].toLowerCase().slice(0, 60))
-  )
-  const novelNews = freshNews.filter(
-    n => !existingKeys.has((n.headline || '').slice(0, 60).toLowerCase())
-  )
+CRITICAL: This is NOT a quick price update. You must REDO the entire analysis from scratch.
+Use the previous analysis as your baseline — update fundamentals, challenge assumptions,
+incorporate new data, and produce a DEEPER, more refined assessment.
 
-  // ── Step 3: Claude Opus comprehensive reanalysis ────────────────────────────
-  const claudePrompt = `You are a senior equity analyst performing a comprehensive daily reanalysis for a stock dashboard.
+═══ PREVIOUS ANALYSIS (baseline to improve upon — do NOT just copy) ═══
 
-STOCK: "${stockName}" (${tickerStr})
-DATE: ${today}
+── STOCK DATA ──
+${prevStock.slice(0, 5000)}
 
-CURRENT STOCK DATA:
-${JSON.stringify(stockFields, null, 2)}
+── VERDICT ──
+${prevVerdict.slice(0, 3000)}
 
-CURRENT VERDICT:
-${verdictText.slice(0, 1000)}
+── NEWS ITEMS ──
+${prevNews.slice(0, 3000)}
 
-GEMINI PRICE CHECK #1 (live Google Search, ${today}):
-${pc1Raw.slice(0, 800) || '(unavailable)'}
+── ANALYSIS GAPS ──
+${prevGaps.slice(0, 1000)}
 
-GEMINI PRICE CHECK #2 (cross-verified, ${today}):
-${pc2Raw.slice(0, 800) || '(unavailable)'}
+── GEO OVERLAY (if exists) ──
+${prevGeoOverlay.slice(0, 2000)}
 
-NEW NEWS (last 24h, de-duped):
-${novelNews.length
-  ? novelNews.map(n => `  [${(n.sentiment || 'neutral').toUpperCase()}] ${n.source}: "${n.headline}"`).join('\n')
-  : '  (no material new news)'}
+── RISK NOTICES (if exists) ──
+${prevRiskNotices.slice(0, 1500)}
 
-Produce a comprehensive JSON patch updating ALL data that has shifted.
+═══ FRESH RESEARCH (${today}) ═══
+
+── VERIFIED PRICE #1 ──
+${pc1.slice(0, 1500) || '(unavailable)'}
+
+── VERIFIED PRICE #2 ──
+${pc2.slice(0, 1500) || '(unavailable)'}
+
+── LATEST NEWS (last 7 days) ──
+${news.slice(0, 3500) || '(no significant news found)'}
+
+── ANALYST RATINGS & RESEARCH ──
+${analysts.slice(0, 3000) || '(no analyst data found)'}
+
+── SECTOR & MACRO CONTEXT ──
+${sectorMacro.slice(0, 3000) || '(no sector analysis found)'}
+
+═══ INSTRUCTIONS ═══
+
+Generate COMPLETE replacement data. Return a single JSON object with these keys:
 
 {
-  "stockPriceUpdate": {
-    "price": number (from consensus of both price checks),
+  "stock": {
+    "name": "${stockName}",
+    "ticker": "${tickerStr}",
+    "price": number (consensus from both price checks),
     "change": number (today's absolute change),
     "changePct": number (today's % change),
-    "marketCap": "string e.g. €7.2B"
+    "marketCap": "string e.g. $2.1T",
+    "pe": number or "N/A",
+    "eps": number,
+    "dividend": "string e.g. 0.65%",
+    "fiftyTwoWeekHigh": number,
+    "fiftyTwoWeekLow": number,
+    "beta": number,
+    "avgVolume": "string e.g. 12.5M",
+    "sector": "string",
+    "industry": "string",
+    "description": "1-2 paragraph company description with current strategic focus"
   },
-  "priceHistoryPoint": {
-    "date": "Mar-25",
-    "price": number
-  },
-  "updatedVerdict": {
-    "stance": "CAUTIOUS BUY | HOLD | REDUCE | MONITOR | BUY | AVOID",
-    "stanceColor": "#f59e0b (amber) | #ef4444 (red) | #10b981 (green) | #06b6d4 (cyan)",
+  "verdict": {
+    "stance": "BUY|CAUTIOUS BUY|HOLD|REDUCE|AVOID|MONITOR",
+    "stanceColor": "#hex",
     "stanceBg": "rgba() matching stanceColor at 0.1 opacity",
-    "timing": "short label e.g. Wait for Q1 earnings",
-    "timingDetail": "2-3 sentences citing specific news and verified price moves",
-    "conviction": "High|Medium-High|Medium|Low"
+    "timing": "short timing label",
+    "timingDetail": "2-4 sentences citing specific news, prices, and catalysts — DEEPER reasoning than previous",
+    "entryZone": { "low": number, "high": number, "ideal": number },
+    "stopLoss": { "price": number, "pct": "string e.g. -8%", "rationale": "str" },
+    "targets": [
+      { "price": number, "label": "Target 1", "horizon": "3-6 months", "upside": "string e.g. +15%", "trigger": "catalyst" }
+    ],
+    "riskReward": "string e.g. 2.5:1",
+    "conviction": "High|Medium-High|Medium|Low",
+    "keyConditions": [
+      { "label": "str", "status": "met|pending|failed", "impact": "str" }
+    ],
+    "bearCase": "detailed bear case with specific scenarios and probabilities",
+    "disclaimer": "Analytical data only. Not financial advice. Consult a qualified advisor."
   },
-  "priceSummary": "One sentence: what the two price checks confirm about the stock right now"
+  "newsItems": [
+    {
+      "headline": "str",
+      "source": "str",
+      "date": "YYYY-MM-DD",
+      "url": "real URL or empty string",
+      "sentiment": "positive|neutral|negative",
+      "summary": "1-2 sentence summary of impact"
+    }
+  ],
+  "analysisGaps": [
+    { "topic": "str", "description": "str", "issueTitle": "Extend ${stockName} analysis: ..." }
+  ]
 }
 
-RULES:
-- stockPriceUpdate MUST use the consensus price from both Gemini price checks
-- priceHistoryPoint date format: 3-letter month + 2-digit day (e.g. Mar-25)
-- If price is unavailable from checks, return null for stockPriceUpdate
-- Verdict MUST reference specific news and price data
-- Return ONLY the JSON object — no markdown, no explanation`
+CRITICAL RULES:
+1. Stock price MUST use consensus from both price checks — if unavailable return the best available
+2. KEEP important previous news items AND add new ones from research — sort newest first, max 12 items
+3. News URLs must be real — if you cannot verify a URL, use empty string
+4. Verdict MUST reference specific recent news, price data, and analyst views
+5. GO DEEPER: more nuanced timing rationale, better-supported targets, more detailed bear case
+6. If geo overlay data existed, incorporate its risk assessment into the verdict and bear case
+7. Return ONLY valid JSON — no markdown fences, no explanation, no commentary`
 
-  let patch = null
+  let result = null
   try {
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -158,7 +215,7 @@ RULES:
       },
       body: JSON.stringify({
         model: 'claude-opus-4-6',
-        max_tokens: 2000,
+        max_tokens: 12000,
         messages: [{ role: 'user', content: claudePrompt }],
       }),
     })
@@ -166,22 +223,29 @@ RULES:
       const claudeData = await claudeRes.json()
       const text = claudeData?.content?.[0]?.text || ''
       const clean = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
-      try { patch = JSON.parse(clean) } catch {
+      try { result = JSON.parse(clean) } catch {
         const match = text.match(/\{[\s\S]*\}/)
-        if (match) try { patch = JSON.parse(match[0]) } catch { /* skip */ }
+        if (match) try { result = JSON.parse(match[0]) } catch { /* skip */ }
       }
     }
   } catch { /* fall through */ }
 
-  if (!patch) return res.status(502).json({ error: 'Claude Opus failed to generate analysis patch — try again' })
+  if (!result) return res.status(502).json({ error: 'Claude failed to generate deep reanalysis — try again' })
 
-  // ── Step 4: Apply patch ────────────────────────────────────────────────────
+  // ── Step 4: Replace data blocks in file ────────────────────────────────────
   let newContent = content
+  if (result.stock) newContent = replaceDataBlock(newContent, 'const stock', result.stock)
+  if (result.verdict) newContent = replaceDataBlock(newContent, 'const verdict', result.verdict)
+  if (result.newsItems) newContent = replaceDataBlock(newContent, 'const newsItems', result.newsItems)
+  if (result.analysisGaps) newContent = replaceDataBlock(newContent, 'const analysisGaps', result.analysisGaps)
 
-  if (novelNews.length > 0) newContent = prependNewsItems(newContent, novelNews)
-  if (patch.stockPriceUpdate) newContent = updateStockFields(newContent, patch.stockPriceUpdate)
-  if (patch.priceHistoryPoint) newContent = appendPriceHistory(newContent, patch.priceHistoryPoint)
-  if (patch.updatedVerdict) newContent = patchVerdictFields(newContent, patch.updatedVerdict)
+  // Append new price history point if we got a price
+  if (result.stock?.price) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    const d = new Date()
+    const dateStr = `${months[d.getMonth()]}-${String(d.getDate()).padStart(2, '0')}`
+    newContent = appendPriceHistory(newContent, { date: dateStr, price: result.stock.price })
+  }
 
   // ── Step 5: Commit to GitHub ───────────────────────────────────────────────
   const commitRes = await fetch(
@@ -194,7 +258,7 @@ RULES:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: `refactor: reanalyze stock — ${stockName} (${today})`,
+        message: `feat: deep reanalysis — ${stockName} (${today})`,
         content: Buffer.from(newContent).toString('base64'),
         sha: fileData.sha,
       }),
@@ -206,46 +270,33 @@ RULES:
     return res.status(502).json({ error: `GitHub commit failed: ${err.message || commitRes.status}` })
   }
 
+  const newsCount = result.newsItems?.length || 0
+
   return res.status(200).json({
     success: true,
-    newsAdded: novelNews.length,
-    verdictUpdated: !!patch.updatedVerdict,
-    priceUpdated: !!patch.stockPriceUpdate,
-    newPrice: patch.stockPriceUpdate?.price || null,
-    priceSummary: patch.priceSummary || null,
-    priceChecks: {
-      check1: pc1Raw.slice(0, 300) || '(unavailable)',
-      check2: pc2Raw.slice(0, 300) || '(unavailable)',
-    },
+    reanalysisType: 'deep',
+    newsTotal: newsCount,
+    verdictUpdated: !!result.verdict,
+    priceUpdated: !!result.stock?.price,
+    newPrice: result.stock?.price || null,
+    newStance: result.verdict?.stance,
+    newConviction: result.verdict?.conviction,
     model: 'claude-opus-4-6',
-    newStance: patch.updatedVerdict?.stance,
     newDate: today,
   })
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function extractVerdictText(content) {
-  const marker = 'const verdict = {'
+function extractBlock(content, marker) {
   const start = content.indexOf(marker)
-  if (start === -1) return ''
-  return content.slice(start, start + 1500)
-}
-
-function extractStockFields(content) {
-  const marker = 'const stock = {'
-  const start = content.indexOf(marker)
-  if (start === -1) return {}
-  const end = findBlockEnd(content, start + marker.length - 1)
-  if (end === -1) return {}
-  const block = content.slice(start, end + 1)
-
-  const fields = {}
-  for (const [, key, val] of block.matchAll(/\b(\w+):\s*([\d.+-]+|["'`][^"'`\n]*["'`])/g)) {
-    const num = parseFloat(val)
-    fields[key] = isNaN(num) ? val.replace(/^["'`]|["'`]$/g, '') : num
-  }
-  return fields
+  if (start === -1) return '(not found in dashboard)'
+  let i = start + marker.length
+  while (i < content.length && content[i] !== '{' && content[i] !== '[') i++
+  if (i >= content.length) return '(block not parseable)'
+  const end = findBlockEnd(content, i)
+  if (end === -1) return content.slice(start, start + 3000)
+  return content.slice(start, end + 1)
 }
 
 function findBlockEnd(content, from) {
@@ -262,54 +313,16 @@ function findBlockEnd(content, from) {
   return -1
 }
 
-function prependNewsItems(content, news) {
-  const marker = 'const newsItems = ['
-  const pos = content.indexOf(marker)
-  if (pos === -1) return content
-  const after = pos + marker.length
-  return content.slice(0, after) + '\n' + news.map(formatNewsEntry).join(',\n') + ',' + content.slice(after)
-}
-
-function formatNewsEntry(n) {
-  const q = v => JSON.stringify(String(v || ''))
-  return `  {
-    headline: ${q(n.headline)},
-    source: ${q(n.source)},
-    date: ${q(n.date)},
-    url: ${q(n.url || '')},
-    sentiment: ${q(n.sentiment)},
-  }`
-}
-
-function updateStockFields(content, update) {
-  const marker = 'const stock = {'
+function replaceDataBlock(content, marker, newData) {
   const start = content.indexOf(marker)
   if (start === -1) return content
-  const end = findBlockEnd(content, start + marker.length - 1)
+  let openIdx = start + marker.length
+  while (openIdx < content.length && content[openIdx] !== '{' && content[openIdx] !== '[') openIdx++
+  if (openIdx >= content.length) return content
+  const end = findBlockEnd(content, openIdx)
   if (end === -1) return content
-
-  let block = content.slice(start, end + 1)
-
-  // Update numeric fields
-  const numericFields = ['price', 'change', 'changePct']
-  for (const field of numericFields) {
-    if (update[field] == null) continue
-    block = block.replace(
-      new RegExp(`(\\b${field}:\\s*)[\\d.+-]+`),
-      `$1${update[field]}`
-    )
-  }
-
-  // Update string field (marketCap)
-  if (update.marketCap) {
-    const escaped = String(update.marketCap).replace(/"/g, '\\"')
-    block = block.replace(
-      /(\bmarketCap:\s*)(?:"[^"\n]*"|'[^'\n]*'|`[^`\n]*`)/,
-      `$1"${escaped}"`
-    )
-  }
-
-  return content.slice(0, start) + block + content.slice(end + 1)
+  const declaration = content.slice(start, openIdx).replace(/\s*$/, '')
+  return content.slice(0, start) + declaration + ' ' + jsStringify(newData, 0) + content.slice(end + 1)
 }
 
 function appendPriceHistory(content, point) {
@@ -319,31 +332,25 @@ function appendPriceHistory(content, point) {
   if (pos === -1) return content
   const end = findBlockEnd(content, pos + marker.length - 1)
   if (end === -1) return content
-
   const entry = `  { date: "${point.date}", price: ${point.price} }`
-  // Insert before the closing ]
   return content.slice(0, end) + ',\n' + entry + '\n' + content.slice(end)
 }
 
-function patchVerdictFields(content, v) {
-  const marker = 'const verdict = {'
-  const start = content.indexOf(marker)
-  if (start === -1) return content
-  const end = findBlockEnd(content, start + marker.length - 1)
-  if (end === -1) return content
-
-  let block = content.slice(start, end + 1)
-
-  const fields = ['stance', 'stanceColor', 'stanceBg', 'timing', 'timingDetail', 'conviction']
-  for (const field of fields) {
-    if (v[field] == null) continue
-    const escaped = String(v[field]).replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-    // Correctly match double-quoted OR single-quoted string (don't stop at apostrophes)
-    block = block.replace(
-      new RegExp(`(\\b${field}:\\s*)(?:"[^"\\n]*"|'[^'\\n]*')`),
-      `$1"${escaped}"`
-    )
+function jsStringify(val, depth) {
+  const pad = '  '.repeat(depth)
+  const inner = '  '.repeat(depth + 1)
+  if (val === null || val === undefined) return 'null'
+  if (typeof val === 'boolean') return String(val)
+  if (typeof val === 'number') return String(val)
+  if (typeof val === 'string') return JSON.stringify(val)
+  if (Array.isArray(val)) {
+    if (!val.length) return '[]'
+    return `[\n${val.map(v => inner + jsStringify(v, depth + 1)).join(',\n')},\n${pad}]`
   }
-
-  return content.slice(0, start) + block + content.slice(end + 1)
+  if (typeof val === 'object') {
+    const entries = Object.entries(val).map(([k, v]) => `${inner}${k}: ${jsStringify(v, depth + 1)}`)
+    if (!entries.length) return '{}'
+    return `{\n${entries.join(',\n')},\n${pad}}`
+  }
+  return JSON.stringify(val)
 }

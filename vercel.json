@@ -4,7 +4,7 @@
   ],
   "functions": {
     "api/analyze.js": { "maxDuration": 300 },
-    "api/reanalyze.js": { "maxDuration": 120 },
-    "api/reanalyze-stock.js": { "maxDuration": 120 }
+    "api/reanalyze.js": { "maxDuration": 300 },
+    "api/reanalyze-stock.js": { "maxDuration": 300 }
   }
 }

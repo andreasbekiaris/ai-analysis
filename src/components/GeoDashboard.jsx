@@ -614,21 +614,36 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
   const runReanalyze = async () => {
     if (!dashboardFile) return
     setReanalyzeState('running')
-    setReanalyzeStage('Researching latest data and signals...')
+    setReanalyzeStage('Gathering latest developments and prices...')
     setReanalyzeResult(null)
+
+    const stages = [
+      'Gathering latest developments and prices...',
+      'Collecting political signals and expert views...',
+      'Running deep analysis with Claude Opus...',
+      'Regenerating scenarios and assessments...',
+      'Finalizing and committing to GitHub...',
+    ]
+    let stageIdx = 0
+    const stageTimer = setInterval(() => {
+      stageIdx = Math.min(stageIdx + 1, stages.length - 1)
+      setReanalyzeStage(stages[stageIdx])
+    }, 30000)
 
     try {
       const res = await fetch('/api/reanalyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dashboardFile, analysisTitle: d.title }),
-        signal: AbortSignal.timeout(300000),
+        signal: AbortSignal.timeout(360000),
       })
+      clearInterval(stageTimer)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Reanalysis failed')
       setReanalyzeResult(data)
       setReanalyzeState('done')
     } catch (err) {
+      clearInterval(stageTimer)
       setReanalyzeResult({ error: err.name === 'TimeoutError' ? 'Request timed out — try again' : err.message })
       setReanalyzeState('error')
     }
@@ -948,7 +963,7 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
                       <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.875rem' }}>Full reanalysis with Claude Code?</span>
                     </div>
                     <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '0 0 0.85rem', lineHeight: 1.6 }}>
-                      Claude Code will research fresh data and update <strong style={{ color: '#94a3b8' }}>everything</strong>: current prices, new signals, scenario probabilities, verdict, and key metrics. Takes ~5–10 minutes via the watcher.
+                      Claude will perform a <strong style={{ color: '#94a3b8' }}>deep reanalysis</strong> — redoing the entire analysis from scratch using the previous version as a baseline. All data, scenarios, signals, and verdicts are regenerated with deeper reasoning. Takes ~2–4 minutes.
                     </p>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button
@@ -981,10 +996,12 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
                       <span style={{ color: '#10b981', fontWeight: 700, fontSize: '0.875rem' }}>Reanalysis complete — deploying now</span>
                     </div>
                     <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginBottom: '0.5rem', lineHeight: 1.6 }}>
-                      {reanalyzeResult.signalsAdded > 0 && `${reanalyzeResult.signalsAdded} new signals added. `}
-                      {reanalyzeResult.newStance && `New stance: ${reanalyzeResult.newStance}. `}
-                      {reanalyzeResult.probabilitiesChanged > 0 && `${reanalyzeResult.probabilitiesChanged} scenario probabilities updated. `}
-                      Refresh the page in ~30 seconds to see the updated dashboard.
+                      Deep reanalysis complete.
+                      {reanalyzeResult.scenariosAnalyzed > 0 && ` ${reanalyzeResult.scenariosAnalyzed} scenarios regenerated.`}
+                      {reanalyzeResult.signalsTotal > 0 && ` ${reanalyzeResult.signalsTotal} political signals.`}
+                      {reanalyzeResult.newStance && ` New stance: ${reanalyzeResult.newStance}.`}
+                      {reanalyzeResult.newConviction && ` Conviction: ${reanalyzeResult.newConviction}.`}
+                      {' '}Refresh the page in ~30 seconds to see the updated dashboard.
                     </div>
                   </div>
                 )}

@@ -1,7 +1,7 @@
 const REPO = 'andreasbekiaris/ai-analysis'
 
 // ── Gemini Google-Search helper ────────────────────────────────────────────────
-async function geminiSearch(key, query) {
+async function geminiSearch(key, query, maxTokens = 2048) {
   try {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
@@ -11,7 +11,7 @@ async function geminiSearch(key, query) {
         body: JSON.stringify({
           tools: [{ google_search: {} }],
           contents: [{ role: 'user', parts: [{ text: query }] }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
+          generationConfig: { temperature: 0.1, maxOutputTokens: maxTokens },
         }),
       }
     )
@@ -44,115 +44,181 @@ export default async function handler(req, res) {
   const fileData = await fileRes.json()
   const content = Buffer.from(fileData.content, 'base64').toString('utf8')
 
-  const actors = extractActors(content)
-  const scenarios = extractScenarios(content)
-  const verdictText = extractVerdictText(content)
   const today = new Date().toISOString().slice(0, 10)
   const title = analysisTitle || dashboardFile
 
-  // ── Step 2: 3 parallel Gemini searches (price ×2 + signals) ───────────────
-  const [pc1Raw, pc2Raw, signalsRaw] = await Promise.all([
+  // Extract full previous data blocks as context for deeper reanalysis
+  const prevAnalysis = extractBlock(content, 'const analysisData')
+  const prevSignals = extractBlock(content, 'const politicalComments')
+  const prevVerdict = extractBlock(content, 'const strategicVerdict')
+  const prevGaps = extractBlock(content, 'const analysisGaps')
+  const actors = extractActors(content)
+
+  // ── Step 2: 5 parallel Gemini searches — comprehensive research ────────────
+  const [pc1, pc2, signals, developments, expertViews] = await Promise.all([
     geminiSearch(geminiKey,
-      `PRICE CHECK 1 — Live market prices for analysis: "${title}". Today: ${today}. ` +
-      `Search for: Brent crude oil spot price, WTI crude oil price, natural gas price, gold price, ` +
-      `and any commodities or equities directly tied to this conflict. ` +
-      `Return as a concise table: Asset | Current Price | 24h Change | Source.`
+      `PRICE CHECK 1 — Live market prices for: "${title}". Today: ${today}. ` +
+      `Search for: Brent crude oil spot, WTI crude, natural gas, gold, ` +
+      `defense ETFs (XAR, ITA), and any commodities/equities tied to this situation. ` +
+      `Return: Asset | Current Price | 24h Change | 7-day Change | Source.`
     ),
     geminiSearch(geminiKey,
-      `PRICE CHECK 2 — Cross-verify market prices for: "${title}". Date: ${today}. ` +
-      `Independently search and confirm: Brent crude spot, WTI crude, natural gas futures, gold spot, ` +
-      `and major defense sector ETFs (XAR, ITA) or relevant equity indices. ` +
+      `PRICE CHECK 2 — Cross-verify for: "${title}". Date: ${today}. ` +
+      `Independently confirm: Brent crude spot, WTI, natural gas futures, gold spot, ` +
+      `major defense sector ETFs, and relevant equity indices. ` +
       `Return: Asset | Verified Price | Source URL or outlet.`
     ),
     geminiSearch(geminiKey,
       `Political signal intelligence for: "${title}". Date: ${today}. ` +
-      `Search for statements, actions, or developments from the last 24 hours by: ${actors.slice(0, 8).join(', ')}. ` +
-      `Return a JSON array. Each object: ` +
-      `{ "actor": string, "role": string, "platform": string, "date": "YYYY-MM-DD", "time": string, ` +
-      `"quote": string, "context": string, "signalType": "escalatory|de-escalatory|diplomatic|economic|ambiguous", ` +
-      `"marketImpact": string, "scenarioImplication": string, "verified": true }. ` +
-      `Return ONLY the JSON array, or [] if nothing new in 24h.`
+      `Search for ALL public statements, tweets, press conferences, official communications ` +
+      `from key actors: ${actors.slice(0, 8).join(', ')}. Cover the last 7 days. ` +
+      `Include: actor name, role, platform, exact date, direct quote, context, ` +
+      `and whether it signals escalation, de-escalation, diplomatic opening, or economic measure. ` +
+      `Be comprehensive — collect every significant statement.`,
+      3000
+    ),
+    geminiSearch(geminiKey,
+      `Comprehensive latest developments on: "${title}". Date: ${today}. ` +
+      `Search for: military movements, diplomatic meetings, sanctions changes, ` +
+      `UN resolutions, alliance shifts, humanitarian impacts, economic consequences, ` +
+      `arms transfers, negotiations, ceasefire discussions, territorial changes. ` +
+      `Cover the last 7 days. Include specific dates, verified numbers, and sources.`,
+      3000
+    ),
+    geminiSearch(geminiKey,
+      `Expert and think tank analysis of: "${title}". Date: ${today}. ` +
+      `Search for recent analysis from: RAND, Brookings, CFR, IISS, Chatham House, ` +
+      `Carnegie, CSIS, SIPRI, RUSI, ECFR, Lowy Institute. Also search for dissenting views. ` +
+      `Include: expert name, affiliation, key assessment, probability estimates if given. ` +
+      `Also search: former diplomats, ex-intelligence officials, regional analysts.`,
+      3000
     ),
   ])
 
-  // Parse signals
-  let freshSignals = []
-  try {
-    const clean = signalsRaw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
-    const parsed = JSON.parse(clean)
-    if (Array.isArray(parsed)) freshSignals = parsed.filter(s => s?.quote?.length > 5)
-  } catch {
-    const match = signalsRaw.match(/\[[\s\S]*\]/)
-    if (match) try { freshSignals = JSON.parse(match[0]).filter(s => s?.quote?.length > 5) } catch { /* skip */ }
-  }
+  // ── Step 3: Claude deep reanalysis — full data regeneration ────────────────
+  const claudePrompt = `You are a senior geopolitical analyst performing a COMPREHENSIVE DEEP REANALYSIS.
 
-  // Dedupe signals against existing content
-  const existingKeys = new Set(
-    [...content.matchAll(/quote:\s*["'`](.{0,60})/g)].map(m => m[1].toLowerCase())
-  )
-  const novelSignals = freshSignals.filter(
-    s => !existingKeys.has((s.quote || '').slice(0, 60).toLowerCase())
-  )
+CRITICAL: This is NOT a quick update. You must REDO the entire analysis from scratch.
+Use the previous analysis as your baseline — challenge its assumptions with new data,
+deepen its reasoning, refine probabilities, and produce a MORE THOROUGH assessment.
+Where the previous analysis was shallow, go deeper. Where new data contradicts old assumptions, update.
 
-  // ── Step 3: Claude Opus comprehensive reanalysis ────────────────────────────
-  const scenarioSummary = scenarios
-    .map(s => `  - ID ${s.id}: "${s.name}" — currently ${s.probability}%`)
-    .join('\n')
+═══ PREVIOUS ANALYSIS (baseline to improve upon — do NOT just copy) ═══
 
-  const claudePrompt = `You are a senior geopolitical analyst performing a comprehensive daily reanalysis.
+${prevAnalysis.slice(0, 8000)}
 
-ANALYSIS: "${title}"
-DATE: ${today}
+═══ PREVIOUS POLITICAL SIGNALS ═══
+${prevSignals.slice(0, 5000)}
 
-CURRENT SCENARIO PROBABILITIES:
-${scenarioSummary}
+═══ PREVIOUS VERDICT ═══
+${prevVerdict.slice(0, 2000)}
 
-CURRENT VERDICT:
-${verdictText.slice(0, 1200)}
+═══ PREVIOUS ANALYSIS GAPS ═══
+${prevGaps.slice(0, 1000)}
 
-GEMINI PRICE CHECK #1 (live Google Search, ${today}):
-${pc1Raw.slice(0, 800) || '(unavailable)'}
+═══ FRESH RESEARCH (${today}) ═══
 
-GEMINI PRICE CHECK #2 (cross-verified, ${today}):
-${pc2Raw.slice(0, 800) || '(unavailable)'}
+── VERIFIED PRICES #1 ──
+${pc1.slice(0, 1500) || '(unavailable)'}
 
-NEW POLITICAL SIGNALS (last 24h, de-duped):
-${novelSignals.length
-  ? novelSignals.map(s => `  [${(s.signalType || 'ambiguous').toUpperCase()}] ${s.actor}: "${(s.quote || '').slice(0, 120)}"`).join('\n')
-  : '  (none found — no change signals)'}
+── VERIFIED PRICES #2 ──
+${pc2.slice(0, 1500) || '(unavailable)'}
 
-Produce a comprehensive JSON patch updating ALL data that has shifted.
+── POLITICAL SIGNALS (last 7 days) ──
+${signals.slice(0, 3500) || '(no new signals found)'}
+
+── LATEST DEVELOPMENTS ──
+${developments.slice(0, 3500) || '(no major developments found)'}
+
+── EXPERT & THINK TANK VIEWS ──
+${expertViews.slice(0, 3000) || '(no expert analysis found)'}
+
+═══ INSTRUCTIONS ═══
+
+Generate COMPLETE replacement data. Return a single JSON object with these exact keys:
 
 {
-  "updatedVerdict": {
-    "stance": "MONITOR | ESCALATE CAUTION | REDUCE RISK | HOLD | RE-ASSESS",
-    "stanceColor": "#f59e0b (amber) | #ef4444 (red) | #10b981 (green) | #06b6d4 (cyan)",
-    "primaryScenario": "scenario name",
-    "primaryProb": number,
-    "timing": "short label e.g. Re-assess in 48h",
-    "timingDetail": "2-3 sentences citing specific signals and verified prices",
-    "immediateWatchpoints": [{"signal": "...", "timing": "...", "implication": "...", "urgency": "Critical|High|Medium"}],
-    "marketPositioning": [{"asset": "...", "stance": "HOLD|ADD|REDUCE|AVOID|CAUTIOUS", "color": "#hex", "rationale": "..."}],
+  "analysisData": {
+    "title": "${title}",
+    "date": "${today}",
+    "overallConfidence": "Low|Medium|Medium-High|High",
+    "situation": {
+      "actors": [{ "name": "str", "role": "str", "stance": "str", "power": 0-100 }],
+      "context": "COMPREHENSIVE 3-5 paragraph context incorporating ALL latest developments — deeper than the previous version",
+      "triggers": ["specific dated event descriptions as strings"],
+      "keyMetrics": [{ "label": "str", "value": "str (use verified prices)", "color": "#hex" }]
+    },
+    "scenarios": [
+      {
+        "id": 1,
+        "name": "Evocative Name",
+        "tagline": "Short label",
+        "probability": number,
+        "color": "#hex (use: #06b6d4 cyan, #10b981 green, #f59e0b amber, #ef4444 red, #8b5cf6 violet)",
+        "description": "2-3 paragraph description — MORE DETAILED than previous",
+        "narrative": "detailed step-by-step narrative of how events unfold",
+        "impacts": { "military": 1-10, "economic": 1-10, "diplomatic": 1-10, "humanitarian": 1-10, "regional": 1-10, "global": 1-10 },
+        "timeHorizons": { "shortTerm": "0-6mo", "mediumTerm": "6-24mo", "longTerm": "2-10yr" },
+        "indicators": [{ "signal": "observable monitorable indicator", "status": "not_observed|emerging|observed" }],
+        "feasibility": [{
+          "action": "str", "actor": "str",
+          "militaryFeasibility": { "score": 1-10, "detail": "str" },
+          "economicCapacity": { "score": 1-10, "detail": "str" },
+          "politicalWill": { "score": 1-10, "detail": "str" },
+          "allianceSupport": { "score": 1-10, "detail": "str" },
+          "overallSustainability": "fully_sustainable|sustainable_short_term|barely_feasible|not_feasible",
+          "dealbreaker": "str", "estimatedCost": "str"
+        }]
+      }
+    ],
+    "decisionPoints": [{ "actor": "str", "decision": "str", "leadsTo": [1,2], "consequence": "str" }],
+    "expertOpinions": {
+      "consensus": { "summary": "str", "supporters": ["think tank names"] },
+      "dissenting": [{ "expert": "str", "affiliation": "str", "position": "str", "reasoning": "str", "credibilityNote": "str" }],
+      "regionalVsWestern": { "westernView": "str", "regionalView": "str", "gapAnalysis": "str" },
+      "overallExpertConfidence": "High|Medium|Low"
+    },
+    "impactMatrix": [{ "scenario": "name", "military": 1-10, "economic": 1-10, "diplomatic": 1-10, "humanitarian": 1-10, "regional": 1-10, "global": 1-10 }]
+  },
+  "politicalComments": [
+    {
+      "actor": "str", "role": "str", "platform": "str",
+      "date": "YYYY-MM-DD", "time": "HH:MM TZ or empty string",
+      "quote": "exact or closest verified quote",
+      "context": "str",
+      "signalType": "escalatory|de-escalatory|diplomatic|economic|ambiguous",
+      "marketImpact": "str", "scenarioImplication": "str", "verified": true or false
+    }
+  ],
+  "strategicVerdict": {
+    "stance": "MONITOR|ESCALATE CAUTION|REDUCE RISK|HOLD|RE-ASSESS",
+    "stanceColor": "#hex",
+    "primaryScenario": "str", "primaryProb": number,
+    "timing": "short label",
+    "timingDetail": "2-3 sentences referencing specific signals and verified prices",
+    "immediateWatchpoints": [{ "signal": "str", "timing": "str", "implication": "str", "urgency": "Critical|High|Medium" }],
+    "marketPositioning": [{ "asset": "str", "stance": "HOLD|ADD|REDUCE|AVOID|CAUTIOUS", "color": "#hex", "rationale": "str" }],
     "probabilityUpdate": "Scenario1 X% / Scenario2 Y% — Next trigger: ...",
     "conviction": "High|Medium-High|Medium|Low",
-    "nextReview": "..."
+    "nextReview": "str"
   },
-  "probabilityUpdates": [{"id": 1, "probability": 35}],
-  "keyMetricsUpdates": [
-    {"label": "Brent Crude Peak", "value": "$XX/bbl", "color": "#ef4444|#10b981|#f59e0b"}
-  ],
-  "priceSummary": "One sentence: what the verified prices confirm about current scenario probability"
+  "analysisGaps": [
+    { "topic": "str", "description": "str", "issueTitle": "Extend ${title}: ..." }
+  ]
 }
 
-RULES:
-- All probabilities must sum to exactly 100
-- Only include probabilityUpdates for scenarios that actually changed
-- keyMetricsUpdates MUST reflect the verified prices from both price checks — use the consensus value
-- updatedVerdict MUST reference specific new signals and price moves
-- If no signals changed anything, keep same probabilities and note stability in verdict
-- Return ONLY the JSON object — no markdown, no explanation`
+CRITICAL RULES:
+1. All scenario probabilities MUST sum to exactly 100
+2. Include 3-5 scenarios with DETAILED feasibility assessments
+3. KEEP all important previous political signals AND add new ones from research — sort newest first
+4. keyMetrics MUST use verified consensus prices from both price checks
+5. Update indicator statuses based on latest developments (not_observed → emerging → observed)
+6. Expert opinions MUST incorporate latest think tank views from research
+7. Verdict MUST reference specific recent signals, prices, and developments
+8. GO DEEPER than previous: more detail in narratives, more nuanced reasoning, better-supported scores
+9. Return ONLY valid JSON — no markdown fences, no explanation, no commentary`
 
-  let patch = null
+  let result = null
   try {
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -163,7 +229,7 @@ RULES:
       },
       body: JSON.stringify({
         model: 'claude-opus-4-6',
-        max_tokens: 3000,
+        max_tokens: 16000,
         messages: [{ role: 'user', content: claudePrompt }],
       }),
     })
@@ -171,22 +237,21 @@ RULES:
       const claudeData = await claudeRes.json()
       const text = claudeData?.content?.[0]?.text || ''
       const clean = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
-      try { patch = JSON.parse(clean) } catch {
+      try { result = JSON.parse(clean) } catch {
         const match = text.match(/\{[\s\S]*\}/)
-        if (match) try { patch = JSON.parse(match[0]) } catch { /* skip */ }
+        if (match) try { result = JSON.parse(match[0]) } catch { /* skip */ }
       }
     }
   } catch { /* fall through */ }
 
-  if (!patch) return res.status(502).json({ error: 'Claude Opus failed to generate analysis patch — try again' })
+  if (!result) return res.status(502).json({ error: 'Claude failed to generate deep reanalysis — try again' })
 
-  // ── Step 4: Apply patch ────────────────────────────────────────────────────
+  // ── Step 4: Replace data blocks in file ────────────────────────────────────
   let newContent = content
-  newContent = updateAnalysisDate(newContent, today)
-  if (novelSignals.length > 0) newContent = prependSignals(newContent, novelSignals)
-  if (patch.probabilityUpdates?.length) newContent = updateProbabilities(newContent, patch.probabilityUpdates)
-  if (patch.updatedVerdict) newContent = replaceVerdictBlock(newContent, patch.updatedVerdict)
-  if (patch.keyMetricsUpdates?.length) newContent = updateKeyMetrics(newContent, patch.keyMetricsUpdates)
+  if (result.analysisData) newContent = replaceDataBlock(newContent, 'const analysisData', result.analysisData)
+  if (result.politicalComments) newContent = replaceDataBlock(newContent, 'const politicalComments', result.politicalComments)
+  if (result.strategicVerdict) newContent = replaceDataBlock(newContent, 'const strategicVerdict', result.strategicVerdict)
+  if (result.analysisGaps) newContent = replaceDataBlock(newContent, 'const analysisGaps', result.analysisGaps)
 
   // ── Step 5: Commit to GitHub ───────────────────────────────────────────────
   const commitRes = await fetch(
@@ -199,7 +264,7 @@ RULES:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: `refactor: reanalyze — ${title} (${today})`,
+        message: `feat: deep reanalysis — ${title} (${today})`,
         content: Buffer.from(newContent).toString('base64'),
         sha: fileData.sha,
       }),
@@ -211,19 +276,19 @@ RULES:
     return res.status(502).json({ error: `GitHub commit failed: ${err.message || commitRes.status}` })
   }
 
+  const scenarioCount = result.analysisData?.scenarios?.length || 0
+  const signalCount = result.politicalComments?.length || 0
+
   return res.status(200).json({
     success: true,
-    signalsAdded: novelSignals.length,
-    verdictUpdated: !!patch.updatedVerdict,
-    probabilitiesChanged: patch.probabilityUpdates?.length || 0,
-    metricsUpdated: patch.keyMetricsUpdates?.length || 0,
-    priceSummary: patch.priceSummary || null,
-    priceChecks: {
-      check1: pc1Raw.slice(0, 300) || '(unavailable)',
-      check2: pc2Raw.slice(0, 300) || '(unavailable)',
-    },
+    reanalysisType: 'deep',
+    scenariosAnalyzed: scenarioCount,
+    signalsTotal: signalCount,
+    verdictUpdated: !!result.strategicVerdict,
+    newStance: result.strategicVerdict?.stance,
+    newConviction: result.strategicVerdict?.conviction,
+    probabilitySummary: result.strategicVerdict?.probabilityUpdate || null,
     model: 'claude-opus-4-6',
-    newStance: patch.updatedVerdict?.stance,
     newDate: today,
   })
 }
@@ -238,25 +303,15 @@ function extractActors(content) {
     .slice(0, 10)
 }
 
-function extractScenarios(content) {
-  const results = []
-  const idRe = /\bid:\s*(\d+)/g
-  let m
-  while ((m = idRe.exec(content)) !== null) {
-    const snippet = content.slice(m.index, m.index + 700)
-    const nameM = snippet.match(/name:\s*["'`]([^"'`\n]+)["'`]/)
-    const probM = snippet.match(/probability:\s*(\d+)/)
-    if (nameM && probM) results.push({ id: Number(m[1]), name: nameM[1], probability: Number(probM[1]) })
-  }
-  return results.filter((s, i, arr) => arr.findIndex(x => x.id === s.id) === i)
-}
-
-function extractVerdictText(content) {
-  const marker = 'const strategicVerdict = {'
+function extractBlock(content, marker) {
   const start = content.indexOf(marker)
-  if (start === -1) return ''
-  const end = findBlockEnd(content, start + marker.length - 1)
-  return end === -1 ? '' : content.slice(start, end + 1).slice(0, 1500)
+  if (start === -1) return '(not found in dashboard)'
+  let i = start + marker.length
+  while (i < content.length && content[i] !== '{' && content[i] !== '[') i++
+  if (i >= content.length) return '(block not parseable)'
+  const end = findBlockEnd(content, i)
+  if (end === -1) return content.slice(start, start + 3000)
+  return content.slice(start, end + 1)
 }
 
 function findBlockEnd(content, from) {
@@ -273,96 +328,26 @@ function findBlockEnd(content, from) {
   return -1
 }
 
-function updateAnalysisDate(content, date) {
-  const analysisStart = content.indexOf('const analysisData = {')
-  if (analysisStart === -1) return content
-  const analysisEnd = Math.min(analysisStart + 3000, content.length)
-  const before = content.slice(0, analysisStart)
-  const block = content.slice(analysisStart, analysisEnd)
-  const after = content.slice(analysisEnd)
-  return before + block.replace(/(\bdate:\s*)["'`][\d-]+["'`]/, `$1"${date}"`) + after
-}
-
-function prependSignals(content, signals) {
-  const marker = 'const politicalComments = ['
-  const pos = content.indexOf(marker)
-  if (pos === -1) return content
-  const after = pos + marker.length
-  return content.slice(0, after) + '\n' + signals.map(formatSignalEntry).join(',\n') + ',' + content.slice(after)
-}
-
-function formatSignalEntry(s) {
-  const q = v => JSON.stringify(String(v || ''))
-  return `  {
-    actor: ${q(s.actor)},
-    role: ${q(s.role)},
-    platform: ${q(s.platform)},
-    date: ${q(s.date)},
-    time: ${q(s.time || '')},
-    quote: ${q(s.quote)},
-    context: ${q(s.context || '')},
-    signalType: ${q(s.signalType)},
-    marketImpact: ${q(s.marketImpact || 'None observed')},
-    scenarioImplication: ${q(s.scenarioImplication || '')},
-    verified: ${s.verified === true ? 'true' : 'false'},
-  }`
-}
-
-function updateProbabilities(content, updates) {
-  let result = content
-  for (const { id, probability } of updates) {
-    const idIdx = result.search(new RegExp(`\\bid:\\s*${id}\\b`))
-    if (idIdx === -1) continue
-    const snippet = result.slice(idIdx, idIdx + 700)
-    const updated = snippet.replace(/(\bprobability:\s*)\d+/, `$1${probability}`)
-    result = result.slice(0, idIdx) + updated + result.slice(idIdx + 700)
-  }
-  return result
-}
-
-function replaceVerdictBlock(content, verdict) {
-  const marker = 'const strategicVerdict = {'
+function replaceDataBlock(content, marker, newData) {
   const start = content.indexOf(marker)
   if (start === -1) return content
-  const braceStart = start + marker.length - 1
-  const end = findBlockEnd(content, braceStart)
+  let openIdx = start + marker.length
+  while (openIdx < content.length && content[openIdx] !== '{' && content[openIdx] !== '[') openIdx++
+  if (openIdx >= content.length) return content
+  const end = findBlockEnd(content, openIdx)
   if (end === -1) return content
-  return content.slice(0, start) + 'const strategicVerdict = ' + jsStringify(verdict, 0) + content.slice(end + 1)
-}
-
-function updateKeyMetrics(content, updates) {
-  let result = content
-  for (const { label, value, color } of updates) {
-    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const labelRe = new RegExp(`["'\`]${escaped}["'\`]`)
-    const idx = result.search(labelRe)
-    if (idx === -1) continue
-
-    // Update value within 300 chars after the label
-    const start = idx
-    const end = Math.min(result.length, idx + 300)
-    let snippet = result.slice(start, end)
-    snippet = snippet.replace(
-      /(\bvalue:\s*)(?:"[^"\n]*"|'[^'\n]*'|`[^`\n]*`)/,
-      `$1"${String(value).replace(/"/g, '\\"')}"`
-    )
-    if (color) {
-      snippet = snippet.replace(
-        /(\bcolor:\s*)(?:"[^"\n]*"|'[^'\n]*'|`[^`\n]*`)/,
-        `$1"${color}"`
-      )
-    }
-    result = result.slice(0, start) + snippet + result.slice(end)
-  }
-  return result
+  // Preserve the declaration part (e.g. "const analysisData = ")
+  const declaration = content.slice(start, openIdx).replace(/\s*$/, '')
+  return content.slice(0, start) + declaration + ' ' + jsStringify(newData, 0) + content.slice(end + 1)
 }
 
 function jsStringify(val, depth) {
   const pad = '  '.repeat(depth)
   const inner = '  '.repeat(depth + 1)
   if (val === null || val === undefined) return 'null'
+  if (typeof val === 'boolean') return String(val)
+  if (typeof val === 'number') return String(val)
   if (typeof val === 'string') return JSON.stringify(val)
-  if (typeof val === 'number' || typeof val === 'boolean') return String(val)
   if (Array.isArray(val)) {
     if (!val.length) return '[]'
     return `[\n${val.map(v => inner + jsStringify(v, depth + 1)).join(',\n')},\n${pad}]`
