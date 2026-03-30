@@ -176,23 +176,22 @@ export default function StockDashboard({
   const runReanalyze = async () => {
     if (!dashboardFile) return
     setReanalyzeState('running')
+    setReanalyzeStage('Fetching latest price and news...')
     setReanalyzeResult(null)
 
     try {
-      const res = await fetch('/api/create-issue', {
+      const res = await fetch('/api/reanalyze-stock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: `Reanalyze: ${dashboardFile} — ${stock.name} (${stock.ticker})`,
-          body: `Full reanalysis requested for: **${stock.name} (${stock.ticker})**\n\nFile: \`${dashboardFile}\`\nRequested: ${new Date().toISOString()}\n\nClaude Code will fetch the current stock price, latest news, and fully update all data in the dashboard.`,
-        }),
+        body: JSON.stringify({ dashboardFile, analysisTitle: `${stock.name} (${stock.ticker})`, ticker: stock.ticker }),
+        signal: AbortSignal.timeout(300000),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to queue reanalysis')
+      if (!res.ok) throw new Error(data.error || 'Reanalysis failed')
       setReanalyzeResult(data)
       setReanalyzeState('done')
     } catch (err) {
-      setReanalyzeResult({ error: err.message })
+      setReanalyzeResult({ error: err.name === 'TimeoutError' ? 'Request timed out — try again' : err.message })
       setReanalyzeState('error')
     }
   }
@@ -574,23 +573,21 @@ export default function StockDashboard({
                 {reanalyzeState === 'running' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <RefreshCw size={14} color={T.amber} style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
-                    <div style={{ color: T.amber, fontWeight: 700, fontSize: '0.82rem' }}>Queuing reanalysis…</div>
+                    <div style={{ color: T.amber, fontWeight: 700, fontSize: '0.82rem' }}>Running reanalysis… {reanalyzeStage}</div>
                   </div>
                 )}
                 {reanalyzeState === 'done' && reanalyzeResult && (
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                       <CheckCircle size={14} color={T.emerald} />
-                      <span style={{ color: T.emerald, fontWeight: 700, fontSize: '0.875rem' }}>Reanalysis queued — Claude Code is on it</span>
+                      <span style={{ color: T.emerald, fontWeight: 700, fontSize: '0.875rem' }}>Reanalysis complete — deploying now</span>
                     </div>
                     <div style={{ color: T.muted, fontSize: '0.8rem', marginBottom: '0.5rem', lineHeight: 1.6 }}>
-                      Issue #{reanalyzeResult.number} created. Claude Code will fetch the latest price and news, then update all data in this dashboard in ~5–10 minutes. Redeploys automatically when done.
+                      {reanalyzeResult.signalsAdded > 0 && `${reanalyzeResult.signalsAdded} new signals added. `}
+                      {reanalyzeResult.newStance && `New stance: ${reanalyzeResult.newStance}. `}
+                      {reanalyzeResult.probabilitiesChanged > 0 && `${reanalyzeResult.probabilitiesChanged} scenario probabilities updated. `}
+                      Refresh the page in ~30 seconds to see the updated dashboard.
                     </div>
-                    {reanalyzeResult.url && (
-                      <a href={reanalyzeResult.url} target="_blank" rel="noreferrer" style={{ color: T.cyan, fontSize: '0.75rem', textDecoration: 'none' }}>
-                        View progress on GitHub →
-                      </a>
-                    )}
                   </div>
                 )}
                 {reanalyzeState === 'error' && reanalyzeResult && (

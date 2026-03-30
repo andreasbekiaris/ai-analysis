@@ -614,23 +614,22 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
   const runReanalyze = async () => {
     if (!dashboardFile) return
     setReanalyzeState('running')
+    setReanalyzeStage('Researching latest data and signals...')
     setReanalyzeResult(null)
 
     try {
-      const res = await fetch('/api/create-issue', {
+      const res = await fetch('/api/reanalyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: `Reanalyze: ${dashboardFile} — ${d.title}`,
-          body: `Full reanalysis requested for: **${d.title}**\n\nFile: \`${dashboardFile}\`\nRequested: ${new Date().toISOString()}\n\nClaude Code will research fresh data and fully update all prices, signals, scenario probabilities, and the strategic verdict.`,
-        }),
+        body: JSON.stringify({ dashboardFile, analysisTitle: d.title }),
+        signal: AbortSignal.timeout(300000),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to queue reanalysis')
+      if (!res.ok) throw new Error(data.error || 'Reanalysis failed')
       setReanalyzeResult(data)
       setReanalyzeState('done')
     } catch (err) {
-      setReanalyzeResult({ error: err.message })
+      setReanalyzeResult({ error: err.name === 'TimeoutError' ? 'Request timed out — try again' : err.message })
       setReanalyzeState('error')
     }
   }
@@ -971,7 +970,7 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
                 {reanalyzeState === 'running' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <RefreshCw size={14} color="#f59e0b" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
-                    <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.82rem' }}>Queuing reanalysis…</div>
+                    <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.82rem' }}>Running reanalysis… {reanalyzeStage}</div>
                   </div>
                 )}
 
@@ -979,16 +978,14 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                       <CheckCircle size={14} color="#10b981" />
-                      <span style={{ color: '#10b981', fontWeight: 700, fontSize: '0.875rem' }}>Reanalysis queued — Claude Code is on it</span>
+                      <span style={{ color: '#10b981', fontWeight: 700, fontSize: '0.875rem' }}>Reanalysis complete — deploying now</span>
                     </div>
                     <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginBottom: '0.5rem', lineHeight: 1.6 }}>
-                      Issue #{reanalyzeResult.number} created. Claude Code will research fresh data and fully update this dashboard in ~5–10 minutes. The page redeploys automatically when done.
+                      {reanalyzeResult.signalsAdded > 0 && `${reanalyzeResult.signalsAdded} new signals added. `}
+                      {reanalyzeResult.newStance && `New stance: ${reanalyzeResult.newStance}. `}
+                      {reanalyzeResult.probabilitiesChanged > 0 && `${reanalyzeResult.probabilitiesChanged} scenario probabilities updated. `}
+                      Refresh the page in ~30 seconds to see the updated dashboard.
                     </div>
-                    {reanalyzeResult.url && (
-                      <a href={reanalyzeResult.url} target="_blank" rel="noreferrer" style={{ color: '#06b6d4', fontSize: '0.75rem', textDecoration: 'none' }}>
-                        View progress on GitHub →
-                      </a>
-                    )}
                   </div>
                 )}
 
