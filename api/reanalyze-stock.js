@@ -3,10 +3,13 @@ const REPO = 'andreasbekiaris/ai-analysis'
 // ── Gemini Google-Search helper ────────────────────────────────────────────────
 async function geminiSearch(key, query, maxTokens = 2048) {
   try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 30000) // 30s max per search
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
       {
         method: 'POST',
+        signal: controller.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tools: [{ google_search: {} }],
@@ -15,6 +18,7 @@ async function geminiSearch(key, query, maxTokens = 2048) {
         }),
       }
     )
+    clearTimeout(timer)
     if (!res.ok) return ''
     const data = await res.json()
     const parts = data?.candidates?.[0]?.content?.parts || []
@@ -205,16 +209,19 @@ CRITICAL RULES:
 7. Return ONLY valid JSON — no markdown fences, no explanation, no commentary`
 
   // ── Claude API call with retry, timeout, and model fallback ──────────────
-  const models = ['claude-sonnet-4-6', 'claude-sonnet-4-6']
+  const models = [
+    { id: 'claude-sonnet-4-6', timeout: 180000, maxTokens: 10000 },
+    { id: 'claude-haiku-4-5-20251001', timeout: 120000, maxTokens: 8000 },
+  ]
   let result = null
   let usedModel = null
 
-  for (const model of models) {
-    const maxRetries = 3
+  for (const { id: model, timeout: timeoutMs, maxTokens } of models) {
+    const maxRetries = 2
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 240000) // 240s timeout
+        const timer = setTimeout(() => controller.abort(), timeoutMs)
 
         const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
@@ -226,15 +233,15 @@ CRITICAL RULES:
           },
           body: JSON.stringify({
             model,
-            max_tokens: 12000,
+            max_tokens: maxTokens,
             messages: [{ role: 'user', content: claudePrompt }],
           }),
         })
-        clearTimeout(timeout)
+        clearTimeout(timer)
 
         if (claudeRes.status === 529 || claudeRes.status === 503) {
           if (attempt < maxRetries) {
-            await new Promise(r => setTimeout(r, attempt * 5000))
+            await new Promise(r => setTimeout(r, attempt * 2000))
             continue
           }
           break
@@ -256,7 +263,7 @@ CRITICAL RULES:
       } catch (e) {
         if (e.name === 'AbortError') break
         if (attempt === maxRetries) break
-        await new Promise(r => setTimeout(r, attempt * 5000))
+        await new Promise(r => setTimeout(r, attempt * 2000))
       }
     }
     if (result) break

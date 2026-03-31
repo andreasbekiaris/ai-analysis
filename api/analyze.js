@@ -398,16 +398,19 @@ export default async function handler(req, res) {
     : buildStockPrompt(prompt.trim(), date, searchResults, geoFiles)
 
   // ── Step 3: Call Claude with retry, timeout, and model fallback ──────────────
-  const models = ['claude-sonnet-4-6', 'claude-sonnet-4-6']
+  const models = [
+    { id: 'claude-sonnet-4-6', timeout: 180000, maxTokens: 12000 },
+    { id: 'claude-haiku-4-5-20251001', timeout: 120000, maxTokens: 10000 },
+  ]
   let claudeText = ''
   let usedModel = null
 
-  for (const model of models) {
-    const maxRetries = 3
+  for (const { id: model, timeout: timeoutMs, maxTokens } of models) {
+    const maxRetries = 2
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 240000)
+        const timer = setTimeout(() => controller.abort(), timeoutMs)
 
         const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
@@ -419,15 +422,15 @@ export default async function handler(req, res) {
           },
           body: JSON.stringify({
             model,
-            max_tokens: 16000,
+            max_tokens: maxTokens,
             messages: [{ role: 'user', content: claudePrompt }],
           }),
         })
-        clearTimeout(timeout)
+        clearTimeout(timer)
 
         if (claudeRes.status === 529 || claudeRes.status === 503) {
           if (attempt < maxRetries) {
-            await new Promise(r => setTimeout(r, attempt * 5000))
+            await new Promise(r => setTimeout(r, attempt * 2000))
             continue
           }
           break
@@ -443,7 +446,7 @@ export default async function handler(req, res) {
       } catch (e) {
         if (e.name === 'AbortError') break
         if (attempt === maxRetries) break
-        await new Promise(r => setTimeout(r, attempt * 5000))
+        await new Promise(r => setTimeout(r, attempt * 2000))
       }
     }
     if (claudeText) break
