@@ -204,35 +204,65 @@ CRITICAL RULES:
 6. If geo overlay data existed, incorporate its risk assessment into the verdict and bear case
 7. Return ONLY valid JSON — no markdown fences, no explanation, no commentary`
 
+  // ── Claude API call with retry, timeout, and model fallback ──────────────
+  const models = ['claude-sonnet-4-6', 'claude-sonnet-4-6']
   let result = null
-  try {
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-6',
-        max_tokens: 12000,
-        messages: [{ role: 'user', content: claudePrompt }],
-      }),
-    })
-    if (!claudeRes.ok) {
-      const errText = await claudeRes.text().catch(() => '')
-      return res.status(502).json({ error: `Claude API error (${claudeRes.status}): ${errText.slice(0, 200)}` })
-    }
-      const claudeData = await claudeRes.json()
-      const text = claudeData?.content?.[0]?.text || ''
-      const clean = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
-      try { result = JSON.parse(clean) } catch {
-        const match = text.match(/\{[\s\S]*\}/)
-        if (match) try { result = JSON.parse(match[0]) } catch { /* skip */ }
-      }
-  } catch (e) { return res.status(502).json({ error: `Claude request failed: ${e.message}` }) }
+  let usedModel = null
 
-  if (!result) return res.status(502).json({ error: 'Claude returned unparseable response — try again' })
+  for (const model of models) {
+    const maxRetries = 3
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 240000) // 240s timeout
+
+        const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: 12000,
+            messages: [{ role: 'user', content: claudePrompt }],
+          }),
+        })
+        clearTimeout(timeout)
+
+        if (claudeRes.status === 529 || claudeRes.status === 503) {
+          if (attempt < maxRetries) {
+            await new Promise(r => setTimeout(r, attempt * 5000))
+            continue
+          }
+          break
+        }
+
+        if (!claudeRes.ok) {
+          const errText = await claudeRes.text().catch(() => '')
+          return res.status(502).json({ error: `Claude API error (${claudeRes.status}): ${errText.slice(0, 200)}` })
+        }
+
+        const claudeData = await claudeRes.json()
+        const text = claudeData?.content?.[0]?.text || ''
+        const clean = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+        try { result = JSON.parse(clean) } catch {
+          const match = text.match(/\{[\s\S]*\}/)
+          if (match) try { result = JSON.parse(match[0]) } catch { /* skip */ }
+        }
+        if (result) { usedModel = model; break }
+      } catch (e) {
+        if (e.name === 'AbortError') break
+        if (attempt === maxRetries) break
+        await new Promise(r => setTimeout(r, attempt * 5000))
+      }
+    }
+    if (result) break
+  }
+
+  if (!result) return res.status(502).json({ error: 'All Claude models failed or timed out — try again in a few minutes' })
 
   // ── Step 4: Replace data blocks in file ────────────────────────────────────
   let newContent = content
@@ -283,7 +313,7 @@ CRITICAL RULES:
     newPrice: result.stock?.price || null,
     newStance: result.verdict?.stance,
     newConviction: result.verdict?.conviction,
-    model: 'claude-opus-4-6',
+    model: usedModel,
     newDate: today,
   })
 }

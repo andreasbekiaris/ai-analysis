@@ -397,33 +397,59 @@ export default async function handler(req, res) {
     ? buildGeoPrompt(prompt.trim(), date, searchResults)
     : buildStockPrompt(prompt.trim(), date, searchResults, geoFiles)
 
-  // ── Step 3: Call Claude Opus ──────────────────────────────────────────────────
+  // ── Step 3: Call Claude with retry, timeout, and model fallback ──────────────
+  const models = ['claude-sonnet-4-6', 'claude-sonnet-4-6']
   let claudeText = ''
-  try {
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-6',
-        max_tokens: 16000,
-        messages: [{ role: 'user', content: claudePrompt }],
-      }),
-    })
-    if (!claudeRes.ok) {
-      const err = await claudeRes.json().catch(() => ({}))
-      return res.status(502).json({ error: `Claude API error: ${err.error?.message || claudeRes.status}` })
+  let usedModel = null
+
+  for (const model of models) {
+    const maxRetries = 3
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 240000)
+
+        const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: 16000,
+            messages: [{ role: 'user', content: claudePrompt }],
+          }),
+        })
+        clearTimeout(timeout)
+
+        if (claudeRes.status === 529 || claudeRes.status === 503) {
+          if (attempt < maxRetries) {
+            await new Promise(r => setTimeout(r, attempt * 5000))
+            continue
+          }
+          break
+        }
+
+        if (!claudeRes.ok) {
+          const err = await claudeRes.json().catch(() => ({}))
+          return res.status(502).json({ error: `Claude API error: ${err.error?.message || claudeRes.status}` })
+        }
+        const data = await claudeRes.json()
+        claudeText = data?.content?.[0]?.text || ''
+        if (claudeText) { usedModel = model; break }
+      } catch (e) {
+        if (e.name === 'AbortError') break
+        if (attempt === maxRetries) break
+        await new Promise(r => setTimeout(r, attempt * 5000))
+      }
     }
-    const data = await claudeRes.json()
-    claudeText = data?.content?.[0]?.text || ''
-  } catch (err) {
-    return res.status(502).json({ error: `Claude API failed: ${err.message}` })
+    if (claudeText) break
   }
 
-  if (!claudeText) return res.status(502).json({ error: 'Claude returned empty response' })
+  if (!claudeText) return res.status(502).json({ error: 'All Claude models failed or timed out — try again in a few minutes' })
 
   // ── Step 4: Parse metadata + JSX ─────────────────────────────────────────────
   // Strip markdown code fences if present
@@ -478,7 +504,7 @@ export default async function handler(req, res) {
     path: routePath,
     file: filepath,
     componentName,
-    model: 'claude-opus-4-6',
+    model: usedModel,
     searchesRun: queries.length,
   })
 }
