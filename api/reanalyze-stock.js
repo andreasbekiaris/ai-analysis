@@ -219,7 +219,10 @@ CRITICAL RULES:
         messages: [{ role: 'user', content: claudePrompt }],
       }),
     })
-    if (claudeRes.ok) {
+    if (!claudeRes.ok) {
+      const errText = await claudeRes.text().catch(() => '')
+      return res.status(502).json({ error: `Claude API error (${claudeRes.status}): ${errText.slice(0, 200)}` })
+    }
       const claudeData = await claudeRes.json()
       const text = claudeData?.content?.[0]?.text || ''
       const clean = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
@@ -227,10 +230,9 @@ CRITICAL RULES:
         const match = text.match(/\{[\s\S]*\}/)
         if (match) try { result = JSON.parse(match[0]) } catch { /* skip */ }
       }
-    }
-  } catch { /* fall through */ }
+  } catch (e) { return res.status(502).json({ error: `Claude request failed: ${e.message}` }) }
 
-  if (!result) return res.status(502).json({ error: 'Claude failed to generate deep reanalysis — try again' })
+  if (!result) return res.status(502).json({ error: 'Claude returned unparseable response — try again' })
 
   // ── Step 4: Replace data blocks in file ────────────────────────────────────
   let newContent = content

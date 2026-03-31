@@ -638,7 +638,9 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
         signal: AbortSignal.timeout(360000),
       })
       clearInterval(stageTimer)
-      const data = await res.json()
+      const text = await res.text()
+      let data
+      try { data = JSON.parse(text) } catch { throw new Error(text.slice(0, 200) || 'Reanalysis failed — invalid response') }
       if (!res.ok) throw new Error(data.error || 'Reanalysis failed')
       setReanalyzeResult(data)
       setReanalyzeState('done')
