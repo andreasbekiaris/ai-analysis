@@ -19,6 +19,11 @@ app.post('/api/analyze', analyzeHandler)
 app.post('/api/reanalyze', reanalyzeHandler)
 app.post('/api/reanalyze-stock', reanalyzeStockHandler)
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`AI Analysis API running on port ${PORT}`)
 })
+
+// Allow long-running requests (10 minutes) — prevents connection drops
+server.keepAliveTimeout = 600000
+server.headersTimeout = 610000
+server.timeout = 600000
