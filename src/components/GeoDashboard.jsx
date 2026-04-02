@@ -631,11 +631,10 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
     }, 30000)
 
     try {
-      const res = await fetch('/api/reanalyze', {
+      const res = await fetch('https://ai-analysis-production-0590.up.railway.app/api/reanalyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dashboardFile, analysisTitle: d.title }),
-        signal: AbortSignal.timeout(360000),
       })
       clearInterval(stageTimer)
       const text = await res.text()

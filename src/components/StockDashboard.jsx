@@ -193,11 +193,10 @@ export default function StockDashboard({
     }, 25000)
 
     try {
-      const res = await fetch('/api/reanalyze-stock', {
+      const res = await fetch('https://ai-analysis-production-0590.up.railway.app/api/reanalyze-stock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dashboardFile, analysisTitle: `${stock.name} (${stock.ticker})`, ticker: stock.ticker }),
-        signal: AbortSignal.timeout(360000),
       })
       clearInterval(stageTimer)
       const text = await res.text()

@@ -42,11 +42,10 @@ function NewAnalysisForm() {
     setResultPath(null)
 
     try {
-      const res = await fetch('/api/analyze', {
+      const res = await fetch('https://ai-analysis-production-0590.up.railway.app/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: prompt.trim() }),
-        signal: AbortSignal.timeout(300000),
       })
       const data = await res.json()
 
