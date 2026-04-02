@@ -10,6 +10,7 @@ import AlphaBank from './dashboards/stocks/alpha-analysis-2026-03-22'
 import HelpPage from './pages/HelpPage'
 import EurobankDashboard from './dashboards/stocks/eurob-2026-03-30'
 import LockheedMartinLMT from './dashboards/stocks/lmt-2026-04-02'
+import CasinoMarketDashboard from './dashboards/geopolitical/casino-market-analysis-2026-04-02'
 
 const dashboards = [
   { path: '/geo/us-iran-war', component: UsIranWar, title: 'US–Iran War: Operation Epic Fury', type: 'geopolitical', date: '2026-03-22' },
@@ -17,6 +18,7 @@ const dashboards = [
   { path: '/stocks/alpha', component: AlphaBank, title: 'Alpha Bank (ALPHA.AT / ALBKY)', type: 'stocks', date: '2026-03-25' },
   { path: '/stocks/eurob', component: EurobankDashboard, title: 'Eurobank (EUROB)', type: 'stocks', date: '2026-03-30' },
   { path: '/stocks/lmt', component: LockheedMartinLMT, title: 'Lockheed Martin (LMT)', type: 'stocks', date: '2026-04-02' },
+  { path: '/geo/casino-market-analysis', component: CasinoMarketDashboard, title: 'Global Casino Market: Regulatory Disruption & Strategic Realignment', type: 'geopolitical', date: '2026-04-02' },
 ]
 
 function NewAnalysisForm() {
