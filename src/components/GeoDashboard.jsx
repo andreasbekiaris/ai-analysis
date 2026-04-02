@@ -631,21 +631,31 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
     }, 30000)
 
     try {
-      const res = await fetch('https://ai-analysis-production-0590.up.railway.app/api/reanalyze', {
+      const submitRes = await fetch('https://ai-analysis-production-0590.up.railway.app/api/reanalyze-async', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dashboardFile, analysisTitle: d.title }),
       })
+      const { jobId } = await submitRes.json()
+      if (!jobId) throw new Error('Failed to start reanalysis job')
+
+      // Poll for completion
+      const poll = async () => {
+        while (true) {
+          await new Promise(r => setTimeout(r, 8000))
+          const pollRes = await fetch(`https://ai-analysis-production-0590.up.railway.app/api/job/${jobId}`)
+          const job = await pollRes.json()
+          if (job.status === 'done') return job.result
+          if (job.status === 'error') throw new Error(job.error || 'Reanalysis failed')
+        }
+      }
+      const data = await poll()
       clearInterval(stageTimer)
-      const text = await res.text()
-      let data
-      try { data = JSON.parse(text) } catch { throw new Error(text.slice(0, 200) || 'Reanalysis failed — invalid response') }
-      if (!res.ok) throw new Error(data.error || 'Reanalysis failed')
       setReanalyzeResult(data)
       setReanalyzeState('done')
     } catch (err) {
       clearInterval(stageTimer)
-      setReanalyzeResult({ error: err.name === 'TimeoutError' ? 'Request timed out — try again' : err.message })
+      setReanalyzeResult({ error: err.message })
       setReanalyzeState('error')
     }
   }

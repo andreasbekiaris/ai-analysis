@@ -42,22 +42,31 @@ function NewAnalysisForm() {
     setResultPath(null)
 
     try {
-      const res = await fetch('https://ai-analysis-production-0590.up.railway.app/api/analyze', {
+      const submitRes = await fetch('https://ai-analysis-production-0590.up.railway.app/api/analyze-async', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: prompt.trim() }),
       })
-      const data = await res.json()
+      const { jobId } = await submitRes.json()
+      if (!jobId) throw new Error('Failed to start analysis job')
 
-      if (!res.ok) throw new Error(data.error || 'Analysis failed')
-
-      setStatus('success')
-      setResultPath(data.path)
-      setMessage(`${data.title} — dashboard is deploying now.`)
-      setPrompt('')
+      // Poll for completion
+      while (true) {
+        await new Promise(r => setTimeout(r, 8000))
+        const pollRes = await fetch(`https://ai-analysis-production-0590.up.railway.app/api/job/${jobId}`)
+        const job = await pollRes.json()
+        if (job.status === 'done') {
+          setStatus('success')
+          setResultPath(job.result.path)
+          setMessage(`${job.result.title} — dashboard is deploying now.`)
+          setPrompt('')
+          break
+        }
+        if (job.status === 'error') throw new Error(job.error || 'Analysis failed')
+      }
     } catch (err) {
       setStatus('error')
-      setMessage(err.name === 'TimeoutError' ? 'Request timed out — try again' : err.message)
+      setMessage(err.message)
     }
   }
 
