@@ -26,25 +26,26 @@ async function geminiSearch(key, query, maxTokens = 2048) {
   } catch { return '' }
 }
 
-export async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
-
-  const { dashboardFile, analysisTitle, ticker } = req.body || {}
-  if (!dashboardFile) return res.status(400).json({ error: 'Missing dashboardFile' })
+// ── Phase 1: Fetch all data (GitHub file + Gemini searches) ─────────────────
+async function fetchData(body, job) {
+  const { dashboardFile, analysisTitle, ticker } = body || {}
+  if (!dashboardFile) { job.status = 'error'; job.error = 'Missing dashboardFile'; return }
 
   const geminiKey = process.env.GEMINI_API_KEY
   const anthropicKey = process.env.ANTHROPIC_API_KEY
   const githubToken = process.env.GITHUB_TOKEN
-  if (!geminiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' })
-  if (!anthropicKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' })
-  if (!githubToken) return res.status(500).json({ error: 'GITHUB_TOKEN not configured' })
+  if (!geminiKey) { job.status = 'error'; job.error = 'GEMINI_API_KEY not configured'; return }
+  if (!anthropicKey) { job.status = 'error'; job.error = 'ANTHROPIC_API_KEY not configured'; return }
+  if (!githubToken) { job.status = 'error'; job.error = 'GITHUB_TOKEN not configured'; return }
 
-  // ── Step 1: Read current file from GitHub ─────────────────────────────────
+  job.stage = 'Reading dashboard from GitHub...'
+
+  // ── Read current file from GitHub ─────────────────────────────────────
   const fileRes = await fetch(
     `https://api.github.com/repos/${REPO}/contents/${dashboardFile}`,
     { headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github+json' } }
   )
-  if (!fileRes.ok) return res.status(502).json({ error: 'Failed to read dashboard file' })
+  if (!fileRes.ok) { job.status = 'error'; job.error = 'Failed to read dashboard file'; return }
   const fileData = await fileRes.json()
   const content = Buffer.from(fileData.content, 'base64').toString('utf8')
 
@@ -52,7 +53,7 @@ export async function handler(req, res) {
   const stockName = analysisTitle || ticker || dashboardFile
   const tickerStr = ticker || stockName
 
-  // Extract full previous data blocks as context for deeper reanalysis
+  // Extract previous data blocks
   const prevStock = extractBlock(content, 'const stock')
   const prevVerdict = extractBlock(content, 'const verdict')
   const prevNews = extractBlock(content, 'const newsItems')
@@ -60,7 +61,9 @@ export async function handler(req, res) {
   const prevGeoOverlay = extractBlock(content, 'const geoOverlay')
   const prevRiskNotices = extractBlock(content, 'const riskNotices')
 
-  // ── Step 2: 5 parallel Gemini searches — comprehensive stock research ─────
+  job.stage = 'Running 5 parallel Gemini searches...'
+
+  // ── 5 parallel Gemini searches ─────────────────────────────────────────
   const [pc1, pc2, news, analysts, sectorMacro] = await Promise.all([
     geminiSearch(geminiKey,
       `PRICE CHECK 1 — Current stock price for ${stockName} (ticker: ${tickerStr}). Today: ${today}. ` +
@@ -98,7 +101,27 @@ export async function handler(req, res) {
     ),
   ])
 
-  // ── Step 3: Claude deep reanalysis — full data regeneration ────────────────
+  // ── Store fetched data in job for Phase 2 ──────────────────────────────
+  job.fetchedData = {
+    dashboardFile, stockName, tickerStr, today, content, fileSha: fileData.sha,
+    prevStock, prevVerdict, prevNews, prevGaps, prevGeoOverlay, prevRiskNotices,
+    pc1, pc2, news, analysts, sectorMacro,
+  }
+  job.status = 'data_ready'
+  job.stage = 'Data fetched — ready for analysis'
+}
+
+// ── Phase 2: Send fetched data to Claude for analysis + commit ──────────────
+async function analyze(job) {
+  const d = job.fetchedData
+  if (!d) { job.status = 'error'; job.error = 'No fetched data found'; return }
+
+  const anthropicKey = process.env.ANTHROPIC_API_KEY
+  const githubToken = process.env.GITHUB_TOKEN
+
+  job.stage = 'Sending data to Claude for deep analysis...'
+
+  // ── Build Claude prompt ────────────────────────────────────────────────
   const claudePrompt = `You are a senior equity analyst performing a COMPREHENSIVE DEEP REANALYSIS of a stock.
 
 CRITICAL: This is NOT a quick price update. You must REDO the entire analysis from scratch.
@@ -108,39 +131,39 @@ incorporate new data, and produce a DEEPER, more refined assessment.
 ═══ PREVIOUS ANALYSIS (baseline to improve upon — do NOT just copy) ═══
 
 ── STOCK DATA ──
-${prevStock.slice(0, 6000)}
+${d.prevStock.slice(0, 6000)}
 
 ── VERDICT ──
-${prevVerdict.slice(0, 4000)}
+${d.prevVerdict.slice(0, 4000)}
 
 ── NEWS ITEMS ──
-${prevNews.slice(0, 4000)}
+${d.prevNews.slice(0, 4000)}
 
 ── ANALYSIS GAPS ──
-${prevGaps.slice(0, 1500)}
+${d.prevGaps.slice(0, 1500)}
 
 ── GEO OVERLAY (if exists) ──
-${prevGeoOverlay.slice(0, 3000)}
+${d.prevGeoOverlay.slice(0, 3000)}
 
 ── RISK NOTICES (if exists) ──
-${prevRiskNotices.slice(0, 2000)}
+${d.prevRiskNotices.slice(0, 2000)}
 
-═══ FRESH RESEARCH (${today}) ═══
+═══ FRESH RESEARCH (${d.today}) ═══
 
 ── VERIFIED PRICE #1 ──
-${pc1.slice(0, 2000) || '(unavailable)'}
+${d.pc1.slice(0, 2000) || '(unavailable)'}
 
 ── VERIFIED PRICE #2 ──
-${pc2.slice(0, 2000) || '(unavailable)'}
+${d.pc2.slice(0, 2000) || '(unavailable)'}
 
 ── LATEST NEWS (last 7 days) ──
-${news.slice(0, 5000) || '(no significant news found)'}
+${d.news.slice(0, 5000) || '(no significant news found)'}
 
 ── ANALYST RATINGS & RESEARCH ──
-${analysts.slice(0, 4000) || '(no analyst data found)'}
+${d.analysts.slice(0, 4000) || '(no analyst data found)'}
 
 ── SECTOR & MACRO CONTEXT ──
-${sectorMacro.slice(0, 4000) || '(no sector analysis found)'}
+${d.sectorMacro.slice(0, 4000) || '(no sector analysis found)'}
 
 ═══ INSTRUCTIONS ═══
 
@@ -148,8 +171,8 @@ Generate COMPLETE replacement data. Return a single JSON object with these keys:
 
 {
   "stock": {
-    "name": "${stockName}",
-    "ticker": "${tickerStr}",
+    "name": "${d.stockName}",
+    "ticker": "${d.tickerStr}",
     "price": number (consensus from both price checks),
     "change": number (today's absolute change),
     "changePct": number (today's % change),
@@ -195,7 +218,7 @@ Generate COMPLETE replacement data. Return a single JSON object with these keys:
     }
   ],
   "analysisGaps": [
-    { "topic": "str", "description": "str", "issueTitle": "Extend ${stockName} analysis: ..." }
+    { "topic": "str", "description": "str", "issueTitle": "Extend ${d.stockName} analysis: ..." }
   ]
 }
 
@@ -208,13 +231,14 @@ CRITICAL RULES:
 6. If geo overlay data existed, incorporate its risk assessment into the verdict and bear case
 7. Return ONLY valid JSON — no markdown fences, no explanation, no commentary`
 
-  // ── Claude API call — NO timeout pressure, use best model with full tokens ──
+  // ── Claude API call ────────────────────────────────────────────────────
   const maxRetries = 3
   let result = null
   let usedModel = 'claude-sonnet-4-6'
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
+      job.stage = `Calling Claude API (attempt ${attempt}/${maxRetries})...`
       const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -231,15 +255,16 @@ CRITICAL RULES:
 
       if (claudeRes.status === 529 || claudeRes.status === 503) {
         if (attempt < maxRetries) {
+          job.stage = `Claude API overloaded — retrying in ${attempt * 5}s...`
           await new Promise(r => setTimeout(r, attempt * 5000))
           continue
         }
-        return res.status(502).json({ error: `Claude API overloaded after ${maxRetries} attempts — try again later` })
+        job.status = 'error'; job.error = `Claude API overloaded after ${maxRetries} attempts — try again later`; return
       }
 
       if (!claudeRes.ok) {
         const errText = await claudeRes.text().catch(() => '')
-        return res.status(502).json({ error: `Claude API error (${claudeRes.status}): ${errText.slice(0, 200)}` })
+        job.status = 'error'; job.error = `Claude API error (${claudeRes.status}): ${errText.slice(0, 200)}`; return
       }
 
       const claudeData = await claudeRes.json()
@@ -252,20 +277,22 @@ CRITICAL RULES:
       if (result) break
 
       if (attempt < maxRetries) {
+        job.stage = `Parsing failed — retrying (${attempt}/${maxRetries})...`
         await new Promise(r => setTimeout(r, 3000))
       }
     } catch (e) {
       if (attempt === maxRetries) {
-        return res.status(502).json({ error: `Claude API failed: ${e.message}` })
+        job.status = 'error'; job.error = `Claude API failed: ${e.message}`; return
       }
       await new Promise(r => setTimeout(r, attempt * 5000))
     }
   }
 
-  if (!result) return res.status(502).json({ error: 'Claude returned unparseable response after retries' })
+  if (!result) { job.status = 'error'; job.error = 'Claude returned unparseable response after retries'; return }
 
-  // ── Step 4: Replace data blocks in file ────────────────────────────────────
-  let newContent = content
+  // ── Replace data blocks in file ────────────────────────────────────────
+  job.stage = 'Committing updated analysis to GitHub...'
+  let newContent = d.content
   if (result.stock) newContent = replaceDataBlock(newContent, 'const stock', result.stock)
   if (result.verdict) newContent = replaceDataBlock(newContent, 'const verdict', result.verdict)
   if (result.newsItems) newContent = replaceDataBlock(newContent, 'const newsItems', result.newsItems)
@@ -274,14 +301,14 @@ CRITICAL RULES:
   // Append new price history point if we got a price
   if (result.stock?.price) {
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-    const d = new Date()
-    const dateStr = `${months[d.getMonth()]}-${String(d.getDate()).padStart(2, '0')}`
+    const dt = new Date()
+    const dateStr = `${months[dt.getMonth()]}-${String(dt.getDate()).padStart(2, '0')}`
     newContent = appendPriceHistory(newContent, { date: dateStr, price: result.stock.price })
   }
 
-  // ── Step 5: Commit to GitHub ───────────────────────────────────────────────
+  // ── Commit to GitHub ───────────────────────────────────────────────────
   const commitRes = await fetch(
-    `https://api.github.com/repos/${REPO}/contents/${dashboardFile}`,
+    `https://api.github.com/repos/${REPO}/contents/${d.dashboardFile}`,
     {
       method: 'PUT',
       headers: {
@@ -290,21 +317,25 @@ CRITICAL RULES:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: `feat: deep reanalysis — ${stockName} (${today})`,
+        message: `feat: deep reanalysis — ${d.stockName} (${d.today})`,
         content: Buffer.from(newContent).toString('base64'),
-        sha: fileData.sha,
+        sha: d.fileSha,
       }),
     }
   )
 
   if (!commitRes.ok) {
     const err = await commitRes.json().catch(() => ({}))
-    return res.status(502).json({ error: `GitHub commit failed: ${err.message || commitRes.status}` })
+    job.status = 'error'; job.error = `GitHub commit failed: ${err.message || commitRes.status}`; return
   }
 
   const newsCount = result.newsItems?.length || 0
 
-  return res.status(200).json({
+  // Clean up fetched data to free memory
+  delete job.fetchedData
+
+  job.status = 'done'
+  job.result = {
     success: true,
     reanalysisType: 'deep',
     newsTotal: newsCount,
@@ -314,9 +345,24 @@ CRITICAL RULES:
     newStance: result.verdict?.stance,
     newConviction: result.verdict?.conviction,
     model: usedModel,
-    newDate: today,
-  })
+    newDate: d.today,
+  }
 }
+
+// ── Legacy sync handler (kept as fallback) ──────────────────────────────────
+export async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  const job = { status: 'running', stage: '', fetchedData: null }
+  await fetchData(req.body, job)
+  if (job.status === 'error') return res.status(502).json({ error: job.error })
+  await analyze(job)
+  if (job.status === 'error') return res.status(502).json({ error: job.error })
+  return res.status(200).json(job.result)
+}
+
+// Expose phases for async usage
+handler.fetchData = fetchData
+handler.analyze = analyze
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 

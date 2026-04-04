@@ -176,21 +176,8 @@ export default function StockDashboard({
   const runReanalyze = async () => {
     if (!dashboardFile) return
     setReanalyzeState('running')
-    setReanalyzeStage('Fetching latest price and market data...')
+    setReanalyzeStage('Starting reanalysis...')
     setReanalyzeResult(null)
-
-    const stages = [
-      'Fetching latest price and market data...',
-      'Gathering news and analyst ratings...',
-      'Running deep analysis with Claude Opus...',
-      'Regenerating fundamentals and verdict...',
-      'Finalizing and committing to GitHub...',
-    ]
-    let stageIdx = 0
-    const stageTimer = setInterval(() => {
-      stageIdx = Math.min(stageIdx + 1, stages.length - 1)
-      setReanalyzeStage(stages[stageIdx])
-    }, 25000)
 
     try {
       const submitRes = await fetch('https://ai-analysis-production-0590.up.railway.app/api/reanalyze-stock-async', {
@@ -201,21 +188,33 @@ export default function StockDashboard({
       const { jobId } = await submitRes.json()
       if (!jobId) throw new Error('Failed to start reanalysis job')
 
+      // Poll for completion — two-phase: data fetch then Claude analysis
       const poll = async () => {
         while (true) {
-          await new Promise(r => setTimeout(r, 8000))
+          await new Promise(r => setTimeout(r, 6000))
           const pollRes = await fetch(`https://ai-analysis-production-0590.up.railway.app/api/job/${jobId}`)
           const job = await pollRes.json()
+
+          if (job.stage) setReanalyzeStage(job.stage)
+
+          if (job.status === 'data_ready') {
+            // Phase 1 done — trigger Phase 2: send data to Claude
+            setReanalyzeStage('Data fetched — sending to Claude for deep analysis...')
+            await fetch('https://ai-analysis-production-0590.up.railway.app/api/reanalyze-stock-analyze', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ jobId }),
+            })
+            continue
+          }
           if (job.status === 'done') return job.result
           if (job.status === 'error') throw new Error(job.error || 'Reanalysis failed')
         }
       }
       const data = await poll()
-      clearInterval(stageTimer)
       setReanalyzeResult(data)
       setReanalyzeState('done')
     } catch (err) {
-      clearInterval(stageTimer)
       setReanalyzeResult({ error: err.message })
       setReanalyzeState('error')
     }

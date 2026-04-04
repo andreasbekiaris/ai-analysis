@@ -614,21 +614,8 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
   const runReanalyze = async () => {
     if (!dashboardFile) return
     setReanalyzeState('running')
-    setReanalyzeStage('Gathering latest developments and prices...')
+    setReanalyzeStage('Starting reanalysis...')
     setReanalyzeResult(null)
-
-    const stages = [
-      'Gathering latest developments and prices...',
-      'Collecting political signals and expert views...',
-      'Running deep analysis with Claude Opus...',
-      'Regenerating scenarios and assessments...',
-      'Finalizing and committing to GitHub...',
-    ]
-    let stageIdx = 0
-    const stageTimer = setInterval(() => {
-      stageIdx = Math.min(stageIdx + 1, stages.length - 1)
-      setReanalyzeStage(stages[stageIdx])
-    }, 30000)
 
     try {
       const submitRes = await fetch('https://ai-analysis-production-0590.up.railway.app/api/reanalyze-async', {
@@ -639,22 +626,34 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
       const { jobId } = await submitRes.json()
       if (!jobId) throw new Error('Failed to start reanalysis job')
 
-      // Poll for completion
+      // Poll for completion — two-phase: data fetch then Claude analysis
       const poll = async () => {
         while (true) {
-          await new Promise(r => setTimeout(r, 8000))
+          await new Promise(r => setTimeout(r, 6000))
           const pollRes = await fetch(`https://ai-analysis-production-0590.up.railway.app/api/job/${jobId}`)
           const job = await pollRes.json()
+
+          if (job.stage) setReanalyzeStage(job.stage)
+
+          if (job.status === 'data_ready') {
+            // Phase 1 done — trigger Phase 2: send data to Claude
+            setReanalyzeStage('Data fetched — sending to Claude for deep analysis...')
+            await fetch('https://ai-analysis-production-0590.up.railway.app/api/reanalyze-analyze', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ jobId }),
+            })
+            // Continue polling for Phase 2 completion
+            continue
+          }
           if (job.status === 'done') return job.result
           if (job.status === 'error') throw new Error(job.error || 'Reanalysis failed')
         }
       }
       const data = await poll()
-      clearInterval(stageTimer)
       setReanalyzeResult(data)
       setReanalyzeState('done')
     } catch (err) {
-      clearInterval(stageTimer)
       setReanalyzeResult({ error: err.message })
       setReanalyzeState('error')
     }
