@@ -262,18 +262,13 @@ export default function StockDashboard({
       setReanalyzeResult(result)
       setReanalyzeState('done')
     } catch (err) {
-      // If no API credits, fall back to GitHub issue → watcher → Claude Code on PC
-      if (err.code === 'NO_CREDITS' || /no api credits/i.test(err.message)) {
-        try {
-          const result = await fallbackToWatcher()
-          setReanalyzeResult(result)
-          setReanalyzeState('done')
-        } catch (watcherErr) {
-          setReanalyzeResult({ error: `Cloud: ${err.message} | Watcher: ${watcherErr.message}` })
-          setReanalyzeState('error')
-        }
-      } else {
-        setReanalyzeResult({ error: err.message })
+      // Railway failed — fall back to GitHub issue → watcher → Claude Code on PC
+      try {
+        const result = await fallbackToWatcher()
+        setReanalyzeResult(result)
+        setReanalyzeState('done')
+      } catch (watcherErr) {
+        setReanalyzeResult({ error: `Cloud: ${err.message} | Watcher: ${watcherErr.message}` })
         setReanalyzeState('error')
       }
     }
