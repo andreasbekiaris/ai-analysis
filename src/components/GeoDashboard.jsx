@@ -614,44 +614,36 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
   const runReanalyze = async () => {
     if (!dashboardFile) return
     setReanalyzeState('running')
-    setReanalyzeStage('Starting reanalysis...')
+    setReanalyzeStage('Fetching latest data via Gemini...')
     setReanalyzeResult(null)
 
     try {
-      const submitRes = await fetch('https://ai-analysis-production-0590.up.railway.app/api/reanalyze-async', {
+      // Phase 1: Fetch data (Gemini searches) — Vercel endpoint
+      const fetchRes = await fetch('/api/reanalyze-fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dashboardFile, analysisTitle: d.title }),
+        body: JSON.stringify({ dashboardFile, analysisTitle: data.title }),
       })
-      const { jobId } = await submitRes.json()
-      if (!jobId) throw new Error('Failed to start reanalysis job')
-
-      // Poll for completion — two-phase: data fetch then Claude analysis
-      const poll = async () => {
-        while (true) {
-          await new Promise(r => setTimeout(r, 6000))
-          const pollRes = await fetch(`https://ai-analysis-production-0590.up.railway.app/api/job/${jobId}`)
-          const job = await pollRes.json()
-
-          if (job.stage) setReanalyzeStage(job.stage)
-
-          if (job.status === 'data_ready') {
-            // Phase 1 done — trigger Phase 2: send data to Claude
-            setReanalyzeStage('Data fetched — sending to Claude for deep analysis...')
-            await fetch('https://ai-analysis-production-0590.up.railway.app/api/reanalyze-analyze', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ jobId }),
-            })
-            // Continue polling for Phase 2 completion
-            continue
-          }
-          if (job.status === 'done') return job.result
-          if (job.status === 'error') throw new Error(job.error || 'Reanalysis failed')
-        }
+      if (!fetchRes.ok) {
+        const err = await fetchRes.json().catch(() => ({}))
+        throw new Error(err.error || `Fetch failed (${fetchRes.status})`)
       }
-      const data = await poll()
-      setReanalyzeResult(data)
+      const fetchedData = await fetchRes.json()
+
+      // Phase 2: Send fetched data to Claude for analysis — Vercel endpoint
+      setReanalyzeStage('Data fetched — sending to Claude for deep analysis...')
+      const claudeRes = await fetch('/api/reanalyze-claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fetchedData),
+      })
+      if (!claudeRes.ok) {
+        const err = await claudeRes.json().catch(() => ({}))
+        throw new Error(err.error || `Claude analysis failed (${claudeRes.status})`)
+      }
+      const result = await claudeRes.json()
+
+      setReanalyzeResult(result)
       setReanalyzeState('done')
     } catch (err) {
       setReanalyzeResult({ error: err.message })

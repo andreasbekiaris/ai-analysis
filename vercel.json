@@ -5,6 +5,10 @@
   "functions": {
     "api/analyze.js": { "maxDuration": 300 },
     "api/reanalyze.js": { "maxDuration": 300 },
-    "api/reanalyze-stock.js": { "maxDuration": 300 }
+    "api/reanalyze-stock.js": { "maxDuration": 300 },
+    "api/reanalyze-fetch.js": { "maxDuration": 120 },
+    "api/reanalyze-claude.js": { "maxDuration": 300 },
+    "api/reanalyze-stock-fetch.js": { "maxDuration": 120 },
+    "api/reanalyze-stock-claude.js": { "maxDuration": 300 }
   }
 }
