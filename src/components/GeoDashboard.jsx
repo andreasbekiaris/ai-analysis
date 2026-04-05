@@ -612,7 +612,6 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
   const [reanalyzeResult, setReanalyzeResult] = useState(null)
 
   const RAILWAY_URL = 'https://ai-analysis-production-0590.up.railway.app'
-  const LOCAL_URL = 'http://localhost:3001'
 
   const pollJob = async (baseUrl, jobId) => {
     while (true) {
@@ -646,6 +645,47 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
     return pollJob(baseUrl, jobId)
   }
 
+  // Fallback: create GitHub issue → watcher picks it up → Claude Code runs locally
+  const fallbackToWatcher = async () => {
+    setReanalyzeStage('No cloud credits — dispatching to local Claude Code via GitHub issue...')
+    const issueTitle = `Reanalyze: ${dashboardFile} — ${data.title}`
+    const issueRes = await fetch('/api/create-issue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: issueTitle }),
+    })
+    if (!issueRes.ok) {
+      const err = await issueRes.json().catch(() => ({}))
+      throw new Error(err.error || 'Failed to create GitHub issue for watcher')
+    }
+    const { number, url } = await issueRes.json()
+
+    // Poll the GitHub issue for completion (watcher adds 'completed' label and closes it)
+    setReanalyzeStage(`Issue #${number} created — watcher is running Claude Code on your PC...`)
+    const REPO = 'andreasbekiaris/ai-analysis'
+    while (true) {
+      await new Promise(r => setTimeout(r, 10000))
+      const pollRes = await fetch(`https://api.github.com/repos/${REPO}/issues/${number}`, {
+        headers: { Accept: 'application/vnd.github+json' },
+      })
+      if (!pollRes.ok) continue
+      const issue = await pollRes.json()
+
+      const labels = (issue.labels || []).map(l => l.name)
+      if (labels.includes('completed') || issue.state === 'closed') {
+        return {
+          success: true,
+          reanalysisType: 'watcher',
+          issueUrl: url,
+          message: 'Reanalysis completed via local Claude Code. Reload the page to see updates.',
+        }
+      }
+      if (labels.includes('in-progress')) {
+        setReanalyzeStage(`Issue #${number} — Claude Code is working on your PC...`)
+      }
+    }
+  }
+
   const runReanalyze = async () => {
     if (!dashboardFile) return
     setReanalyzeState('running')
@@ -660,15 +700,14 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
       setReanalyzeResult(result)
       setReanalyzeState('done')
     } catch (err) {
-      // If no API credits on Railway, fall back to local server
+      // If no API credits, fall back to GitHub issue → watcher → Claude Code on PC
       if (err.code === 'NO_CREDITS' || /no api credits/i.test(err.message)) {
         try {
-          setReanalyzeStage('No cloud credits — falling back to local server...')
-          const result = await startJob(LOCAL_URL, '/api/reanalyze-async', body)
+          const result = await fallbackToWatcher()
           setReanalyzeResult(result)
           setReanalyzeState('done')
-        } catch (localErr) {
-          setReanalyzeResult({ error: `Cloud: ${err.message} | Local: ${localErr.message}` })
+        } catch (watcherErr) {
+          setReanalyzeResult({ error: `Cloud: ${err.message} | Watcher: ${watcherErr.message}` })
           setReanalyzeState('error')
         }
       } else {
