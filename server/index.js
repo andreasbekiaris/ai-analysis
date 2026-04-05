@@ -76,8 +76,8 @@ app.post('/api/reanalyze-stock-async', (req, res) => {
 })
 
 // Health check
-app.get('/', (_req, res) => res.json({ status: 'ok', service: 'ai-analysis-api', version: '2.3.0' }))
-app.get('/health', (_req, res) => res.json({ status: 'ok', version: '2.3.0' }))
+app.get('/', (_req, res) => res.json({ status: 'ok', service: 'ai-analysis-api', version: '2.3.1' }))
+app.get('/health', (_req, res) => res.json({ status: 'ok', version: '2.3.1' }))
 
 // Sync endpoints (kept as fallback)
 app.post('/api/analyze', analyzeHandler)
