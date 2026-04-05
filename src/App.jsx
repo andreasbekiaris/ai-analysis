@@ -395,6 +395,9 @@ function Home() {
           </div>
         )}
       </div>
+      <div style={{ textAlign: 'center', padding: '2rem 0 1rem', color: '#334155', fontSize: '0.7rem', fontFamily: 'monospace' }}>
+        v2.1.0 — 2026-04-04
+      </div>
     </div>
   )
 }
