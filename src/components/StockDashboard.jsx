@@ -176,37 +176,40 @@ export default function StockDashboard({
   const runReanalyze = async () => {
     if (!dashboardFile) return
     setReanalyzeState('running')
-    setReanalyzeStage('Fetching latest data via Gemini...')
+    setReanalyzeStage('Starting reanalysis — Claude is researching & analyzing...')
     setReanalyzeResult(null)
 
     try {
-      // Phase 1: Fetch data (Gemini searches) — Vercel endpoint
-      const fetchRes = await fetch('/api/reanalyze-stock-fetch', {
+      // Start async job on Railway — Claude does web search + analysis in one call
+      const startRes = await fetch('https://ai-analysis-production-0590.up.railway.app/api/reanalyze-stock-async', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dashboardFile, analysisTitle: `${stock.name} (${stock.ticker})`, ticker: stock.ticker }),
       })
-      if (!fetchRes.ok) {
-        const err = await fetchRes.json().catch(() => ({}))
-        throw new Error(err.error || `Fetch failed (${fetchRes.status})`)
+      if (!startRes.ok) {
+        const err = await startRes.json().catch(() => ({}))
+        throw new Error(err.error || `Failed to start reanalysis (${startRes.status})`)
       }
-      const fetchedData = await fetchRes.json()
+      const { jobId } = await startRes.json()
 
-      // Phase 2: Send fetched data to Claude for analysis — Vercel endpoint
-      setReanalyzeStage('Data fetched — sending to Claude for deep analysis...')
-      const claudeRes = await fetch('/api/reanalyze-stock-claude', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fetchedData),
-      })
-      if (!claudeRes.ok) {
-        const err = await claudeRes.json().catch(() => ({}))
-        throw new Error(err.error || `Claude analysis failed (${claudeRes.status})`)
+      // Poll for completion
+      while (true) {
+        await new Promise(r => setTimeout(r, 3000))
+        const pollRes = await fetch(`https://ai-analysis-production-0590.up.railway.app/api/job/${jobId}`)
+        if (!pollRes.ok) throw new Error('Failed to check job status')
+        const job = await pollRes.json()
+
+        setReanalyzeStage(job.stage || 'Processing...')
+
+        if (job.status === 'done') {
+          setReanalyzeResult(job.result)
+          setReanalyzeState('done')
+          return
+        }
+        if (job.status === 'error') {
+          throw new Error(job.error || 'Reanalysis failed')
+        }
       }
-      const result = await claudeRes.json()
-
-      setReanalyzeResult(result)
-      setReanalyzeState('done')
     } catch (err) {
       setReanalyzeResult({ error: err.message })
       setReanalyzeState('error')

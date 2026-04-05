@@ -1,40 +1,12 @@
 const REPO = 'andreasbekiaris/ai-analysis'
 
-// ── Gemini Google-Search helper ────────────────────────────────────────────────
-async function geminiSearch(key, query, maxTokens = 2048) {
-  try {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 60000) // 60s — no rush
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tools: [{ google_search: {} }],
-          contents: [{ role: 'user', parts: [{ text: query }] }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: maxTokens },
-        }),
-      }
-    )
-    clearTimeout(timer)
-    if (!res.ok) return ''
-    const data = await res.json()
-    const parts = data?.candidates?.[0]?.content?.parts || []
-    return parts.map(p => p.text || '').join('').trim()
-  } catch { return '' }
-}
-
-// ── Phase 1: Fetch all data (GitHub file + Gemini searches) ─────────────────
-async function fetchData(body, job) {
+// ── Single-phase stock reanalysis: Claude does research + analysis via web_search ──
+async function runReanalysis(body, job) {
   const { dashboardFile, analysisTitle, ticker } = body || {}
   if (!dashboardFile) { job.status = 'error'; job.error = 'Missing dashboardFile'; return }
 
-  const geminiKey = process.env.GEMINI_API_KEY
   const anthropicKey = process.env.ANTHROPIC_API_KEY
   const githubToken = process.env.GITHUB_TOKEN
-  if (!geminiKey) { job.status = 'error'; job.error = 'GEMINI_API_KEY not configured'; return }
   if (!anthropicKey) { job.status = 'error'; job.error = 'ANTHROPIC_API_KEY not configured'; return }
   if (!githubToken) { job.status = 'error'; job.error = 'GITHUB_TOKEN not configured'; return }
 
@@ -61,119 +33,58 @@ async function fetchData(body, job) {
   const prevGeoOverlay = extractBlock(content, 'const geoOverlay')
   const prevRiskNotices = extractBlock(content, 'const riskNotices')
 
-  job.stage = 'Running 5 parallel Gemini searches...'
+  job.stage = 'Claude is researching and analyzing (web search + deep analysis)...'
 
-  // ── 5 parallel Gemini searches ─────────────────────────────────────────
-  const [pc1, pc2, news, analysts, sectorMacro] = await Promise.all([
-    geminiSearch(geminiKey,
-      `PRICE CHECK 1 — Current stock price for ${stockName} (ticker: ${tickerStr}). Today: ${today}. ` +
-      `Search for real-time or latest closing price, daily change (absolute and %), ` +
-      `market cap, trading volume, 52-week high/low, beta. ` +
-      `Also include relevant sector index. Return: Field | Value | Source.`
-    ),
-    geminiSearch(geminiKey,
-      `PRICE CHECK 2 — Cross-verify stock price for ${tickerStr} / ${stockName}. Date: ${today}. ` +
-      `Search different sources (Bloomberg, Reuters, Yahoo Finance, local exchange) to confirm: ` +
-      `current price, intraday high/low, 52-week range, analyst consensus target, P/E ratio. ` +
-      `Return: Field | Value | Source URL or outlet.`
-    ),
-    geminiSearch(geminiKey,
-      `Comprehensive financial news for ${stockName} (${tickerStr}). Date: ${today}. ` +
-      `Search for: earnings updates, analyst upgrades/downgrades, regulatory news, ` +
-      `management changes, M&A activity, product launches, legal issues, ` +
-      `competitive developments, insider trading, dividend changes. Cover the last 7 days. ` +
-      `For each: headline, source, date, sentiment (positive/neutral/negative), summary.`,
-      4000
-    ),
-    geminiSearch(geminiKey,
-      `Analyst ratings and research for ${stockName} (${tickerStr}). Date: ${today}. ` +
-      `Search for: recent analyst reports, price target changes, rating changes, ` +
-      `consensus estimates, EPS forecasts, revenue projections. ` +
-      `Include: analyst name, firm, rating, price target, date of report, key thesis.`,
-      4000
-    ),
-    geminiSearch(geminiKey,
-      `Sector and macro analysis affecting ${stockName} (${tickerStr}). Date: ${today}. ` +
-      `Search for: sector trends, industry developments, regulatory changes, ` +
-      `interest rate impacts, trade policy effects, geopolitical risks to this company, ` +
-      `supply chain issues, currency impacts. Include specific data and sources.`,
-      4000
-    ),
-  ])
-
-  // ── Store fetched data in job for Phase 2 ──────────────────────────────
-  job.fetchedData = {
-    dashboardFile, stockName, tickerStr, today, content, fileSha: fileData.sha,
-    prevStock, prevVerdict, prevNews, prevGaps, prevGeoOverlay, prevRiskNotices,
-    pc1, pc2, news, analysts, sectorMacro,
-  }
-  job.status = 'data_ready'
-  job.stage = 'Data fetched — ready for analysis'
-}
-
-// ── Phase 2: Send fetched data to Claude for analysis + commit ──────────────
-async function analyze(job) {
-  const d = job.fetchedData
-  if (!d) { job.status = 'error'; job.error = 'No fetched data found'; return }
-
-  const anthropicKey = process.env.ANTHROPIC_API_KEY
-  const githubToken = process.env.GITHUB_TOKEN
-
-  job.stage = 'Sending data to Claude for deep analysis...'
-
-  // ── Build Claude prompt ────────────────────────────────────────────────
+  // ── Build Claude prompt with web search instructions ───────────────────
   const claudePrompt = `You are a senior equity analyst performing a COMPREHENSIVE DEEP REANALYSIS of a stock.
+Today's date: ${today}. Stock: ${stockName} (ticker: ${tickerStr}).
 
 CRITICAL: This is NOT a quick price update. You must REDO the entire analysis from scratch.
 Use the previous analysis as your baseline — update fundamentals, challenge assumptions,
 incorporate new data, and produce a DEEPER, more refined assessment.
 
+STEP 1 — RESEARCH (use your web_search tool extensively):
+You MUST search for ALL of the following before writing the analysis:
+1. Current stock price for ${tickerStr} — search at least 2 sources to cross-verify
+2. Key financials: market cap, P/E, EPS, 52-week range, beta, volume
+3. Latest news (earnings, analyst upgrades/downgrades, regulatory, M&A, legal issues) — last 7 days
+4. Analyst ratings, price targets, consensus estimates
+5. Sector trends, macro context, geopolitical risks to this company
+
+Run at least 5-8 web searches to gather comprehensive, current data.
+
+STEP 2 — ANALYZE using your research + the previous analysis below.
+
 ═══ PREVIOUS ANALYSIS (baseline to improve upon — do NOT just copy) ═══
 
 ── STOCK DATA ──
-${d.prevStock.slice(0, 6000)}
+${prevStock.slice(0, 6000)}
 
 ── VERDICT ──
-${d.prevVerdict.slice(0, 4000)}
+${prevVerdict.slice(0, 4000)}
 
 ── NEWS ITEMS ──
-${d.prevNews.slice(0, 4000)}
+${prevNews.slice(0, 4000)}
 
 ── ANALYSIS GAPS ──
-${d.prevGaps.slice(0, 1500)}
+${prevGaps.slice(0, 1500)}
 
 ── GEO OVERLAY (if exists) ──
-${d.prevGeoOverlay.slice(0, 3000)}
+${prevGeoOverlay.slice(0, 3000)}
 
 ── RISK NOTICES (if exists) ──
-${d.prevRiskNotices.slice(0, 2000)}
+${prevRiskNotices.slice(0, 2000)}
 
-═══ FRESH RESEARCH (${d.today}) ═══
+═══ OUTPUT INSTRUCTIONS ═══
 
-── VERIFIED PRICE #1 ──
-${d.pc1.slice(0, 2000) || '(unavailable)'}
-
-── VERIFIED PRICE #2 ──
-${d.pc2.slice(0, 2000) || '(unavailable)'}
-
-── LATEST NEWS (last 7 days) ──
-${d.news.slice(0, 5000) || '(no significant news found)'}
-
-── ANALYST RATINGS & RESEARCH ──
-${d.analysts.slice(0, 4000) || '(no analyst data found)'}
-
-── SECTOR & MACRO CONTEXT ──
-${d.sectorMacro.slice(0, 4000) || '(no sector analysis found)'}
-
-═══ INSTRUCTIONS ═══
-
-Generate COMPLETE replacement data. Return a single JSON object with these keys:
+After completing your research, generate COMPLETE replacement data.
+Return a single JSON object with these keys:
 
 {
   "stock": {
-    "name": "${d.stockName}",
-    "ticker": "${d.tickerStr}",
-    "price": number (consensus from both price checks),
+    "name": "${stockName}",
+    "ticker": "${tickerStr}",
+    "price": number (consensus from your price searches),
     "change": number (today's absolute change),
     "changePct": number (today's % change),
     "marketCap": "string e.g. $2.1T",
@@ -212,33 +123,33 @@ Generate COMPLETE replacement data. Return a single JSON object with these keys:
       "headline": "str",
       "source": "str",
       "date": "YYYY-MM-DD",
-      "url": "real URL or empty string",
+      "url": "real URL from your search results or empty string",
       "sentiment": "positive|neutral|negative",
       "summary": "1-2 sentence summary of impact"
     }
   ],
   "analysisGaps": [
-    { "topic": "str", "description": "str", "issueTitle": "Extend ${d.stockName} analysis: ..." }
+    { "topic": "str", "description": "str", "issueTitle": "Extend ${stockName} analysis: ..." }
   ]
 }
 
 CRITICAL RULES:
-1. Stock price MUST use consensus from both price checks — if unavailable return the best available
+1. Stock price MUST come from your web searches — cross-verify from multiple sources
 2. KEEP important previous news items AND add new ones from research — sort newest first, max 12 items
-3. News URLs must be real — if you cannot verify a URL, use empty string
-4. Verdict MUST reference specific recent news, price data, and analyst views
+3. News URLs must be real URLs from your search results — if you cannot verify a URL, use empty string
+4. Verdict MUST reference specific recent news, price data, and analyst views you found
 5. GO DEEPER: more nuanced timing rationale, better-supported targets, more detailed bear case
 6. If geo overlay data existed, incorporate its risk assessment into the verdict and bear case
 7. Return ONLY valid JSON — no markdown fences, no explanation, no commentary`
 
-  // ── Claude API call ────────────────────────────────────────────────────
+  // ── Claude API call with web_search tool ───────────────────────────────
   const maxRetries = 3
   let result = null
   let usedModel = 'claude-sonnet-4-6'
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      job.stage = `Calling Claude API (attempt ${attempt}/${maxRetries})...`
+      job.stage = `Claude researching & analyzing (attempt ${attempt}/${maxRetries})...`
       const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -249,6 +160,7 @@ CRITICAL RULES:
         body: JSON.stringify({
           model: usedModel,
           max_tokens: 16000,
+          tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 10 }],
           messages: [{ role: 'user', content: claudePrompt }],
         }),
       })
@@ -268,7 +180,10 @@ CRITICAL RULES:
       }
 
       const claudeData = await claudeRes.json()
-      const text = claudeData?.content?.[0]?.text || ''
+      // Extract text from content blocks (may include tool_use and text blocks)
+      const textBlocks = (claudeData?.content || []).filter(b => b.type === 'text')
+      const text = textBlocks.map(b => b.text).join('').trim()
+
       const clean = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
       try { result = JSON.parse(clean) } catch {
         const match = text.match(/\{[\s\S]*\}/)
@@ -292,7 +207,7 @@ CRITICAL RULES:
 
   // ── Replace data blocks in file ────────────────────────────────────────
   job.stage = 'Committing updated analysis to GitHub...'
-  let newContent = d.content
+  let newContent = content
   if (result.stock) newContent = replaceDataBlock(newContent, 'const stock', result.stock)
   if (result.verdict) newContent = replaceDataBlock(newContent, 'const verdict', result.verdict)
   if (result.newsItems) newContent = replaceDataBlock(newContent, 'const newsItems', result.newsItems)
@@ -308,7 +223,7 @@ CRITICAL RULES:
 
   // ── Commit to GitHub ───────────────────────────────────────────────────
   const commitRes = await fetch(
-    `https://api.github.com/repos/${REPO}/contents/${d.dashboardFile}`,
+    `https://api.github.com/repos/${REPO}/contents/${dashboardFile}`,
     {
       method: 'PUT',
       headers: {
@@ -317,9 +232,9 @@ CRITICAL RULES:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: `feat: deep reanalysis — ${d.stockName} (${d.today})`,
+        message: `feat: deep reanalysis — ${stockName} (${today})`,
         content: Buffer.from(newContent).toString('base64'),
-        sha: d.fileSha,
+        sha: fileData.sha,
       }),
     }
   )
@@ -330,9 +245,6 @@ CRITICAL RULES:
   }
 
   const newsCount = result.newsItems?.length || 0
-
-  // Clean up fetched data to free memory
-  delete job.fetchedData
 
   job.status = 'done'
   job.result = {
@@ -345,24 +257,21 @@ CRITICAL RULES:
     newStance: result.verdict?.stance,
     newConviction: result.verdict?.conviction,
     model: usedModel,
-    newDate: d.today,
+    newDate: today,
   }
 }
 
-// ── Legacy sync handler (kept as fallback) ──────────────────────────────────
+// ── Sync handler (fallback) ──────────────────────────────────────────────────
 export async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
-  const job = { status: 'running', stage: '', fetchedData: null }
-  await fetchData(req.body, job)
-  if (job.status === 'error') return res.status(502).json({ error: job.error })
-  await analyze(job)
+  const job = { status: 'running', stage: '' }
+  await runReanalysis(req.body, job)
   if (job.status === 'error') return res.status(502).json({ error: job.error })
   return res.status(200).json(job.result)
 }
 
-// Expose phases for async usage
-handler.fetchData = fetchData
-handler.analyze = analyze
+// Expose for async usage
+handler.runReanalysis = runReanalysis
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 

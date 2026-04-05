@@ -26,9 +26,7 @@ function createJob(type) {
 app.get('/api/job/:id', (req, res) => {
   const job = jobs.get(req.params.id)
   if (!job) return res.status(404).json({ error: 'Job not found' })
-  // Exclude fetchedData from response (can be very large)
-  const { fetchedData, ...safe } = job
-  return res.json(safe)
+  return res.json(job)
 })
 
 // ── Async wrappers — return jobId immediately, process in background ────────
@@ -53,7 +51,6 @@ function fakeRes(job) {
 app.post('/api/analyze-async', (req, res) => {
   const job = createJob('analyze')
   res.json({ jobId: job.id })
-  // Run in background
   analyzeHandler(req, fakeRes(job)).catch(err => {
     job.status = 'error'
     job.error = err.message
@@ -63,23 +60,7 @@ app.post('/api/analyze-async', (req, res) => {
 app.post('/api/reanalyze-async', (req, res) => {
   const job = createJob('reanalyze')
   res.json({ jobId: job.id })
-  // Phase 1: fetch data only
-  reanalyzeHandler.fetchData(req.body, job).catch(err => {
-    job.status = 'error'
-    job.error = err.message
-  })
-})
-
-// Phase 2: analyze with Claude using fetched data
-app.post('/api/reanalyze-analyze', (req, res) => {
-  const { jobId } = req.body || {}
-  const job = jobs.get(jobId)
-  if (!job) return res.status(404).json({ error: 'Job not found' })
-  if (job.status !== 'data_ready') return res.status(400).json({ error: `Job not ready for analysis (status: ${job.status})` })
-  job.status = 'running'
-  job.stage = 'Running deep analysis with Claude...'
-  res.json({ ok: true })
-  reanalyzeHandler.analyze(job).catch(err => {
+  reanalyzeHandler.runReanalysis(req.body, job).catch(err => {
     job.status = 'error'
     job.error = err.message
   })
@@ -88,31 +69,15 @@ app.post('/api/reanalyze-analyze', (req, res) => {
 app.post('/api/reanalyze-stock-async', (req, res) => {
   const job = createJob('reanalyze-stock')
   res.json({ jobId: job.id })
-  // Phase 1: fetch data only
-  reanalyzeStockHandler.fetchData(req.body, job).catch(err => {
-    job.status = 'error'
-    job.error = err.message
-  })
-})
-
-// Phase 2: analyze stock with Claude using fetched data
-app.post('/api/reanalyze-stock-analyze', (req, res) => {
-  const { jobId } = req.body || {}
-  const job = jobs.get(jobId)
-  if (!job) return res.status(404).json({ error: 'Job not found' })
-  if (job.status !== 'data_ready') return res.status(400).json({ error: `Job not ready for analysis (status: ${job.status})` })
-  job.status = 'running'
-  job.stage = 'Running deep analysis with Claude...'
-  res.json({ ok: true })
-  reanalyzeStockHandler.analyze(job).catch(err => {
+  reanalyzeStockHandler.runReanalysis(req.body, job).catch(err => {
     job.status = 'error'
     job.error = err.message
   })
 })
 
 // Health check
-app.get('/', (_req, res) => res.json({ status: 'ok', service: 'ai-analysis-api', version: '2.2.0' }))
-app.get('/health', (_req, res) => res.json({ status: 'ok', version: '2.2.0' }))
+app.get('/', (_req, res) => res.json({ status: 'ok', service: 'ai-analysis-api', version: '2.3.0' }))
+app.get('/health', (_req, res) => res.json({ status: 'ok', version: '2.3.0' }))
 
 // Sync endpoints (kept as fallback)
 app.post('/api/analyze', analyzeHandler)

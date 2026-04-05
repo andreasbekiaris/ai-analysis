@@ -1,40 +1,12 @@
 const REPO = 'andreasbekiaris/ai-analysis'
 
-// ── Gemini Google-Search helper ────────────────────────────────────────────────
-async function geminiSearch(key, query, maxTokens = 2048) {
-  try {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 60000) // 60s — no rush
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tools: [{ google_search: {} }],
-          contents: [{ role: 'user', parts: [{ text: query }] }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: maxTokens },
-        }),
-      }
-    )
-    clearTimeout(timer)
-    if (!res.ok) return ''
-    const data = await res.json()
-    const parts = data?.candidates?.[0]?.content?.parts || []
-    return parts.map(p => p.text || '').join('').trim()
-  } catch { return '' }
-}
-
-// ── Phase 1: Fetch all data (GitHub file + Gemini searches) ─────────────────
-async function fetchData(body, job) {
+// ── Single-phase reanalysis: Claude does research + analysis via web_search ──
+async function runReanalysis(body, job) {
   const { dashboardFile, analysisTitle } = body || {}
   if (!dashboardFile) { job.status = 'error'; job.error = 'Missing dashboardFile'; return }
 
-  const geminiKey = process.env.GEMINI_API_KEY
   const anthropicKey = process.env.ANTHROPIC_API_KEY
   const githubToken = process.env.GITHUB_TOKEN
-  if (!geminiKey) { job.status = 'error'; job.error = 'GEMINI_API_KEY not configured'; return }
   if (!anthropicKey) { job.status = 'error'; job.error = 'ANTHROPIC_API_KEY not configured'; return }
   if (!githubToken) { job.status = 'error'; job.error = 'GITHUB_TOKEN not configured'; return }
 
@@ -57,123 +29,57 @@ async function fetchData(body, job) {
   const prevSignals = extractBlock(content, 'const politicalComments')
   const prevVerdict = extractBlock(content, 'const strategicVerdict')
   const prevGaps = extractBlock(content, 'const analysisGaps')
-  const actors = extractActors(content)
 
-  job.stage = 'Running 5 parallel Gemini searches...'
+  job.stage = 'Claude is researching and analyzing (web search + deep analysis)...'
 
-  // ── 5 parallel Gemini searches ─────────────────────────────────────────
-  const [pc1, pc2, signals, developments, expertViews] = await Promise.all([
-    geminiSearch(geminiKey,
-      `PRICE CHECK 1 — Live market prices for: "${title}". Today: ${today}. ` +
-      `Search for: Brent crude oil spot, WTI crude, natural gas, gold, ` +
-      `defense ETFs (XAR, ITA), and any commodities/equities tied to this situation. ` +
-      `Return: Asset | Current Price | 24h Change | 7-day Change | Source.`
-    ),
-    geminiSearch(geminiKey,
-      `PRICE CHECK 2 — Cross-verify for: "${title}". Date: ${today}. ` +
-      `Independently confirm: Brent crude spot, WTI, natural gas futures, gold spot, ` +
-      `major defense sector ETFs, and relevant equity indices. ` +
-      `Return: Asset | Verified Price | Source URL or outlet.`
-    ),
-    geminiSearch(geminiKey,
-      `Political signal intelligence for: "${title}". Date: ${today}. ` +
-      `Search for ALL public statements, tweets, press conferences, official communications ` +
-      `from key actors: ${actors.slice(0, 8).join(', ')}. Cover the last 7 days. ` +
-      `Include: actor name, role, platform, exact date, direct quote, context, ` +
-      `and whether it signals escalation, de-escalation, diplomatic opening, or economic measure. ` +
-      `Be comprehensive — collect every significant statement.`,
-      4000
-    ),
-    geminiSearch(geminiKey,
-      `Comprehensive latest developments on: "${title}". Date: ${today}. ` +
-      `Search for: military movements, diplomatic meetings, sanctions changes, ` +
-      `UN resolutions, alliance shifts, humanitarian impacts, economic consequences, ` +
-      `arms transfers, negotiations, ceasefire discussions, territorial changes. ` +
-      `Cover the last 7 days. Include specific dates, verified numbers, and sources.`,
-      4000
-    ),
-    geminiSearch(geminiKey,
-      `Expert and think tank analysis of: "${title}". Date: ${today}. ` +
-      `Search for recent analysis from: RAND, Brookings, CFR, IISS, Chatham House, ` +
-      `Carnegie, CSIS, SIPRI, RUSI, ECFR, Lowy Institute. Also search for dissenting views. ` +
-      `Include: expert name, affiliation, key assessment, probability estimates if given. ` +
-      `Also search: former diplomats, ex-intelligence officials, regional analysts.`,
-      4000
-    ),
-  ])
-
-  // ── Store fetched data in job for Phase 2 ──────────────────────────────
-  job.fetchedData = {
-    dashboardFile, title, today, content, fileSha: fileData.sha,
-    prevAnalysis, prevSignals, prevVerdict, prevGaps,
-    pc1, pc2, signals, developments, expertViews,
-  }
-  job.status = 'data_ready'
-  job.stage = 'Data fetched — ready for analysis'
-}
-
-// ── Phase 2: Send fetched data to Claude for analysis + commit ──────────────
-async function analyze(job) {
-  const d = job.fetchedData
-  if (!d) { job.status = 'error'; job.error = 'No fetched data found'; return }
-
-  const anthropicKey = process.env.ANTHROPIC_API_KEY
-  const githubToken = process.env.GITHUB_TOKEN
-
-  job.stage = 'Sending data to Claude for deep analysis...'
-
-  // ── Build Claude prompt ────────────────────────────────────────────────
+  // ── Build Claude prompt with web search instructions ───────────────────
   const claudePrompt = `You are a senior geopolitical analyst performing a COMPREHENSIVE DEEP REANALYSIS.
+Today's date: ${today}. Analysis topic: "${title}".
 
 CRITICAL: This is NOT a quick update. You must REDO the entire analysis from scratch.
 Use the previous analysis as your baseline — challenge its assumptions with new data,
 deepen its reasoning, refine probabilities, and produce a MORE THOROUGH assessment.
-Where the previous analysis was shallow, go deeper. Where new data contradicts old assumptions, update.
+
+STEP 1 — RESEARCH (use your web_search tool extensively):
+You MUST search for ALL of the following before writing the analysis:
+1. Current commodity/market prices relevant to this situation (oil, gas, gold, defense ETFs, etc.)
+2. Political statements and signals from key actors in the last 7 days
+3. Latest military, diplomatic, and economic developments
+4. Expert and think tank analysis (RAND, Brookings, CFR, IISS, Chatham House, Carnegie, CSIS, SIPRI)
+5. Cross-verify prices from multiple sources
+
+Run at least 5-8 web searches to gather comprehensive, current data.
+
+STEP 2 — ANALYZE using your research + the previous analysis below.
 
 ═══ PREVIOUS ANALYSIS (baseline to improve upon — do NOT just copy) ═══
 
-${d.prevAnalysis.slice(0, 10000)}
+${prevAnalysis.slice(0, 10000)}
 
 ═══ PREVIOUS POLITICAL SIGNALS ═══
-${d.prevSignals.slice(0, 6000)}
+${prevSignals.slice(0, 6000)}
 
 ═══ PREVIOUS VERDICT ═══
-${d.prevVerdict.slice(0, 3000)}
+${prevVerdict.slice(0, 3000)}
 
 ═══ PREVIOUS ANALYSIS GAPS ═══
-${d.prevGaps.slice(0, 1500)}
+${prevGaps.slice(0, 1500)}
 
-═══ FRESH RESEARCH (${d.today}) ═══
+═══ OUTPUT INSTRUCTIONS ═══
 
-── VERIFIED PRICES #1 ──
-${d.pc1.slice(0, 2000) || '(unavailable)'}
-
-── VERIFIED PRICES #2 ──
-${d.pc2.slice(0, 2000) || '(unavailable)'}
-
-── POLITICAL SIGNALS (last 7 days) ──
-${d.signals.slice(0, 5000) || '(no new signals found)'}
-
-── LATEST DEVELOPMENTS ──
-${d.developments.slice(0, 5000) || '(no major developments found)'}
-
-── EXPERT & THINK TANK VIEWS ──
-${d.expertViews.slice(0, 4000) || '(no expert analysis found)'}
-
-═══ INSTRUCTIONS ═══
-
-Generate COMPLETE replacement data. Return a single JSON object with these exact keys:
+After completing your research, generate COMPLETE replacement data.
+Return a single JSON object with these exact keys:
 
 {
   "analysisData": {
-    "title": "${d.title}",
-    "date": "${d.today}",
+    "title": "${title}",
+    "date": "${today}",
     "overallConfidence": "Low|Medium|Medium-High|High",
     "situation": {
       "actors": [{ "name": "str", "role": "str", "stance": "str", "power": 0-100 }],
       "context": "COMPREHENSIVE 3-5 paragraph context incorporating ALL latest developments — deeper than the previous version",
       "triggers": ["specific dated event descriptions as strings"],
-      "keyMetrics": [{ "label": "str", "value": "str (use verified prices)", "color": "#hex" }]
+      "keyMetrics": [{ "label": "str", "value": "str (use verified prices from your searches)", "color": "#hex" }]
     },
     "scenarios": [
       {
@@ -211,7 +117,7 @@ Generate COMPLETE replacement data. Return a single JSON object with these exact
     {
       "actor": "str", "role": "str", "platform": "str",
       "date": "YYYY-MM-DD", "time": "HH:MM TZ or empty string",
-      "quote": "exact or closest verified quote",
+      "quote": "exact or closest verified quote from your web searches",
       "context": "str",
       "signalType": "escalatory|de-escalatory|diplomatic|economic|ambiguous",
       "marketImpact": "str", "scenarioImplication": "str", "verified": true or false
@@ -222,7 +128,7 @@ Generate COMPLETE replacement data. Return a single JSON object with these exact
     "stanceColor": "#hex",
     "primaryScenario": "str", "primaryProb": number,
     "timing": "short label",
-    "timingDetail": "2-3 sentences referencing specific signals and verified prices",
+    "timingDetail": "2-3 sentences referencing specific signals and verified prices from your research",
     "immediateWatchpoints": [{ "signal": "str", "timing": "str", "implication": "str", "urgency": "Critical|High|Medium" }],
     "marketPositioning": [{ "asset": "str", "stance": "HOLD|ADD|REDUCE|AVOID|CAUTIOUS", "color": "#hex", "rationale": "str" }],
     "probabilityUpdate": "Scenario1 X% / Scenario2 Y% — Next trigger: ...",
@@ -230,29 +136,29 @@ Generate COMPLETE replacement data. Return a single JSON object with these exact
     "nextReview": "str"
   },
   "analysisGaps": [
-    { "topic": "str", "description": "str", "issueTitle": "Extend ${d.title}: ..." }
+    { "topic": "str", "description": "str", "issueTitle": "Extend ${title}: ..." }
   ]
 }
 
 CRITICAL RULES:
 1. All scenario probabilities MUST sum to exactly 100
 2. Include 3-5 scenarios with DETAILED feasibility assessments
-3. KEEP all important previous political signals AND add new ones from research — sort newest first
-4. keyMetrics MUST use verified consensus prices from both price checks
+3. KEEP all important previous political signals AND add new ones you find — sort newest first
+4. keyMetrics MUST use real verified prices from your web searches
 5. Update indicator statuses based on latest developments (not_observed → emerging → observed)
-6. Expert opinions MUST incorporate latest think tank views from research
-7. Verdict MUST reference specific recent signals, prices, and developments
+6. Expert opinions MUST incorporate latest think tank views from your research
+7. Verdict MUST reference specific recent signals, prices, and developments you found
 8. GO DEEPER than previous: more detail in narratives, more nuanced reasoning, better-supported scores
 9. Return ONLY valid JSON — no markdown fences, no explanation, no commentary`
 
-  // ── Claude API call ────────────────────────────────────────────────────
+  // ── Claude API call with web_search tool ───────────────────────────────
   const maxRetries = 3
   let result = null
   let usedModel = 'claude-sonnet-4-6'
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      job.stage = `Calling Claude API (attempt ${attempt}/${maxRetries})...`
+      job.stage = `Claude researching & analyzing (attempt ${attempt}/${maxRetries})...`
       const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -263,6 +169,7 @@ CRITICAL RULES:
         body: JSON.stringify({
           model: usedModel,
           max_tokens: 16000,
+          tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 10 }],
           messages: [{ role: 'user', content: claudePrompt }],
         }),
       })
@@ -282,7 +189,10 @@ CRITICAL RULES:
       }
 
       const claudeData = await claudeRes.json()
-      const text = claudeData?.content?.[0]?.text || ''
+      // Extract text from content blocks (may include tool_use and text blocks)
+      const textBlocks = (claudeData?.content || []).filter(b => b.type === 'text')
+      const text = textBlocks.map(b => b.text).join('').trim()
+
       const clean = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
       try { result = JSON.parse(clean) } catch {
         const match = text.match(/\{[\s\S]*\}/)
@@ -306,7 +216,7 @@ CRITICAL RULES:
 
   // ── Replace data blocks in file ────────────────────────────────────────
   job.stage = 'Committing updated analysis to GitHub...'
-  let newContent = d.content
+  let newContent = content
   if (result.analysisData) newContent = replaceDataBlock(newContent, 'const analysisData', result.analysisData)
   if (result.politicalComments) newContent = replaceDataBlock(newContent, 'const politicalComments', result.politicalComments)
   if (result.strategicVerdict) newContent = replaceDataBlock(newContent, 'const strategicVerdict', result.strategicVerdict)
@@ -314,7 +224,7 @@ CRITICAL RULES:
 
   // ── Commit to GitHub ───────────────────────────────────────────────────
   const commitRes = await fetch(
-    `https://api.github.com/repos/${REPO}/contents/${d.dashboardFile}`,
+    `https://api.github.com/repos/${REPO}/contents/${dashboardFile}`,
     {
       method: 'PUT',
       headers: {
@@ -323,9 +233,9 @@ CRITICAL RULES:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: `feat: deep reanalysis — ${d.title} (${d.today})`,
+        message: `feat: deep reanalysis — ${title} (${today})`,
         content: Buffer.from(newContent).toString('base64'),
-        sha: d.fileSha,
+        sha: fileData.sha,
       }),
     }
   )
@@ -338,9 +248,6 @@ CRITICAL RULES:
   const scenarioCount = result.analysisData?.scenarios?.length || 0
   const signalCount = result.politicalComments?.length || 0
 
-  // Clean up fetched data to free memory
-  delete job.fetchedData
-
   job.status = 'done'
   job.result = {
     success: true,
@@ -352,35 +259,23 @@ CRITICAL RULES:
     newConviction: result.strategicVerdict?.conviction,
     probabilitySummary: result.strategicVerdict?.probabilityUpdate || null,
     model: usedModel,
-    newDate: d.today,
+    newDate: today,
   }
 }
 
-// ── Legacy sync handler (kept as fallback) ──────────────────────────────────
+// ── Sync handler (fallback) ──────────────────────────────────────────────────
 export async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
-  // For sync calls, run both phases in sequence
-  const job = { status: 'running', stage: '', fetchedData: null }
-  await fetchData(req.body, job)
-  if (job.status === 'error') return res.status(502).json({ error: job.error })
-  await analyze(job)
+  const job = { status: 'running', stage: '' }
+  await runReanalysis(req.body, job)
   if (job.status === 'error') return res.status(502).json({ error: job.error })
   return res.status(200).json(job.result)
 }
 
-// Expose phases for async usage
-handler.fetchData = fetchData
-handler.analyze = analyze
+// Expose for async usage
+handler.runReanalysis = runReanalysis
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function extractActors(content) {
-  const actorsSection = content.slice(0, content.indexOf('scenarios:') || content.length)
-  return [...actorsSection.matchAll(/name:\s*["'`]([^"'`\n]{2,50})["'`]/g)]
-    .map(m => m[1])
-    .filter((v, i, arr) => arr.indexOf(v) === i)
-    .slice(0, 10)
-}
 
 function extractBlock(content, marker) {
   const start = content.indexOf(marker)
