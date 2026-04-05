@@ -165,6 +165,11 @@ CRITICAL RULES:
         }),
       })
 
+      if (claudeRes.status === 402 || claudeRes.status === 429) {
+        const errText = await claudeRes.text().catch(() => '')
+        job.status = 'error'; job.error = `No API credits — ${errText.slice(0, 150)}`; job.code = 'NO_CREDITS'; return
+      }
+
       if (claudeRes.status === 529 || claudeRes.status === 503) {
         if (attempt < maxRetries) {
           job.stage = `Claude API overloaded — retrying in ${attempt * 5}s...`

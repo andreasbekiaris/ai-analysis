@@ -611,46 +611,70 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
   const [reanalyzeStage, setReanalyzeStage] = useState('')
   const [reanalyzeResult, setReanalyzeResult] = useState(null)
 
+  const RAILWAY_URL = 'https://ai-analysis-production-0590.up.railway.app'
+  const LOCAL_URL = 'http://localhost:3001'
+
+  const pollJob = async (baseUrl, jobId) => {
+    while (true) {
+      await new Promise(r => setTimeout(r, 3000))
+      const pollRes = await fetch(`${baseUrl}/api/job/${jobId}`)
+      if (!pollRes.ok) throw new Error('Failed to check job status')
+      const job = await pollRes.json()
+
+      setReanalyzeStage(job.stage || 'Processing...')
+
+      if (job.status === 'done') return job.result
+      if (job.status === 'error') {
+        const err = new Error(job.error || 'Reanalysis failed')
+        err.code = job.code
+        throw err
+      }
+    }
+  }
+
+  const startJob = async (baseUrl, endpoint, body) => {
+    const startRes = await fetch(`${baseUrl}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!startRes.ok) {
+      const err = await startRes.json().catch(() => ({}))
+      throw new Error(err.error || `Failed to start reanalysis (${startRes.status})`)
+    }
+    const { jobId } = await startRes.json()
+    return pollJob(baseUrl, jobId)
+  }
+
   const runReanalyze = async () => {
     if (!dashboardFile) return
     setReanalyzeState('running')
     setReanalyzeStage('Starting reanalysis — Claude is researching & analyzing...')
     setReanalyzeResult(null)
 
+    const body = { dashboardFile, analysisTitle: data.title }
+
     try {
-      // Start async job on Railway — Claude does web search + analysis in one call
-      const startRes = await fetch('https://ai-analysis-production-0590.up.railway.app/api/reanalyze-async', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dashboardFile, analysisTitle: data.title }),
-      })
-      if (!startRes.ok) {
-        const err = await startRes.json().catch(() => ({}))
-        throw new Error(err.error || `Failed to start reanalysis (${startRes.status})`)
-      }
-      const { jobId } = await startRes.json()
-
-      // Poll for completion
-      while (true) {
-        await new Promise(r => setTimeout(r, 3000))
-        const pollRes = await fetch(`https://ai-analysis-production-0590.up.railway.app/api/job/${jobId}`)
-        if (!pollRes.ok) throw new Error('Failed to check job status')
-        const job = await pollRes.json()
-
-        setReanalyzeStage(job.stage || 'Processing...')
-
-        if (job.status === 'done') {
-          setReanalyzeResult(job.result)
-          setReanalyzeState('done')
-          return
-        }
-        if (job.status === 'error') {
-          throw new Error(job.error || 'Reanalysis failed')
-        }
-      }
+      // Try Railway first
+      const result = await startJob(RAILWAY_URL, '/api/reanalyze-async', body)
+      setReanalyzeResult(result)
+      setReanalyzeState('done')
     } catch (err) {
-      setReanalyzeResult({ error: err.message })
-      setReanalyzeState('error')
+      // If no API credits on Railway, fall back to local server
+      if (err.code === 'NO_CREDITS' || /no api credits/i.test(err.message)) {
+        try {
+          setReanalyzeStage('No cloud credits — falling back to local server...')
+          const result = await startJob(LOCAL_URL, '/api/reanalyze-async', body)
+          setReanalyzeResult(result)
+          setReanalyzeState('done')
+        } catch (localErr) {
+          setReanalyzeResult({ error: `Cloud: ${err.message} | Local: ${localErr.message}` })
+          setReanalyzeState('error')
+        }
+      } else {
+        setReanalyzeResult({ error: err.message })
+        setReanalyzeState('error')
+      }
     }
   }
 
