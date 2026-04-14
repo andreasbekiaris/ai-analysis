@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { BarChart3, Globe2, TrendingUp, Clock, Plus, Send, CheckCircle, AlertCircle, Loader, ExternalLink, ListTodo, RefreshCw } from 'lucide-react'
+import { BarChart3, Globe2, TrendingUp, Building2, Clock, Plus, Send, CheckCircle, AlertCircle, Loader, ExternalLink, ListTodo, RefreshCw } from 'lucide-react'
 import SiteNavBar from './components/SiteNavBar'
 
 // Import dashboards here as they are created
@@ -8,9 +8,11 @@ import UsIranWar from './dashboards/geopolitical/us-iran-war-2026-03-22'
 import RussiaUkraineWar from './dashboards/geopolitical/russia-ukraine-war-2026-03-24'
 import AlphaBank from './dashboards/stocks/alpha-analysis-2026-03-22'
 import HelpPage from './pages/HelpPage'
+import MethodologyPage from './pages/MethodologyPage'
+import SourceViewerPage from './pages/SourceViewerPage'
 import EurobankDashboard from './dashboards/stocks/eurob-2026-03-30'
 import LockheedMartinLMT from './dashboards/stocks/lmt-2026-04-02'
-import CasinoMarketDashboard from './dashboards/geopolitical/casino-market-analysis-2026-04-02'
+import CasinoMarketDashboard from './dashboards/sectors/casino-market-analysis-2026-04-02'
 
 const dashboards = [
   { path: '/geo/us-iran-war', component: UsIranWar, title: 'US–Iran War: Operation Epic Fury', type: 'geopolitical', date: '2026-03-22' },
@@ -18,7 +20,7 @@ const dashboards = [
   { path: '/stocks/alpha', component: AlphaBank, title: 'Alpha Bank (ALPHA.AT / ALBKY)', type: 'stocks', date: '2026-04-05' },
   { path: '/stocks/eurob', component: EurobankDashboard, title: 'Eurobank (EUROB)', type: 'stocks', date: '2026-03-30' },
   { path: '/stocks/lmt', component: LockheedMartinLMT, title: 'Lockheed Martin (LMT)', type: 'stocks', date: '2026-04-02' },
-  { path: '/geo/casino-market-analysis', component: CasinoMarketDashboard, title: 'Global Casino Market: Regulatory Disruption & Strategic Realignment', type: 'geopolitical', date: '2026-04-02' },
+  { path: '/sectors/casino-market-analysis', component: CasinoMarketDashboard, title: 'Global Casino Market: Regulatory Disruption & Strategic Realignment', type: 'sectors', date: '2026-04-02' },
 ]
 
 function NewAnalysisForm() {
@@ -370,6 +372,8 @@ function Home() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                   {d.type === 'geopolitical' ? (
                     <Globe2 size={18} color="#f59e0b" />
+                  ) : d.type === 'sectors' ? (
+                    <Building2 size={18} color="#8b5cf6" />
                   ) : (
                     <TrendingUp size={18} color="#10b981" />
                   )}
@@ -377,10 +381,10 @@ function Home() {
                     fontSize: '0.75rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
-                    color: d.type === 'geopolitical' ? '#f59e0b' : '#10b981',
+                    color: d.type === 'geopolitical' ? '#f59e0b' : d.type === 'sectors' ? '#8b5cf6' : '#10b981',
                     fontWeight: 600,
                   }}>
-                    {d.type}
+                    {d.type === 'sectors' ? 'sector analysis' : d.type}
                   </span>
                 </div>
                 <h3 style={{ color: '#f8fafc', fontSize: '1.25rem', fontWeight: 600, margin: '0 0 0.5rem' }}>
@@ -408,6 +412,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/help" element={<HelpPage />} />
+        <Route path="/methodology" element={<MethodologyPage />} />
+        <Route path="/source" element={<SourceViewerPage />} />
         {dashboards.map((d) => (
           <Route key={d.path} path={d.path} element={<d.component />} />
         ))}

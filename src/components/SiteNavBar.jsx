@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { BarChart3, Home, BookOpen, RefreshCw } from 'lucide-react'
+import { BarChart3, Home, BookOpen, RefreshCw, FileText, Code2 } from 'lucide-react'
 
 const btn = {
   display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
@@ -42,6 +42,12 @@ export default function SiteNavBar({ onRefresh }) {
         </Link>
         <Link to="/help" style={btn} onMouseEnter={hover.on} onMouseLeave={hover.off}>
           <BookOpen size={12} /> Glossary
+        </Link>
+        <Link to="/methodology" style={btn} onMouseEnter={hover.on} onMouseLeave={hover.off}>
+          <FileText size={12} /> Methodology
+        </Link>
+        <Link to="/source" style={btn} onMouseEnter={hover.on} onMouseLeave={hover.off}>
+          <Code2 size={12} /> Source
         </Link>
         <button
           onClick={() => onRefresh ? onRefresh() : window.location.reload()}

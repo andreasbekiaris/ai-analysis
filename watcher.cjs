@@ -233,6 +233,25 @@ function buildAnalysisPrompt(analysisRequest) {
     '4. Skip generating a Word document — dashboard only.',
     '5. After writing the .jsx file: update App.jsx routing, git add the new file + App.jsx, commit, then push.',
     '6. The commit message must follow: feat: [type] analysis - [subject] - [YYYY-MM-DD]',
+    '',
+    'KEY FORMULAS (use directly — saves re-reading full CLAUDE.md):',
+    '',
+    'STOCK VALUATION:',
+    '- DCF: Project FCF at growth rate g for 5yr, discount at WACC (Rf + Beta×5.5%), terminal = FCF5×(1+2.5%)/(WACC−2.5%)',
+    '- DDM: DPS×(1+g)/(r−g) where g = ROE×(1−payout), r = Rf + Beta×5.5%',
+    '- Relative: P/E vs sector median × EPS, P/B vs historical avg × book value, EV/EBITDA vs sector',
+    '- Sensitivity (banks): NII per 25bps = LoanBook × RepricingGap% × 0.0025',
+    '- Oil chain: ΔOil+10% → ΔInflation+0.4pp → CB +25bps prob +30%',
+    '- Risk: E[R]=Σ(prob×return); MaxDD=(trough−peak)/peak; Sharpe=(E[R]−Rf)/σ',
+    '- Kelly%=(WinProb×AvgWin/AvgLoss−LossProb)/(AvgWin/AvgLoss); use quarter-Kelly',
+    '',
+    'GEO FRAMEWORKS:',
+    '- Game theory: model key decisions as Chicken/PD/Assurance game, payoff matrix, find Nash equilibrium',
+    '- Bayesian: P(scenario|signal)∝P(signal|scenario)×P(scenario); track probabilityHistory array',
+    '- Oil shock: passthrough US 0.03, EU 0.04, EM 0.05-0.07; GDP impact −0.15% per 10% oil increase',
+    '- Sanctions analogs: Iran 2012 −6.6%, Russia 2022 −2.1%, Iran 2018 −4.8%',
+    '- Escalation ladder: 6 levels (Diplomatic→Economic→Proxy→Limited Military→Strategic Strikes→Total War)',
+    '- Political economy: selectorate theory, rally effect +5-15pp decaying 1-2pp/mo, audience costs',
   ].join('\n')
 }
 
@@ -261,6 +280,10 @@ function buildReanalyzePrompt(dashboardFile, analysisTitle, extraContext) {
     '   - Update all price and metric values to current figures',
     '   - Update the analysis date field to today',
     '   - For stock dashboards: update stock.price, stock.change, stock.changePct, and add a new priceHistory entry',
+    '   - For valuationModels: update DCF with latest FCF/growth; update DDM with current DPS; recalculate relative valuation with current sector medians',
+    '   - For sensitivityAnalysis: update only if macro conditions changed (rate decisions, oil moves >5%)',
+    '   - For riskQuantification: recalculate expectedReturn with updated scenario probs; update maxDrawdown if new trough',
+    '   - For geo dashboards: add new entry to probabilityHistory; recalculate economicImpact with current oil/trade data; update escalationLadder status',
     `5. Do NOT create a new file — update ONLY the existing file at ${dashboardFile}`,
     '6. Do NOT change App.jsx — the route already exists.',
     `7. git add ${dashboardFile}`,
@@ -360,8 +383,12 @@ async function processIssue(issue) {
     }
     const dashboardFile = match[1].trim();
     const analysisTitle = match[2].trim();
-    prompt = buildReanalyzePrompt(dashboardFile, analysisTitle, body || '');
-    log(`  → Reanalyze mode: ${dashboardFile}`);
+    const isQuick = (body || '').toLowerCase().includes('quick');
+    const extraContext = isQuick
+      ? 'QUICK MODE: Only update prices, political signals, scenario probabilities, and verdict. Skip full web research, valuation model recalculation, and fundamental data refresh.'
+      : (body || '');
+    prompt = buildReanalyzePrompt(dashboardFile, analysisTitle, extraContext);
+    log(`  → Reanalyze mode${isQuick ? ' (QUICK)' : ''}: ${dashboardFile}`);
   } else {
     const additionalContext = body ? `\n\nAdditional context: ${body}` : '';
     prompt = buildAnalysisPrompt(`${title}${additionalContext}`);
