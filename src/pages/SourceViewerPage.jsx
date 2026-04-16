@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Home, BookOpen, Code2, ChevronDown, Copy, Check } from 'lucide-react'
+import { Home, BookOpen, Code2, ChevronDown, Copy, Check, Upload } from 'lucide-react'
 import SiteNavBar from '../components/SiteNavBar'
 
 const rawFiles = import.meta.glob('/src/dashboards/**/*.jsx', { query: '?raw', eager: true, import: 'default' })
@@ -88,8 +88,11 @@ export default function SourceViewerPage() {
 
   const [selected, setSelected] = useState(files[0]?.path || '')
   const [copied, setCopied] = useState(false)
+  const [importedFiles, setImportedFiles] = useState([])
 
-  const file = files.find(f => f.path === selected)
+  const allFiles = useMemo(() => [...files, ...importedFiles], [files, importedFiles])
+
+  const file = allFiles.find(f => f.path === selected)
   const lines = file ? file.content.split('\n') : []
 
   const copy = () => {
@@ -97,6 +100,29 @@ export default function SourceViewerPage() {
     navigator.clipboard.writeText(file.content)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleImport = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.jsx,.js,.tsx,.ts,.json,.css'
+    input.multiple = true
+    input.onchange = (e) => {
+      Array.from(e.target.files).forEach(f => {
+        const reader = new FileReader()
+        reader.onload = (ev) => {
+          const path = `imported/${f.name}`
+          setImportedFiles(prev => {
+            const filtered = prev.filter(p => p.path !== path)
+            return [...filtered, { path, name: f.name, type: 'imported', content: ev.target.result }]
+          })
+          setSelected(path)
+          setCopied(false)
+        }
+        reader.readAsText(f)
+      })
+    }
+    input.click()
   }
 
   return (
@@ -127,14 +153,29 @@ export default function SourceViewerPage() {
                 fontSize: '0.85rem', fontFamily: 'monospace', cursor: 'pointer', outline: 'none',
               }}
             >
-              {files.map(f => (
+              {allFiles.map(f => (
                 <option key={f.path} value={f.path}>
-                  {f.type === 'geopolitical' ? '\uD83C\uDF10 ' : '\uD83D\uDCC8 '}{f.name}
+                  {f.type === 'imported' ? '\uD83D\uDCC1 ' : f.type === 'geopolitical' ? '\uD83C\uDF10 ' : '\uD83D\uDCC8 '}{f.name}
                 </option>
               ))}
             </select>
             <ChevronDown size={14} color="#64748b" style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           </div>
+
+          <button
+            onClick={handleImport}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+              background: '#111827',
+              color: '#06b6d4',
+              border: '1px solid #1e293b',
+              borderRadius: '8px', padding: '0.55rem 1rem',
+              fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+          >
+            <Upload size={13} /> Import File
+          </button>
 
           <button
             onClick={copy}
