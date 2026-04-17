@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-04-17T00:00:00Z",
+  "updatedAt": "2026-04-18T01:20:00Z",
   "notes": "Schedule config for auto-reanalysis. Read by watcher.cjs every minute. All times are Athens local (Europe/Athens).",
   "dashboards": {},
   "bestPicks": {
@@ -9,6 +9,111 @@
     "lastAfterCloseRun": null,
     "morningModeAthens": { "hour": 8, "minute": 0 },
     "afterCloseDelayMinutes": 15,
-    "watchlist": []
+    "watchlist": [
+      {
+        "ticker": "METLEN.AT",
+        "exchange": "ATHEX",
+        "sector": "Energy / Industrials",
+        "rationale": "Greek industrial conglomerate with energy, metals, and infrastructure arms. Direct exposure to elevated oil/gas prices from Iran conflict. ATHEX rally leader.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-18"
+      },
+      {
+        "ticker": "OPAP.AT",
+        "exchange": "ATHEX",
+        "sector": "Gaming / Entertainment",
+        "rationale": "Greek gaming monopoly with stable cash flows and high dividend yield. Defensive domestic play — resilient to geopolitical shocks. €5.7B market cap.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-18"
+      },
+      {
+        "ticker": "OTE.AT",
+        "exchange": "ATHEX",
+        "sector": "Telecommunications",
+        "rationale": "Greece's largest telecom (Deutsche Telekom subsidiary). Defensive cash-flow compounder, top ATHEX name by market cap. Low geopolitical beta.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-18"
+      },
+      {
+        "ticker": "OXY",
+        "exchange": "NYSE",
+        "sector": "Energy / Oil & Gas",
+        "rationale": "Highest operating leverage to rising oil among large-cap E&Ps. Up 58% YTD on Iran war premium. Earnings double when Brent moves $80→$110. Buffett-backed.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-18"
+      },
+      {
+        "ticker": "XOM",
+        "exchange": "NYSE",
+        "sector": "Energy / Oil & Gas",
+        "rationale": "Fortress balance sheet energy major. Up 39% YTD, all-time highs, strongest FCF in sector. Battle-tested through oil cycles. Defensive energy anchor.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-18"
+      },
+      {
+        "ticker": "NOC",
+        "exchange": "NYSE",
+        "sector": "Defense / Aerospace",
+        "rationale": "Second-largest US defense contractor. $95.7B backlog. B-21 Raider first deliveries in 2026. Benefits from NATO 5% GDP defense spending pledge.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-18"
+      },
+      {
+        "ticker": "AVGO",
+        "exchange": "NASDAQ",
+        "sector": "Semiconductors / AI",
+        "rationale": "Custom AI chip leader with incredible growth trajectory. VMware integration driving software recurring revenue. High-conviction AI infrastructure play.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-18"
+      },
+      {
+        "ticker": "TSM",
+        "exchange": "NYSE",
+        "sector": "Semiconductors",
+        "rationale": "World's largest chip foundry with best process technology. 25% revenue CAGR through 2029. Monopoly position in advanced node manufacturing.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-18"
+      },
+      {
+        "ticker": "META",
+        "exchange": "NASDAQ",
+        "sector": "Technology / AI",
+        "rationale": "AI investment cycle leader — Meta AI chatbot has billions of daily users. AI glasses product line in high demand. Strong ad revenue base funds AI capex.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-18"
+      },
+      {
+        "ticker": "BA.",
+        "exchange": "LSE",
+        "sector": "Defense / Aerospace",
+        "rationale": "UK's largest defense pure-play. Up 23% YTD, 325% over 5 years. Deep order book, diversified platforms. Space division underappreciated growth engine.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-18"
+      },
+      {
+        "ticker": "RR.",
+        "exchange": "LSE",
+        "sector": "Defense / Aerospace",
+        "rationale": "Rolls-Royce turnaround story continues. Up 15% YTD, 95% in 2025. Defense and civil aerospace engines, SMR nuclear. FTSE 100 top performer.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-18"
+      },
+      {
+        "ticker": "CHG",
+        "exchange": "LSE",
+        "sector": "Defense / Specialist",
+        "rationale": "FTSE 250 defense specialist in high-spec, low-competition niches. Record £1.34B order book. P/E 27.9 vs sector avg 34.3 — relative value in defense.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-18"
+      },
+      {
+        "ticker": "SHEL",
+        "exchange": "LSE",
+        "sector": "Energy / Oil & Gas",
+        "rationale": "Top-3 FTSE 100 by market cap. Integrated energy major benefiting from Iran war oil premium. Strong buyback program, diversified gas/LNG portfolio.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-18"
+      }
+    ]
   }
 }
