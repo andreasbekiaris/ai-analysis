@@ -1,0 +1,13 @@
+{
+  "generatedAt": null,
+  "runType": null,
+  "global": {
+    "buy": [],
+    "short": []
+  },
+  "byCountry": {
+    "GR": { "buy": [], "short": [] },
+    "US": { "buy": [], "short": [] },
+    "GB": { "buy": [], "short": [] }
+  }
+}

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import AddToAnalysis from './AddToAnalysis'
 import SiteNavBar from './SiteNavBar'
+import ReanalyzeScheduleButton from './ReanalyzeScheduleButton'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -371,10 +372,19 @@ export default function StockDashboard({
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           <div className="s-header-main" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
                 <span className="s-stock-name" style={{ fontSize: '1.6rem', fontWeight: 800, color: T.text }}>{stock.name}</span>
                 <Badge color={T.cyan}>{stock.ticker}</Badge>
                 {stock.adr && <Badge color={T.violet}>{stock.adr}</Badge>}
+                {dashboardFile && (
+                  <ReanalyzeScheduleButton
+                    dashboardId={`stocks/${(stock.ticker || '').toLowerCase().split('.')[0]}`}
+                    dashboardFile={dashboardFile}
+                    title={`${stock.name} (${stock.ticker})`}
+                    ticker={stock.ticker}
+                    exchange={stock.exchangeCode || stock.exchange}
+                  />
+                )}
               </div>
               <div style={{ color: T.dim, fontSize: '0.82rem' }}>{stock.exchange} · {stock.sector} · {stock.date}</div>
             </div>

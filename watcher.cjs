@@ -193,6 +193,11 @@ function handleWebhookEvent(headers, event) {
  * Add a label and comment to an issue
  */
 function updateIssue(issueNumber, status, comment) {
+  // Synthetic issues (scheduled runs) use negative numbers — skip GitHub I/O.
+  if (typeof issueNumber === 'number' && issueNumber < 0) {
+    log(`[scheduled ${issueNumber}] ${status}: ${comment.slice(0, 160)}`);
+    return;
+  }
   try {
     execSync(
       `gh issue comment ${issueNumber} --repo ${CONFIG.owner}/${CONFIG.repo} --body "${comment}"`,
@@ -295,6 +300,55 @@ function buildReanalyzePrompt(dashboardFile, analysisTitle, extraContext) {
 }
 
 /**
+ * Build the Claude Code prompt for a twice-daily Best Picks screening run.
+ * Cheap screening pass — no full fundamentals, no new .jsx files, only writes src/data/best-picks.json.
+ */
+function buildBestPicksPrompt(runType, watchlistContext) {
+  const today = new Date().toISOString().slice(0, 10);
+  return [
+    `BEST PICKS screening run — ${runType} (${today})`,
+    '',
+    'OBJECTIVE: Identify the top 3 BUY candidates and top 3 SHORT candidates for each of:',
+    '  - Global (any exchange), Greek (ATHEX), US (NYSE/NASDAQ), UK (LSE)',
+    '',
+    'CRITICAL: This is a CHEAP screening pass. Do NOT run full fundamentals. Do NOT create any .jsx dashboards.',
+    'Your only output is the file src/data/best-picks.json.',
+    '',
+    'STEPS:',
+    '1. Read schedule.json → bestPicks.watchlist for the user-added universe (tickers + exchanges).',
+    '2. List /src/dashboards/stocks/*.jsx to see which stocks already have analyses and their dates.',
+    '3. List /src/dashboards/geopolitical/*.jsx — note any active conflicts to bias picks (sectors exposed to oil, defense, banking under war risk).',
+    '4. Run ONE parallel batch of CHEAP web searches:',
+    '   - News for each watchlist ticker (today only)',
+    '   - "Top movers today ATHEX", "top movers today NYSE", "top movers today LSE"',
+    '   - "News-driven stocks today" for each exchange',
+    '5. For each candidate, extract only: ticker, name, exchange, current price, changePct today, 1-sentence reason, 1-sentence catalyst. Do NOT pull fundamentals, financials, or analyst targets.',
+    '6. Classify each pick against existing dashboards:',
+    '   - hasRecentAnalysis=true if dashboard exists AND its "date" field is today',
+    '   - hasStaleAnalysis=true if dashboard exists AND date is older than today → suggest deep reanalysis',
+    '   - hasNoAnalysis=true if no dashboard yet',
+    '   - analysisPath: e.g. "/stocks/alpha" (read App.jsx to confirm path) or null',
+    '   - analysisDate: the date field from the dashboard file or null',
+    '7. WRITE src/data/best-picks.json with this exact structure (overwrite):',
+    '   {',
+    `     "generatedAt": "<ISO timestamp>",`,
+    `     "runType": "${runType}",`,
+    '     "global": { "buy": [...3...], "short": [...3...] },',
+    '     "byCountry": {',
+    '       "GR": { "buy": [...3 or fewer...], "short": [...3 or fewer...] },',
+    '       "US": { "buy": [...3...], "short": [...3...] },',
+    '       "GB": { "buy": [...3 or fewer...], "short": [...3 or fewer...] }',
+    '     }',
+    '   }',
+    '   Each entry: { ticker, name, exchange, price, changePct, reason, catalyst, analysisPath, analysisDate, hasRecentAnalysis, hasStaleAnalysis, hasNoAnalysis }',
+    '8. git add src/data/best-picks.json && git commit -m "chore: best picks ' + runType + ' screening - ' + today + '" && git push origin main',
+    '',
+    'DO NOT modify any other files. DO NOT create new dashboards. Speed matters — this is a low-token run.',
+    watchlistContext ? ('\nAdditional context: ' + watchlistContext) : '',
+  ].filter(Boolean).join('\n');
+}
+
+/**
  * Run Claude Code with the analysis prompt
  */
 function runClaudeCode(prompt, issueNumber) {
@@ -315,12 +369,14 @@ function runClaudeCode(prompt, issueNumber) {
     let elapsed = 0;
 
     // Post a progress comment every 30 seconds while Claude is working
+    const isSynthetic = typeof issueNumber === 'number' && issueNumber < 0;
     const progressInterval = setInterval(() => {
       elapsed += 30;
       const mins = Math.floor(elapsed / 60);
       const secs = elapsed % 60;
       const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
       log(`[Issue #${issueNumber}] Still working... ${timeStr} elapsed`);
+      if (isSynthetic) return;
       try {
         execSync(
           `gh issue comment ${issueNumber} --repo ${CONFIG.owner}/${CONFIG.repo} --body "⏳ Still working... (${timeStr} elapsed). Claude Code is researching and building your dashboard."`,
@@ -372,9 +428,15 @@ async function processIssue(issue) {
 
   // Detect reanalyze issues: "Reanalyze: src/dashboards/... — Analysis Title"
   const isReanalyze = title.startsWith('Reanalyze:');
+  const isBestPicks = title.startsWith('BestPicks:');
   let prompt;
 
-  if (isReanalyze) {
+  if (isBestPicks) {
+    // "BestPicks: morning" | "BestPicks: after-close"
+    const runType = title.slice('BestPicks:'.length).trim() || 'morning';
+    prompt = buildBestPicksPrompt(runType, body || '');
+    log(`  → BestPicks screening mode: ${runType}`);
+  } else if (isReanalyze) {
     const match = title.match(/^Reanalyze:\s*(.+?)\s*—\s*(.+)$/);
     if (!match) {
       updateIssue(number, 'done', 'Could not parse reanalyze request. Expected format: `Reanalyze: path/to/file.jsx — Analysis Title`');
@@ -548,6 +610,170 @@ async function main() {
 
   // Process any issues that were opened while the watcher was offline
   await processExistingIssues();
+
+  // Start the per-minute scheduler for auto-reanalysis + best picks
+  startScheduler();
+}
+
+// ============================================
+// SCHEDULER — reads schedule.json every minute and triggers synthetic issues
+// ============================================
+
+const SCHEDULE_FILE = path.join(CONFIG.projectPath, 'schedule.json');
+
+// Athens-local open/close minutes for supported exchanges. DST on the US/UK/EU
+// sides is synchronised closely enough that these values are stable year-round.
+const EXCHANGE_ATHENS = {
+  ATHEX:  { openAthens: 10 * 60 + 30, closeAthens: 17 * 60 + 20 },
+  NYSE:   { openAthens: 16 * 60 + 30, closeAthens: 23 * 60 + 0  },
+  NASDAQ: { openAthens: 16 * 60 + 30, closeAthens: 23 * 60 + 0  },
+  LSE:    { openAthens: 10 * 60 + 0,  closeAthens: 18 * 60 + 30 },
+};
+
+function readSchedule() {
+  try {
+    if (!fs.existsSync(SCHEDULE_FILE)) return null;
+    return JSON.parse(fs.readFileSync(SCHEDULE_FILE, 'utf-8'));
+  } catch (err) {
+    logError(`Could not read schedule.json: ${err.message}`);
+    return null;
+  }
+}
+
+function writeSchedule(schedule) {
+  try {
+    fs.writeFileSync(SCHEDULE_FILE, JSON.stringify(schedule, null, 2));
+  } catch (err) {
+    logError(`Could not write schedule.json: ${err.message}`);
+  }
+}
+
+function getAthensNow(now = new Date()) {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Athens',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+  const parts = Object.fromEntries(fmt.formatToParts(now).map((p) => [p.type, p.value]));
+  return {
+    ymd: `${parts.year}-${parts.month}-${parts.day}`,
+    hour: parseInt(parts.hour, 10),
+    minute: parseInt(parts.minute, 10),
+    minutes: parseInt(parts.hour, 10) * 60 + parseInt(parts.minute, 10),
+  };
+}
+
+function computeDashboardFiringMinutes(entry) {
+  const exCode = (entry.exchange || 'NYSE').toUpperCase();
+  const ex = EXCHANGE_ATHENS[exCode] || EXCHANGE_ATHENS.NYSE;
+  switch (entry.mode) {
+    case 'before-all-open':
+      return 8 * 60; // 08:00 Athens — before LSE opens at 10:00 Athens
+    case 'before-own-open':
+      return Math.max(0, ex.openAthens - 30);
+    case 'after-own-close':
+      return Math.min(23 * 60 + 59, ex.closeAthens + 15);
+    case 'custom': {
+      const t = entry.customTimeAthens || { hour: 8, minute: 0 };
+      return t.hour * 60 + t.minute;
+    }
+    default:
+      return null;
+  }
+}
+
+// Track in-flight scheduled runs so we never double-fire on a slow minute.
+const scheduledInFlight = new Set();
+
+function fireSyntheticIssue(syntheticIssue, label) {
+  if (scheduledInFlight.has(label)) {
+    log(`Scheduler skip: ${label} already in flight`);
+    return;
+  }
+  scheduledInFlight.add(label);
+  log(`Scheduler firing: ${label}`);
+  processIssue(syntheticIssue).finally(() => scheduledInFlight.delete(label));
+}
+
+function tickScheduler() {
+  const schedule = readSchedule();
+  if (!schedule) return;
+  const athens = getAthensNow();
+  let changed = false;
+
+  // Per-dashboard scheduled reanalyses
+  for (const [id, entry] of Object.entries(schedule.dashboards || {})) {
+    if (!entry.enabled) continue;
+    const fireAt = computeDashboardFiringMinutes(entry);
+    if (fireAt == null) continue;
+    // Fire within the first 5 minutes of the scheduled window, once per day.
+    if (athens.minutes < fireAt || athens.minutes > fireAt + 5) continue;
+    const lastYmd = entry.lastRunAt ? String(entry.lastRunAt).slice(0, 10) : null;
+    if (lastYmd === athens.ymd) continue;
+
+    entry.lastRunAt = new Date().toISOString();
+    changed = true;
+
+    const syntheticNumber = -Math.floor(Date.now() / 1000);
+    fireSyntheticIssue(
+      {
+        number: syntheticNumber,
+        title: `Reanalyze: ${entry.dashboardFile} — ${entry.title}`,
+        body: 'Scheduled auto-reanalysis\n\nquick',
+      },
+      `dashboard:${id}`
+    );
+  }
+
+  // Best Picks twice-daily run
+  const bp = schedule.bestPicks;
+  if (bp && bp.enabled) {
+    // Morning run
+    const morn = bp.morningModeAthens || { hour: 8, minute: 0 };
+    const mornAt = morn.hour * 60 + morn.minute;
+    if (athens.minutes >= mornAt && athens.minutes <= mornAt + 5) {
+      const lastYmd = bp.lastMorningRun ? String(bp.lastMorningRun).slice(0, 10) : null;
+      if (lastYmd !== athens.ymd) {
+        bp.lastMorningRun = new Date().toISOString();
+        changed = true;
+        fireSyntheticIssue(
+          {
+            number: -Math.floor(Date.now() / 1000) - 1,
+            title: 'BestPicks: morning',
+            body: `Watchlist: ${JSON.stringify(bp.watchlist || [])}`,
+          },
+          'bestpicks:morning'
+        );
+      }
+    }
+
+    // After-close run: NYSE close (23:00 Athens) + configurable delay
+    const afterAt = 23 * 60 + (bp.afterCloseDelayMinutes ?? 15);
+    if (athens.minutes >= afterAt && athens.minutes <= afterAt + 5) {
+      const lastYmd = bp.lastAfterCloseRun ? String(bp.lastAfterCloseRun).slice(0, 10) : null;
+      if (lastYmd !== athens.ymd) {
+        bp.lastAfterCloseRun = new Date().toISOString();
+        changed = true;
+        fireSyntheticIssue(
+          {
+            number: -Math.floor(Date.now() / 1000) - 2,
+            title: 'BestPicks: after-close',
+            body: `Watchlist: ${JSON.stringify(bp.watchlist || [])}`,
+          },
+          'bestpicks:after-close'
+        );
+      }
+    }
+  }
+
+  if (changed) writeSchedule(schedule);
+}
+
+function startScheduler() {
+  log('Scheduler started — checking schedule.json every 60s (Europe/Athens timezone)');
+  // Run a tick immediately on startup and then every 60 seconds.
+  tickScheduler();
+  setInterval(tickScheduler, 60 * 1000);
 }
 
 main().catch((err) => {

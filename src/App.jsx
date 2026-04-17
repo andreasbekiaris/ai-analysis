@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import { BarChart3, Globe2, TrendingUp, Building2, Clock, Plus, Send, CheckCircle, AlertCircle, Loader, ExternalLink, ListTodo, RefreshCw } from 'lucide-react'
 import SiteNavBar from './components/SiteNavBar'
+import BestPicksSection from './components/BestPicksSection'
 
 // Import dashboards here as they are created
 import UsIranWar from './dashboards/geopolitical/us-iran-war-2026-03-22'
@@ -329,6 +330,7 @@ function Home() {
         </div>
 
         <NewAnalysisForm />
+        <BestPicksSection />
         <AnalysisQueue />
 
         {/* Dashboard Grid */}

@@ -3,6 +3,7 @@ import cors from 'cors'
 import { handler as analyzeHandler } from './routes/analyze.js'
 import { handler as reanalyzeHandler } from './routes/reanalyze.js'
 import { handler as reanalyzeStockHandler } from './routes/reanalyze-stock.js'
+import { getScheduleHandler, postScheduleHandler } from './routes/schedule.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -83,6 +84,10 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', version: '2.3.1' }))
 app.post('/api/analyze', analyzeHandler)
 app.post('/api/reanalyze', reanalyzeHandler)
 app.post('/api/reanalyze-stock', reanalyzeStockHandler)
+
+// Schedule config (password-gated via env SCHEDULE_PASSWORD)
+app.get('/api/schedule', getScheduleHandler)
+app.post('/api/schedule', postScheduleHandler)
 
 const server = app.listen(PORT, () => {
   console.log(`AI Analysis API running on port ${PORT}`)
