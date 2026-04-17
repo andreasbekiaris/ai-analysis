@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   TrendingUp, TrendingDown, Lock, Plus, Trash2, Loader, Check, X,
-  Sparkles, Clock, ExternalLink, Flame, RefreshCw,
+  Sparkles, Clock, ExternalLink, Flame, RefreshCw, Wand2,
 } from 'lucide-react'
 import bestPicks from '../data/best-picks.json'
 import { COUNTRIES, EXCHANGES } from '../lib/exchanges'
@@ -130,6 +130,10 @@ function WatchlistManager({ onClose, onSaved }) {
   const [newTicker, setNewTicker] = useState('')
   const [newExchange, setNewExchange] = useState('NYSE')
 
+  const [autoScope, setAutoScope] = useState('GLOBAL')
+  const [autoState, setAutoState] = useState('idle') // idle | sending | dispatched | error
+  const [autoMsg, setAutoMsg] = useState(null)
+
   useEffect(() => {
     setLoading(true)
     fetch(`${API_BASE}/api/schedule`)
@@ -163,6 +167,26 @@ function WatchlistManager({ onClose, onSaved }) {
       ...bestPicksCfg,
       watchlist: bestPicksCfg.watchlist.filter((w) => w.ticker !== ticker),
     })
+  }
+
+  const dispatchAutoWatchlist = async () => {
+    if (!password) { setAutoMsg('Enter the password below before dispatching'); setAutoState('error'); return }
+    setAutoState('sending')
+    setAutoMsg(null)
+    try {
+      const res = await fetch(`${API_BASE}/api/auto-watchlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, scope: autoScope }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || `Dispatch failed (${res.status})`)
+      setAutoState('dispatched')
+      setAutoMsg(`Issue #${data.issueNumber} created — Claude Code is researching ${autoScope}. Tickers will append to the watchlist in ~5–10 minutes.`)
+    } catch (err) {
+      setAutoState('error')
+      setAutoMsg(err.message)
+    }
   }
 
   const save = async () => {
@@ -232,6 +256,53 @@ function WatchlistManager({ onClose, onSaved }) {
                 onChange={(e) => setBestPicksCfg({ ...bestPicksCfg, morningModeAthens: { ...bestPicksCfg.morningModeAthens, minute: Math.max(0, Math.min(59, parseInt(e.target.value || '0', 10))) } })}
                 style={{ width: 60, background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 4, padding: '0.3rem 0.5rem', fontFamily: 'monospace' }} />
               <span style={{ color: T.dim, fontSize: '0.75rem' }}>(default 08:00 — before all exchanges open)</span>
+            </div>
+
+            <div style={{
+              border: `1px solid ${T.violet}44`, background: `${T.violet}08`,
+              borderRadius: 8, padding: '0.75rem 0.85rem', marginBottom: '1rem',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                <Wand2 size={14} color={T.violet} />
+                <span style={{ color: T.text, fontSize: '0.82rem', fontWeight: 700 }}>Auto-populate watchlist</span>
+              </div>
+              <div style={{ color: T.muted, fontSize: '0.72rem', marginBottom: '0.6rem', lineHeight: 1.4 }}>
+                Claude Code runs a deep research pass on the selected exchange and appends 10–15 top-quality tickers to your watchlist (~5–10 minutes). Existing entries are preserved.
+              </div>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <select value={autoScope} onChange={(e) => setAutoScope(e.target.value)}
+                  style={{ background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 4, padding: '0.35rem 0.55rem', fontSize: '0.8rem' }}>
+                  <option value="GLOBAL">Global (all exchanges)</option>
+                  <option value="GR">Greek (ATHEX)</option>
+                  <option value="US">US (NYSE + NASDAQ)</option>
+                  <option value="GB">UK (LSE)</option>
+                </select>
+                <button
+                  onClick={dispatchAutoWatchlist}
+                  disabled={autoState === 'sending'}
+                  style={{
+                    background: autoState === 'sending' ? T.border : T.violet,
+                    color: autoState === 'sending' ? T.dim : '#0a0f1e',
+                    border: 'none', borderRadius: 4,
+                    padding: '0.35rem 0.85rem', fontSize: '0.8rem', fontWeight: 700,
+                    cursor: autoState === 'sending' ? 'wait' : 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                  }}
+                >
+                  {autoState === 'sending'
+                    ? <><Loader size={12} style={{ animation: 'spin 1s linear infinite' }} /> Dispatching...</>
+                    : <><Wand2 size={12} /> Dispatch research</>}
+                </button>
+              </div>
+              {autoMsg && (
+                <div style={{
+                  marginTop: '0.5rem', fontSize: '0.72rem',
+                  color: autoState === 'error' ? T.crimson : autoState === 'dispatched' ? T.emerald : T.muted,
+                  lineHeight: 1.4,
+                }}>
+                  {autoMsg}
+                </div>
+              )}
             </div>
 
             <div style={{ color: T.muted, fontSize: '0.72rem', textTransform: 'uppercase', marginBottom: '0.4rem' }}>

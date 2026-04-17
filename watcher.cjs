@@ -300,6 +300,55 @@ function buildReanalyzePrompt(dashboardFile, analysisTitle, extraContext) {
 }
 
 /**
+ * Build the Claude Code prompt for a deep auto-watchlist research run.
+ * Appends quality tickers to schedule.json → bestPicks.watchlist. Commits + pushes.
+ */
+function buildAutoWatchlistPrompt(scope, extraContext) {
+  const today = new Date().toISOString().slice(0, 10);
+  const scopeDescriptions = {
+    GLOBAL: 'any of ATHEX / NYSE / NASDAQ / LSE — produce a diversified basket across all four',
+    GR: 'Athens Stock Exchange only — focus on Greek blue chips, banks, shipping, energy, industrials',
+    US: 'NYSE + NASDAQ — mega-caps and high-conviction mid-caps across sectors',
+    GB: 'London Stock Exchange — FTSE 100 / 250 quality names across sectors',
+  };
+  const scopeDesc = scopeDescriptions[scope] || scopeDescriptions.GLOBAL;
+  return [
+    `AUTO-WATCHLIST deep research run — scope: ${scope} (${today})`,
+    '',
+    `OBJECTIVE: Identify 10–15 top-quality stocks worth tracking for ${scope} and APPEND them to schedule.json → bestPicks.watchlist.`,
+    '',
+    `SCOPE: ${scopeDesc}`,
+    '',
+    'SELECTION CRITERIA:',
+    '1. High-quality businesses with meaningful analyst coverage and liquidity',
+    '2. Prioritise sectors exposed to active geopolitical conflicts (read /src/dashboards/geopolitical/*.jsx first — identify which sectors are under active stress)',
+    '3. Mix of long candidates (strong fundamentals, good entry) and potential shorts (weakening, overvalued, structural risk)',
+    '4. Diversify across sectors — do not stack three banks if avoidable',
+    '',
+    'STEPS:',
+    '1. Read /src/dashboards/geopolitical/*.jsx to identify sectors under active stress (defence, energy, banking under war risk, shipping).',
+    '2. Read schedule.json — capture bestPicks.watchlist entries so you do NOT duplicate them.',
+    '3. Run parallel web searches (one batch):',
+    `   - "top ${scope} stocks by market cap 2026"`,
+    `   - "${scope} most traded stocks today"`,
+    `   - "${scope} stocks to watch 2026"`,
+    `   - "${scope} sector leaders 2026"`,
+    '   - For sectors under stress (from step 1): name the top 2 exposed names on this exchange',
+    '4. Shortlist 10–15 final tickers. For each, note: ticker, exchange, sector, one-line rationale.',
+    '5. UPDATE schedule.json:',
+    '   - APPEND (do not remove) new entries to bestPicks.watchlist',
+    `   - Each new entry shape: { "ticker": "XXX", "exchange": "NYSE|NASDAQ|ATHEX|LSE", "sector": "...", "rationale": "...", "addedBy": "auto-${scope}", "addedAt": "${today}" }`,
+    '   - Set updatedAt at the top level to the current ISO timestamp',
+    '6. git add schedule.json',
+    `7. Commit: "chore: auto-watchlist ${scope} - ${today}"`,
+    '8. Push to origin main',
+    '',
+    'DO NOT run full analyses. DO NOT create or touch any .jsx files. This is research-only and updates ONLY schedule.json. Keep the search cheap — one parallel batch, no deep fundamentals.',
+    extraContext ? ('\nAdditional context: ' + extraContext) : '',
+  ].filter(Boolean).join('\n');
+}
+
+/**
  * Build the Claude Code prompt for a twice-daily Best Picks screening run.
  * Cheap screening pass — no full fundamentals, no new .jsx files, only writes src/data/best-picks.json.
  */
@@ -429,9 +478,15 @@ async function processIssue(issue) {
   // Detect reanalyze issues: "Reanalyze: src/dashboards/... — Analysis Title"
   const isReanalyze = title.startsWith('Reanalyze:');
   const isBestPicks = title.startsWith('BestPicks:');
+  const isAutoWatchlist = title.startsWith('AutoWatchlist:');
   let prompt;
 
-  if (isBestPicks) {
+  if (isAutoWatchlist) {
+    // "AutoWatchlist: GLOBAL" | "AutoWatchlist: GR" | "AutoWatchlist: US" | "AutoWatchlist: GB"
+    const scope = title.slice('AutoWatchlist:'.length).trim().toUpperCase() || 'GLOBAL';
+    prompt = buildAutoWatchlistPrompt(scope, body || '');
+    log(`  → AutoWatchlist research: ${scope}`);
+  } else if (isBestPicks) {
     // "BestPicks: morning" | "BestPicks: after-close"
     const runType = title.slice('BestPicks:'.length).trim() || 'morning';
     prompt = buildBestPicksPrompt(runType, body || '');
