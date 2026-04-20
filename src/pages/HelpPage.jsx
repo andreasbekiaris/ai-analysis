@@ -122,23 +122,46 @@ function TermCard({ item, accentColor }) {
   }
 
   return (
-    <div style={{
-      backgroundColor: '#111827', border: '1px solid #1e293b',
-      borderRadius: '8px', padding: '0.9rem 1.1rem',
-    }}>
+    <div
+      style={{
+        background: 'linear-gradient(180deg, rgba(17,24,39,0.78), rgba(17,24,39,0.55))',
+        backdropFilter: 'blur(10px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+        border: '1px solid rgba(148,163,184,0.08)',
+        borderLeft: `2px solid ${accentColor}55`,
+        borderRadius: 12,
+        padding: '0.95rem 1.1rem',
+        transition: 'all 0.2s cubic-bezier(0.22,1,0.36,1)',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = `${accentColor}55`
+        e.currentTarget.style.borderLeftColor = accentColor
+        e.currentTarget.style.transform = 'translateX(2px)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = 'rgba(148,163,184,0.08)'
+        e.currentTarget.style.borderLeftColor = `${accentColor}55`
+        e.currentTarget.style.transform = 'translateX(0)'
+      }}
+    >
       <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '0 1rem', alignItems: 'start' }}>
         {/* Term */}
         <div style={{ minWidth: '80px', paddingTop: '0.05rem' }}>
-          <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.9rem', color: accentColor, whiteSpace: 'nowrap' }}>
+          <span style={{
+            fontFamily: 'ui-monospace, monospace', fontWeight: 800, fontSize: '0.9rem',
+            color: accentColor, whiteSpace: 'nowrap',
+            letterSpacing: '-0.01em',
+            textShadow: `0 0 18px ${accentColor}33`,
+          }}>
             {item.term}
           </span>
         </div>
         {/* Definition */}
         <div>
-          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.25rem' }}>
+          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '0.3rem', letterSpacing: '-0.005em' }}>
             {item.full}
           </div>
-          <div style={{ fontSize: '0.82rem', color: '#64748b', lineHeight: 1.6 }}>
+          <div style={{ fontSize: '0.82rem', color: '#94a3b8', lineHeight: 1.65 }}>
             {item.definition}
           </div>
           {/* AI explanation */}
@@ -293,18 +316,38 @@ If not relevant, set relevant: false and leave term/full/definition/category as 
   const catColor = { financial: '#10b981', geopolitical: '#f59e0b', dashboard: '#8b5cf6' }
 
   return (
-    <div style={{ marginTop: '1.5rem' }}>
+    <div className="fade-in" style={{ marginTop: '1.5rem' }}>
       {state === 'loading' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1.25rem', background: '#111827', border: '1px solid #1e293b', borderRadius: '8px', color: '#8b5cf6', fontSize: '0.85rem' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1.25rem',
+          background: 'rgba(139,92,246,0.06)',
+          border: '1px solid rgba(139,92,246,0.22)',
+          borderRadius: 12,
+          color: '#c4b5fd', fontSize: '0.85rem',
+        }}>
           <Sparkles size={14} style={{ animation: 'spin 1s linear infinite' }} />
           AI is looking up "{query}"…
         </div>
       )}
 
       {state === 'relevant' && result && (
-        <div style={{ background: '#111827', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', borderLeft: '3px solid #8b5cf6', overflow: 'hidden' }}>
+        <div style={{
+          background: 'linear-gradient(180deg, rgba(17,24,39,0.85), rgba(17,24,39,0.6))',
+          backdropFilter: 'blur(12px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(12px) saturate(140%)',
+          border: '1px solid rgba(139,92,246,0.32)',
+          borderLeft: '3px solid #8b5cf6',
+          borderRadius: 12,
+          overflow: 'hidden',
+          boxShadow: '0 12px 32px rgba(139,92,246,0.12)',
+        }}>
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1rem', background: 'rgba(139,92,246,0.06)', borderBottom: '1px solid rgba(139,92,246,0.15)' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            padding: '0.7rem 1.1rem',
+            background: 'linear-gradient(90deg, rgba(139,92,246,0.10), rgba(139,92,246,0.02))',
+            borderBottom: '1px solid rgba(139,92,246,0.15)',
+          }}>
             <Sparkles size={13} color="#8b5cf6" />
             <span style={{ color: '#8b5cf6', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               AI Lookup — not in glossary yet
@@ -366,16 +409,27 @@ If not relevant, set relevant: false and leave term/full/definition/category as 
       )}
 
       {state === 'irrelevant' && result && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 1.25rem', background: '#111827', border: '1px solid #1e293b', borderRadius: '8px', color: '#64748b', fontSize: '0.82rem' }}>
+        <div className="surface" style={{
+          display: 'flex', alignItems: 'center', gap: '0.55rem',
+          padding: '1rem 1.25rem',
+          color: '#64748b', fontSize: '0.82rem',
+        }}>
           <AlertCircle size={13} color="#475569" />
           <span>
-            <strong style={{ color: '#94a3b8' }}>"{query}"</strong> doesn't appear to relate to financial markets or geopolitical analysis. {result.reason}
+            <strong style={{ color: '#cbd5e1' }}>"{query}"</strong> doesn't appear to relate to financial markets or geopolitical analysis. {result.reason}
           </span>
         </div>
       )}
 
       {state === 'error' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 1.25rem', background: '#111827', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.8rem' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.55rem',
+          padding: '1rem 1.25rem',
+          background: 'rgba(239,68,68,0.06)',
+          border: '1px solid rgba(239,68,68,0.25)',
+          borderRadius: 12,
+          color: '#fca5a5', fontSize: '0.8rem',
+        }}>
           <AlertCircle size={13} />
           AI lookup failed: {result?.reason}
         </div>
@@ -416,67 +470,98 @@ export default function HelpPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0a0f1e', color: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
-      <style>{`@keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }`}</style>
-
+    <div style={{ minHeight: '100vh', color: '#f8fafc' }}>
       <SiteNavBar />
 
-      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '1.5rem' }}>
+      <div style={{ maxWidth: '980px', margin: '0 auto', padding: '2.25rem 1.5rem' }}>
 
         {/* Header */}
-        <div style={{ marginBottom: '1.75rem', borderBottom: '1px solid #1e293b', paddingBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-            <BarChart3 size={22} color="#06b6d4" />
-            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f8fafc', margin: 0, letterSpacing: '-0.02em' }}>
-              Glossary & Reference
-            </h1>
+        <div className="float-in" style={{ marginBottom: '1.75rem', paddingBottom: '1.25rem', borderBottom: '1px solid rgba(148,163,184,0.06)' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+            padding: '0.28rem 0.7rem', borderRadius: 999,
+            background: 'rgba(6,182,212,0.08)',
+            border: '1px solid rgba(6,182,212,0.22)',
+            color: '#22d3ee',
+            fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            marginBottom: '0.85rem',
+          }}>
+            <BarChart3 size={11} /> Reference
           </div>
-          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
-            Definitions for financial, geopolitical, and dashboard terms · Click <span style={{ color: '#8b5cf6', fontWeight: 600 }}>✦ Explain</span> on any term for an AI deep-dive · Unknown terms are looked up and added automatically
+          <h1 className="display-1" style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', margin: '0 0 0.5rem' }}>
+            Glossary &amp; <span className="gradient-text-cyan">Reference</span>
+          </h1>
+          <p style={{ color: '#94a3b8', fontSize: '0.92rem', margin: 0, lineHeight: 1.55, maxWidth: 720 }}>
+            Definitions for financial, geopolitical, and dashboard terms. Click{' '}
+            <span style={{
+              color: '#c4b5fd', fontWeight: 700,
+              background: 'rgba(139,92,246,0.12)', padding: '1px 6px', borderRadius: 4,
+              border: '1px solid rgba(139,92,246,0.3)',
+            }}>✦ Explain</span>{' '}
+            for an AI deep-dive. Unknown terms are looked up and added automatically.
           </p>
         </div>
 
         {/* Search */}
         <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
-          <Search size={15} color="#64748b" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <Search size={15} color="#64748b" style={{ position: 'absolute', left: '0.95rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 1 }} />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search all terms — unknown terms are looked up by AI and added to the glossary…"
+            placeholder="Search all terms — unknown terms are looked up by AI…"
+            className="input"
             style={{
               width: '100%', boxSizing: 'border-box',
-              background: '#111827', border: '1px solid #1e293b',
-              borderRadius: '8px', padding: '0.65rem 1rem 0.65rem 2.5rem',
-              color: '#f8fafc', fontSize: '0.9rem', outline: 'none',
+              padding: '0.7rem 1rem 0.7rem 2.6rem',
+              fontSize: '0.92rem',
             }}
-            onFocus={e => e.target.style.borderColor = '#06b6d4'}
-            onBlur={e => e.target.style.borderColor = '#1e293b'}
           />
         </div>
 
         {/* Category tabs */}
         {!search.trim() && (
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'flex', gap: '0.3rem', marginBottom: '1.25rem', flexWrap: 'wrap',
+            padding: '0.4rem',
+            background: 'rgba(17,24,39,0.5)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            border: '1px solid rgba(148,163,184,0.08)',
+            borderRadius: 14,
+          }}>
             {categories.map(cat => {
               const Icon = cat.icon
               const active = activeCategory === cat.id
               const count = cat.count + (localTerms[cat.id]?.length || 0)
               return (
-                <button key={cat.id} onClick={() => setActiveCategory(cat.id)} style={{
-                  display: 'flex', alignItems: 'center', gap: '0.4rem',
-                  padding: '0.45rem 1rem', borderRadius: '6px', cursor: 'pointer',
-                  border: `1px solid ${active ? cat.color : '#1e293b'}`,
-                  backgroundColor: active ? `${cat.color}18` : 'transparent',
-                  color: active ? cat.color : '#94a3b8',
-                  fontSize: '0.8rem', fontWeight: 600, transition: 'all 0.15s',
-                }}>
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+                    padding: '0.5rem 0.95rem', borderRadius: 10, cursor: 'pointer',
+                    border: active ? `1px solid ${cat.color}66` : '1px solid transparent',
+                    background: active
+                      ? `linear-gradient(135deg, ${cat.color}22, ${cat.color}10)`
+                      : 'transparent',
+                    color: active ? cat.color : '#94a3b8',
+                    fontSize: '0.8rem', fontWeight: 600, fontFamily: 'inherit',
+                    transition: 'all 0.18s cubic-bezier(0.22,1,0.36,1)',
+                    boxShadow: active ? `0 6px 18px ${cat.color}22` : 'none',
+                  }}
+                  onMouseEnter={e => { if (!active) { e.currentTarget.style.color = '#f1f5f9'; e.currentTarget.style.background = 'rgba(148,163,184,0.06)' } }}
+                  onMouseLeave={e => { if (!active) { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent' } }}
+                >
                   <Icon size={13} />
                   {cat.label}
                   <span style={{
-                    fontSize: '0.65rem', padding: '1px 5px', borderRadius: '3px',
-                    backgroundColor: active ? `${cat.color}28` : '#1e293b',
+                    fontSize: '0.66rem', padding: '1px 7px', borderRadius: 999,
+                    background: active ? `${cat.color}28` : 'rgba(148,163,184,0.10)',
                     color: active ? cat.color : '#64748b',
+                    fontFamily: 'ui-monospace, monospace',
+                    fontWeight: 700,
                   }}>{count}</span>
                 </button>
               )
@@ -487,12 +572,13 @@ export default function HelpPage() {
         {/* Search result count */}
         {search.trim() && filtered.length > 0 && (
           <div style={{ color: '#64748b', fontSize: '0.8rem', marginBottom: '1rem' }}>
-            {filtered.length} result{filtered.length !== 1 ? 's' : ''} for "{search}"
+            <span style={{ color: '#cbd5e1', fontWeight: 700 }}>{filtered.length}</span>{' '}
+            result{filtered.length !== 1 ? 's' : ''} for "{search}"
           </div>
         )}
 
         {/* Terms list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
           {filtered.map((item, i) => (
             <TermCard
               key={`${item.term}-${i}`}
@@ -507,8 +593,15 @@ export default function HelpPage() {
           <AiGlossaryLookup query={search.trim()} onTermAdded={handleTermAdded} />
         )}
 
-        <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#111827', border: '1px solid #1e293b', borderRadius: '8px', fontSize: '0.75rem', color: '#475569', textAlign: 'center' }}>
-          {glossary.financial.length + glossary.geopolitical.length + glossary.dashboard.length + Object.values(localTerms).flat().length} terms across {categories.length} categories · Analysis Dashboard Hub
+        <div className="surface" style={{
+          marginTop: '2.25rem', padding: '1rem 1.25rem',
+          fontSize: '0.74rem', color: '#64748b', textAlign: 'center',
+          fontFamily: 'ui-monospace, monospace',
+        }}>
+          <span style={{ color: '#cbd5e1', fontWeight: 700 }}>
+            {glossary.financial.length + glossary.geopolitical.length + glossary.dashboard.length + Object.values(localTerms).flat().length}
+          </span>{' '}
+          terms across {categories.length} categories · Analysis Dashboard Hub
         </div>
       </div>
     </div>

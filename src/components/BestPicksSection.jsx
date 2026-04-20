@@ -30,22 +30,45 @@ function PickCard({ pick, side }) {
 
   return (
     <div style={{
-      background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8,
-      padding: '0.75rem 0.85rem',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-          <Icon size={14} color={color} />
-          <span style={{ color: T.text, fontWeight: 700, fontSize: '0.88rem' }}>{pick.ticker}</span>
-          <span style={{ color: T.dim, fontSize: '0.7rem' }}>{pick.exchange}</span>
+      background: 'linear-gradient(180deg, rgba(17,24,39,0.7), rgba(10,15,30,0.7))',
+      border: `1px solid ${color}22`,
+      borderRadius: 12,
+      padding: '0.85rem 1rem',
+      position: 'relative', overflow: 'hidden',
+      transition: 'all 0.2s cubic-bezier(0.22,1,0.36,1)',
+    }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${color}66`; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 8px 22px ${color}22` }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = `${color}22`; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+    >
+      <div style={{
+        position: 'absolute', top: 0, left: 0, width: 3, bottom: 0,
+        background: `linear-gradient(180deg, ${color}, transparent)`,
+        opacity: 0.7,
+      }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{
+            width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+            background: `${color}1a`, border: `1px solid ${color}44`,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon size={12} color={color} />
+          </span>
+          <span style={{ color: T.text, fontWeight: 800, fontSize: '0.92rem', letterSpacing: '-0.01em' }}>{pick.ticker}</span>
+          <span style={{ color: T.dim, fontSize: '0.68rem', fontFamily: 'ui-monospace, monospace' }}>{pick.exchange}</span>
         </div>
         {badge}
       </div>
-      <div style={{ color: T.muted, fontSize: '0.75rem', marginBottom: '0.3rem' }}>{pick.name}</div>
-      <div style={{ display: 'flex', gap: '0.75rem', fontFamily: 'monospace', fontSize: '0.78rem', marginBottom: '0.4rem' }}>
-        <span style={{ color: T.text }}>{pick.price != null ? pick.price : '—'}</span>
+      <div style={{ color: T.muted, fontSize: '0.76rem', marginBottom: '0.4rem' }}>{pick.name}</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', fontFamily: 'ui-monospace, monospace', marginBottom: '0.45rem' }}>
+        <span style={{ color: T.text, fontSize: '0.95rem', fontWeight: 700 }}>{pick.price != null ? pick.price : '—'}</span>
         {pick.changePct != null && (
-          <span style={{ color: pick.changePct >= 0 ? T.emerald : T.crimson }}>
+          <span style={{
+            color: pick.changePct >= 0 ? T.emerald : T.crimson,
+            fontSize: '0.78rem', fontWeight: 700,
+            padding: '0.1rem 0.4rem', borderRadius: 4,
+            background: `${pick.changePct >= 0 ? T.emerald : T.crimson}14`,
+          }}>
             {pick.changePct >= 0 ? '+' : ''}{pick.changePct}%
           </span>
         )}
@@ -99,16 +122,39 @@ function PicksColumn({ title, side, items }) {
   const Icon  = side === 'buy' ? TrendingUp : TrendingDown
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-        <Icon size={16} color={color} />
-        <span style={{ color: T.text, fontWeight: 700, fontSize: '0.95rem' }}>{title}</span>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '0.85rem',
+        paddingBottom: '0.6rem',
+        borderBottom: `1px solid ${color}22`,
+      }}>
+        <span style={{
+          width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+          background: `${color}14`, border: `1px solid ${color}44`,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: `0 0 12px ${color}33`,
+        }}>
+          <Icon size={14} color={color} />
+        </span>
+        <span style={{ color: T.text, fontWeight: 700, fontSize: '0.95rem', letterSpacing: '-0.01em' }}>{title}</span>
+        {items && items.length > 0 && (
+          <span style={{
+            marginLeft: 'auto', color, fontSize: '0.68rem', fontWeight: 700,
+            padding: '0.1rem 0.5rem', borderRadius: 999,
+            background: `${color}14`, border: `1px solid ${color}33`,
+            fontFamily: 'ui-monospace, monospace',
+          }}>{items.length}</span>
+        )}
       </div>
       {items && items.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
           {items.map((p) => <PickCard key={`${side}-${p.ticker}`} pick={p} side={side} />)}
         </div>
       ) : (
-        <div style={{ color: T.dim, fontSize: '0.78rem', fontStyle: 'italic', padding: '0.75rem', border: `1px dashed ${T.border}`, borderRadius: 6 }}>
+        <div style={{
+          color: T.dim, fontSize: '0.78rem', fontStyle: 'italic',
+          padding: '1rem', border: `1px dashed ${T.border}`, borderRadius: 10,
+          textAlign: 'center',
+        }}>
           No picks yet. Enable screening from the settings below.
         </div>
       )}
@@ -393,50 +439,73 @@ export default function BestPicksSection() {
     : 'not yet generated — enable screening below'
 
   return (
-    <div style={{
-      background: T.card, border: `1px solid ${T.border}`, borderRadius: 12,
-      padding: '1.25rem', marginBottom: '2rem',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Sparkles size={18} color={T.violet} />
-          <span style={{ color: T.text, fontWeight: 700, fontSize: '1rem' }}>Best Picks</span>
-          <span style={{ color: T.dim, fontSize: '0.72rem' }}>{generatedLabel}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {COUNTRIES.map((c) => (
+    <div className="grad-border" style={{ marginBottom: '2rem' }}>
+      <div style={{
+        background: 'linear-gradient(180deg, rgba(17,24,39,0.85), rgba(17,24,39,0.65))',
+        backdropFilter: 'blur(16px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+        borderRadius: 14,
+        padding: '1.4rem',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{
+              width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+              background: 'linear-gradient(135deg, rgba(139,92,246,0.20), rgba(236,72,153,0.18))',
+              border: '1px solid rgba(139,92,246,0.4)',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 6px 16px rgba(139,92,246,0.25)',
+            }}>
+              <Sparkles size={15} color="#c4b5fd" />
+            </span>
+            <div>
+              <div style={{ color: T.text, fontWeight: 700, fontSize: '1.02rem', letterSpacing: '-0.01em' }}>Best Picks</div>
+              <div style={{ color: T.dim, fontSize: '0.7rem', marginTop: 2 }}>{generatedLabel}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+            {COUNTRIES.map((c) => (
+              <button
+                key={c.code}
+                onClick={() => setCountry(c.code)}
+                style={{
+                  padding: '0.32rem 0.75rem', borderRadius: 999,
+                  border: `1px solid ${country === c.code ? 'rgba(139,92,246,0.5)' : 'transparent'}`,
+                  background: country === c.code ? 'rgba(139,92,246,0.14)' : 'transparent',
+                  color: country === c.code ? '#c4b5fd' : T.muted,
+                  fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  fontFamily: 'inherit',
+                }}
+                onMouseEnter={(e) => { if (country !== c.code) { e.currentTarget.style.background = 'rgba(148,163,184,0.06)'; e.currentTarget.style.color = T.text } }}
+                onMouseLeave={(e) => { if (country !== c.code) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = T.muted } }}
+              >
+                {c.label}
+              </button>
+            ))}
             <button
-              key={c.code}
-              onClick={() => setCountry(c.code)}
+              onClick={() => setSettingsOpen(true)}
+              title="Configure watchlist & schedule"
               style={{
-                padding: '0.3rem 0.75rem', borderRadius: 6,
-                border: `1px solid ${country === c.code ? T.violet : T.border}`,
-                background: country === c.code ? `${T.violet}18` : 'transparent',
-                color: country === c.code ? T.violet : T.muted,
-                fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
+                padding: '0.32rem 0.75rem', borderRadius: 999,
+                border: `1px solid ${T.border}`, background: 'transparent',
+                color: T.muted, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                transition: 'all 0.15s',
+                fontFamily: 'inherit',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.cyan; e.currentTarget.style.color = T.cyan }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted }}
             >
-              {c.label}
+              <Lock size={11} /> Settings
             </button>
-          ))}
-          <button
-            onClick={() => setSettingsOpen(true)}
-            title="Configure watchlist & schedule"
-            style={{
-              padding: '0.3rem 0.75rem', borderRadius: 6,
-              border: `1px solid ${T.border}`, background: 'transparent',
-              color: T.muted, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-            }}
-          >
-            <Lock size={11} /> Settings
-          </button>
+          </div>
         </div>
-      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-        <PicksColumn title="Best to Buy"   side="buy"   items={data.buy} />
-        <PicksColumn title="Best to Short" side="short" items={data.short} />
+        <div className="best-picks-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.4rem' }}>
+          <PicksColumn title="Best to Buy"   side="buy"   items={data.buy} />
+          <PicksColumn title="Best to Short" side="short" items={data.short} />
+        </div>
       </div>
 
       {settingsOpen && (

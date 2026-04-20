@@ -41,7 +41,16 @@ const signalColor     = { BUY: T.emerald, SELL: T.crimson, NEUTRAL: T.amber }
 
 function Card({ children, style }) {
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: '1.25rem', ...style }}>
+    <div style={{
+      background: 'linear-gradient(180deg, rgba(17,24,39,0.85), rgba(17,24,39,0.65))',
+      backdropFilter: 'blur(10px) saturate(140%)',
+      WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+      border: '1px solid rgba(148,163,184,0.08)',
+      borderRadius: 14,
+      padding: '1.35rem',
+      boxShadow: '0 6px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03)',
+      ...style,
+    }}>
       {children}
     </div>
   )
@@ -49,9 +58,19 @@ function Card({ children, style }) {
 
 function SectionTitle({ children }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-      <div style={{ width: 3, height: 16, background: T.cyan, borderRadius: 2 }} />
-      <span style={{ color: T.muted, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
+      <div style={{
+        width: 3, height: 18,
+        background: 'linear-gradient(180deg, #06b6d4, #8b5cf6)',
+        borderRadius: 2,
+        boxShadow: '0 0 10px rgba(6,182,212,0.5)',
+      }} />
+      <span style={{
+        fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
+        background: 'linear-gradient(135deg, #22d3ee, #8b5cf6)',
+        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text', color: 'transparent',
+      }}>
         {children}
       </span>
     </div>
@@ -61,14 +80,14 @@ function SectionTitle({ children }) {
 function Badge({ children, color }) {
   return (
     <span style={{
-      display: 'inline-block',
-      padding: '2px 8px',
-      borderRadius: 4,
-      fontSize: '0.7rem',
+      display: 'inline-flex', alignItems: 'center',
+      padding: '3px 10px',
+      borderRadius: 999,
+      fontSize: '0.68rem',
       fontWeight: 700,
       textTransform: 'uppercase',
       letterSpacing: '0.06em',
-      background: `${color}22`,
+      background: `${color}14`,
       color,
       border: `1px solid ${color}44`,
     }}>
@@ -335,7 +354,7 @@ export default function StockDashboard({
   const scorecard  = fundamentalData?.scorecard  || []
 
   return (
-    <div style={{ minHeight: '100vh', background: T.bg, color: T.text, fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', color: T.text }}>
       <style>{`
         @media (max-width: 768px) {
           .s-grid2 { grid-template-columns: 1fr !important; }
@@ -368,12 +387,23 @@ export default function StockDashboard({
       <SiteNavBar />
 
       {/* ── HEADER ── */}
-      <div className="s-outer-pad" style={{ background: '#0d1424', borderBottom: `1px solid ${T.border}`, padding: '1.25rem 2rem' }}>
+      <div className="s-outer-pad float-in" style={{
+        background: 'linear-gradient(180deg, rgba(13,20,36,0.85), rgba(13,20,36,0.55))',
+        backdropFilter: 'blur(14px) saturate(150%)',
+        WebkitBackdropFilter: 'blur(14px) saturate(150%)',
+        borderBottom: '1px solid rgba(148,163,184,0.08)',
+        padding: '1.4rem 2rem',
+      }}>
         <div style={{ maxWidth: 1400, margin: '0 auto' }}>
           <div className="s-header-main" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
-                <span className="s-stock-name" style={{ fontSize: '1.6rem', fontWeight: 800, color: T.text }}>{stock.name}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+                <span className="s-stock-name" style={{
+                  fontSize: '1.7rem', fontWeight: 800, letterSpacing: '-0.02em',
+                  background: 'linear-gradient(180deg, #ffffff, #cbd5e1)',
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text', color: 'transparent',
+                }}>{stock.name}</span>
                 <Badge color={T.cyan}>{stock.ticker}</Badge>
                 {stock.adr && <Badge color={T.violet}>{stock.adr}</Badge>}
                 {dashboardFile && (

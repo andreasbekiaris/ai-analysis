@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { BarChart3, Globe2, TrendingUp, Building2, Clock, Plus, Send, CheckCircle, AlertCircle, Loader, ExternalLink, ListTodo, RefreshCw } from 'lucide-react'
+import {
+  BarChart3, Globe2, TrendingUp, Building2, Clock, Plus, Send,
+  CheckCircle, AlertCircle, Loader, ExternalLink, ListTodo, RefreshCw,
+  Sparkles, ArrowUpRight,
+} from 'lucide-react'
 import SiteNavBar from './components/SiteNavBar'
 import BestPicksSection from './components/BestPicksSection'
 
@@ -16,17 +20,23 @@ import LockheedMartinLMT from './dashboards/stocks/lmt-2026-04-02'
 import CasinoMarketDashboard from './dashboards/sectors/casino-market-analysis-2026-04-02'
 
 const dashboards = [
-  { path: '/geo/us-iran-war', component: UsIranWar, title: 'US–Iran War: Operation Epic Fury', type: 'geopolitical', date: '2026-03-22' },
-  { path: '/geo/russia-ukraine-war', component: RussiaUkraineWar, title: 'Russia–Ukraine War: Year Four', type: 'geopolitical', date: '2026-03-24' },
-  { path: '/stocks/alpha', component: AlphaBank, title: 'Alpha Bank (ALPHA.AT / ALBKY)', type: 'stocks', date: '2026-04-05' },
-  { path: '/stocks/eurob', component: EurobankDashboard, title: 'Eurobank (EUROB)', type: 'stocks', date: '2026-03-30' },
-  { path: '/stocks/lmt', component: LockheedMartinLMT, title: 'Lockheed Martin (LMT)', type: 'stocks', date: '2026-04-02' },
-  { path: '/sectors/casino-market-analysis', component: CasinoMarketDashboard, title: 'Global Casino Market: Regulatory Disruption & Strategic Realignment', type: 'sectors', date: '2026-04-02' },
+  { path: '/geo/us-iran-war',                  component: UsIranWar,             title: 'US–Iran War: Operation Epic Fury',                              type: 'geopolitical', date: '2026-03-22' },
+  { path: '/geo/russia-ukraine-war',           component: RussiaUkraineWar,      title: 'Russia–Ukraine War: Year Four',                                 type: 'geopolitical', date: '2026-03-24' },
+  { path: '/stocks/alpha',                     component: AlphaBank,             title: 'Alpha Bank (ALPHA.AT / ALBKY)',                                 type: 'stocks',       date: '2026-04-05' },
+  { path: '/stocks/eurob',                     component: EurobankDashboard,     title: 'Eurobank (EUROB)',                                              type: 'stocks',       date: '2026-03-30' },
+  { path: '/stocks/lmt',                       component: LockheedMartinLMT,     title: 'Lockheed Martin (LMT)',                                         type: 'stocks',       date: '2026-04-02' },
+  { path: '/sectors/casino-market-analysis',   component: CasinoMarketDashboard, title: 'Global Casino Market: Regulatory Disruption & Realignment',    type: 'sectors',      date: '2026-04-02' },
 ]
+
+const typeMeta = {
+  geopolitical: { label: 'Geopolitical', color: '#f59e0b', icon: Globe2,     glow: 'rgba(245,158,11,0.20)' },
+  stocks:       { label: 'Equity',       color: '#10b981', icon: TrendingUp, glow: 'rgba(16,185,129,0.20)' },
+  sectors:      { label: 'Sector',       color: '#8b5cf6', icon: Building2,  glow: 'rgba(139,92,246,0.20)' },
+}
 
 function NewAnalysisForm() {
   const [prompt, setPrompt] = useState('')
-  const [status, setStatus] = useState(null) // null | 'loading' | 'success' | 'error'
+  const [status, setStatus] = useState(null)
   const [message, setMessage] = useState('')
   const [resultPath, setResultPath] = useState(null)
   const [elapsed, setElapsed] = useState(0)
@@ -55,7 +65,6 @@ function NewAnalysisForm() {
       const { jobId } = await submitRes.json()
       if (!jobId) throw new Error('Failed to start analysis job')
 
-      // Poll for completion
       while (true) {
         await new Promise(r => setTimeout(r, 8000))
         const pollRes = await fetch(`https://ai-analysis-production-0590.up.railway.app/api/job/${jobId}`)
@@ -76,119 +85,115 @@ function NewAnalysisForm() {
   }
 
   const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+  const ready = !!prompt.trim() && status !== 'loading'
 
   return (
-    <div style={{
-      background: '#111827',
-      border: '1px solid #1e293b',
-      borderRadius: '12px',
-      padding: '1.5rem',
-      marginBottom: '3rem',
-    }}>
-      <style>{`
-        @media (max-width: 480px) {
-          .home-form { flex-direction: column !important; }
-          .home-form button { width: 100% !important; justify-content: center !important; }
-          .home-container { padding: 1rem !important; }
-          .home-grid { grid-template-columns: 1fr !important; }
-          .home-title { font-size: 1.4rem !important; }
-        }
-        @keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
-        @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }
-      `}</style>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-        <Plus size={18} color="#06b6d4" />
-        <span style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem' }}>New Analysis</span>
-      </div>
-      <form onSubmit={submit} className="home-form" style={{ display: 'flex', gap: '0.75rem' }}>
-        <input
-          type="text"
-          value={prompt}
-          onChange={(e) => { setPrompt(e.target.value); if (status !== 'loading') setStatus(null) }}
-          placeholder="What do you want to analyze? e.g. US-China trade war, NVDA stock..."
-          style={{
-            flex: 1,
-            background: '#0a0f1e',
-            border: '1px solid #334155',
-            borderRadius: '8px',
-            padding: '0.625rem 1rem',
-            color: '#f8fafc',
-            fontSize: '0.95rem',
-            outline: 'none',
-          }}
-          onFocus={(e) => e.target.style.borderColor = '#06b6d4'}
-          onBlur={(e) => e.target.style.borderColor = '#334155'}
-          disabled={status === 'loading'}
-        />
-        <button
-          type="submit"
-          disabled={!prompt.trim() || status === 'loading'}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            background: prompt.trim() && status !== 'loading' ? '#06b6d4' : '#1e293b',
-            color: prompt.trim() && status !== 'loading' ? '#0a0f1e' : '#475569',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '0.625rem 1.25rem',
-            fontWeight: 600,
-            fontSize: '0.9rem',
-            cursor: prompt.trim() && status !== 'loading' ? 'pointer' : 'not-allowed',
-            transition: 'background 0.2s',
-          }}
-        >
-          {status === 'loading'
-            ? <><Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> Generating...</>
-            : <><Send size={15} /> Analyze</>
-          }
-        </button>
-      </form>
-
-      {status === 'loading' && (
-        <div style={{ marginTop: '0.75rem', padding: '0.75rem 1rem', background: '#0a0f1e', border: '1px solid #1e293b', borderRadius: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#06b6d4', fontSize: '0.85rem', fontWeight: 600 }}>
-            <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
-            {elapsed < 15 ? 'Searching for latest data...' : elapsed < 60 ? 'Analyzing and generating dashboard...' : 'Finalizing and committing...'}
-            <span style={{ marginLeft: 'auto', fontFamily: 'monospace', color: '#475569', fontSize: '0.75rem' }}>{fmtTime(elapsed)}</span>
-          </div>
-          <div style={{ color: '#64748b', fontSize: '0.72rem', marginTop: '0.35rem' }}>
-            This typically takes 2–4 minutes. The page will update when ready.
-          </div>
+    <div className="grad-border" style={{ marginBottom: '2rem' }}>
+      <div style={{
+        background: 'linear-gradient(180deg, rgba(17,24,39,0.85), rgba(17,24,39,0.65))',
+        backdropFilter: 'blur(16px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+        borderRadius: 14,
+        padding: '1.6rem 1.6rem 1.4rem',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '0.4rem' }}>
+          <Sparkles size={16} color="#22d3ee" />
+          <span style={{
+            fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.16em',
+            textTransform: 'uppercase',
+            background: 'linear-gradient(135deg, #22d3ee, #8b5cf6)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text', color: 'transparent',
+          }}>
+            New Analysis
+          </span>
         </div>
-      )}
+        <div style={{ color: '#94a3b8', fontSize: '0.86rem', marginBottom: '1.1rem' }}>
+          Spin up a fresh dashboard from a single prompt. Geopolitical, equity, or sector — Claude figures out the rest.
+        </div>
 
-      {status === 'success' && (
-        <div style={{ marginTop: '0.75rem', padding: '0.75rem 1rem', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', fontSize: '0.85rem', fontWeight: 600 }}>
-            <CheckCircle size={15} />
+        <form onSubmit={submit} className="home-form" style={{ display: 'flex', gap: '0.6rem' }}>
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => { setPrompt(e.target.value); if (status !== 'loading') setStatus(null) }}
+            placeholder="e.g. NVDA earnings outlook  ·  US–China trade war  ·  EV charging sector…"
+            className="input"
+            style={{ flex: 1, fontSize: '0.95rem' }}
+            disabled={status === 'loading'}
+          />
+          <button
+            type="submit"
+            disabled={!ready}
+            className={ready ? 'btn-primary' : 'btn'}
+            style={{ padding: '0.6rem 1.3rem', fontSize: '0.9rem', whiteSpace: 'nowrap' }}
+          >
+            {status === 'loading'
+              ? <><Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> Generating…</>
+              : <><Send size={15} /> Analyze</>
+            }
+          </button>
+        </form>
+
+        {status === 'loading' && (
+          <div className="fade-in" style={{
+            marginTop: '0.8rem',
+            padding: '0.8rem 1rem',
+            background: 'rgba(6,182,212,0.06)',
+            border: '1px solid rgba(6,182,212,0.22)',
+            borderRadius: 10,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#22d3ee', fontSize: '0.85rem', fontWeight: 600 }}>
+              <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
+              {elapsed < 15 ? 'Searching for latest data…' : elapsed < 60 ? 'Analyzing and generating dashboard…' : 'Finalizing and committing…'}
+              <span style={{ marginLeft: 'auto', fontFamily: 'ui-monospace, monospace', color: '#475569', fontSize: '0.78rem' }}>{fmtTime(elapsed)}</span>
+            </div>
+            <div style={{ color: '#64748b', fontSize: '0.74rem', marginTop: '0.4rem' }}>
+              This typically takes 2–4 minutes. The page updates automatically when it's ready.
+            </div>
+          </div>
+        )}
+
+        {status === 'success' && (
+          <div className="fade-in" style={{
+            marginTop: '0.8rem',
+            padding: '0.8rem 1rem',
+            background: 'rgba(16,185,129,0.07)',
+            border: '1px solid rgba(16,185,129,0.28)',
+            borderRadius: 10,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', fontSize: '0.86rem', fontWeight: 600 }}>
+              <CheckCircle size={15} />
+              {message}
+            </div>
+            {resultPath && (
+              <Link to={resultPath} style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                marginTop: '0.5rem', color: '#22d3ee', fontSize: '0.84rem', fontWeight: 600,
+                textDecoration: 'none',
+              }}>
+                View Dashboard <ExternalLink size={12} />
+              </Link>
+            )}
+            <div style={{ color: '#64748b', fontSize: '0.7rem', marginTop: '0.4rem' }}>
+              Vercel deploy takes ~30s. Refresh the link if it 404s.
+            </div>
+          </div>
+        )}
+
+        {status === 'error' && (
+          <div className="fade-in" style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            marginTop: '0.8rem', color: '#ef4444', fontSize: '0.88rem',
+          }}>
+            <AlertCircle size={15} />
             {message}
           </div>
-          {resultPath && (
-            <Link to={resultPath} style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-              marginTop: '0.5rem', color: '#06b6d4', fontSize: '0.82rem', fontWeight: 600,
-              textDecoration: 'none',
-            }}>
-              View Dashboard <ExternalLink size={12} />
-            </Link>
-          )}
-          <div style={{ color: '#64748b', fontSize: '0.68rem', marginTop: '0.35rem' }}>
-            Vercel deployment takes ~30 seconds. If the link 404s, refresh in a moment.
-          </div>
-        </div>
-      )}
-
-      {status === 'error' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem', color: '#ef4444', fontSize: '0.875rem' }}>
-          <AlertCircle size={15} />
-          {message}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
-
 
 function AnalysisQueue() {
   const [issues, setIssues] = useState([])
@@ -214,12 +219,9 @@ function AnalysisQueue() {
 
   if (loading && issues.length === 0) {
     return (
-      <div style={{
-        background: '#111827', border: '1px solid #1e293b', borderRadius: '12px',
-        padding: '1.25rem', marginBottom: '2rem',
-      }}>
+      <div className="surface" style={{ padding: '1.1rem 1.25rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.85rem' }}>
-          <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading queue...
+          <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading queue…
         </div>
       </div>
     )
@@ -238,29 +240,30 @@ function AnalysisQueue() {
 
   const isReanalyze = (title) => /^reanalyz/i.test(title)
   const isNewAnalysis = (title) => /^analyz/i.test(title) || /^new.?analys/i.test(title)
+  const dotColor = (title) =>
+    isReanalyze(title) ? '#8b5cf6' :
+    isNewAnalysis(title) ? '#22d3ee' : '#f59e0b'
 
   return (
-    <div style={{
-      background: '#111827', border: '1px solid #1e293b', borderRadius: '12px',
-      padding: '1.25rem', marginBottom: '2rem',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ListTodo size={18} color="#f59e0b" />
-          <span style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem' }}>
+    <div className="surface" style={{ padding: '1.1rem 1.25rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+          <ListTodo size={17} color="#f59e0b" />
+          <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.95rem' }}>
             Pending Queue
           </span>
           <span style={{
-            background: '#f59e0b22', color: '#f59e0b', fontSize: '0.7rem', fontWeight: 700,
-            padding: '0.15rem 0.5rem', borderRadius: '9999px',
+            background: 'rgba(245,158,11,0.15)', color: '#f59e0b',
+            fontSize: '0.7rem', fontWeight: 700,
+            padding: '0.18rem 0.55rem', borderRadius: 999,
+            border: '1px solid rgba(245,158,11,0.25)',
           }}>
             {issues.length}
           </span>
         </div>
-        <button onClick={fetchQueue} disabled={loading} style={{
-          background: 'none', border: '1px solid #1e293b', borderRadius: '6px',
-          padding: '0.25rem 0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem',
-          color: '#64748b', fontSize: '0.72rem',
+        <button onClick={fetchQueue} disabled={loading} className="btn-ghost" style={{
+          padding: '0.3rem 0.65rem', fontSize: '0.72rem',
+          display: 'flex', alignItems: 'center', gap: '0.3rem',
         }}>
           <RefreshCw size={11} style={loading ? { animation: 'spin 1s linear infinite' } : {}} /> Refresh
         </button>
@@ -273,7 +276,7 @@ function AnalysisQueue() {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
         {issues.map(issue => (
           <a
             key={issue.number}
@@ -282,28 +285,42 @@ function AnalysisQueue() {
             rel="noreferrer"
             style={{
               display: 'flex', alignItems: 'center', gap: '0.75rem',
-              background: '#0a0f1e', border: '1px solid #1e293b', borderRadius: '8px',
-              padding: '0.65rem 0.85rem', textDecoration: 'none', transition: 'border-color 0.2s',
+              background: 'rgba(10,15,30,0.6)',
+              border: '1px solid rgba(148,163,184,0.06)',
+              borderRadius: 10,
+              padding: '0.65rem 0.85rem',
+              textDecoration: 'none',
+              transition: 'all 0.2s cubic-bezier(0.22,1,0.36,1)',
             }}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = '#334155'}
-            onMouseLeave={(e) => e.currentTarget.style.borderColor = '#1e293b'}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(6,182,212,0.35)'
+              e.currentTarget.style.transform = 'translateX(2px)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(148,163,184,0.06)'
+              e.currentTarget.style.transform = 'translateX(0)'
+            }}
           >
             <div style={{
-              width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
-              background: isReanalyze(issue.title) ? '#8b5cf6' : isNewAnalysis(issue.title) ? '#06b6d4' : '#f59e0b',
-              boxShadow: `0 0 6px ${isReanalyze(issue.title) ? '#8b5cf644' : isNewAnalysis(issue.title) ? '#06b6d444' : '#f59e0b44'}`,
+              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+              background: dotColor(issue.title),
+              boxShadow: `0 0 8px ${dotColor(issue.title)}88`,
             }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ color: '#e2e8f0', fontSize: '0.82rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{
+                color: '#e2e8f0', fontSize: '0.84rem', fontWeight: 500,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>
                 {issue.title}
               </div>
             </div>
-            <span style={{ color: '#475569', fontSize: '0.68rem', fontFamily: 'monospace', flexShrink: 0 }}>
+            <span style={{ color: '#475569', fontSize: '0.7rem', fontFamily: 'ui-monospace, monospace', flexShrink: 0 }}>
               #{issue.number}
             </span>
-            <span style={{ color: '#475569', fontSize: '0.68rem', flexShrink: 0 }}>
+            <span style={{ color: '#475569', fontSize: '0.7rem', flexShrink: 0 }}>
               {timeAgo(issue.createdAt || issue.created)}
             </span>
+            <ArrowUpRight size={13} color="#475569" />
           </a>
         ))}
       </div>
@@ -311,21 +328,120 @@ function AnalysisQueue() {
   )
 }
 
+function DashboardCard({ d }) {
+  const meta = typeMeta[d.type] || typeMeta.stocks
+  const Icon = meta.icon
+  return (
+    <Link
+      to={d.path}
+      className="surface surface-hover"
+      style={{
+        padding: '1.4rem',
+        textDecoration: 'none',
+        display: 'flex', flexDirection: 'column', gap: '0.85rem',
+        position: 'relative', overflow: 'hidden',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = `${meta.color}66`
+        e.currentTarget.style.boxShadow = `0 18px 40px rgba(0,0,0,0.5), 0 0 0 1px ${meta.color}55, 0 0 30px ${meta.glow}`
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = '#1e293b'
+        e.currentTarget.style.boxShadow = ''
+      }}
+    >
+      {/* Top accent gradient line */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+        background: `linear-gradient(90deg, transparent, ${meta.color}, transparent)`,
+        opacity: 0.6,
+      }} />
+      {/* Background glow */}
+      <div style={{
+        position: 'absolute', top: -30, right: -30, width: 120, height: 120,
+        background: `radial-gradient(circle, ${meta.glow}, transparent 70%)`,
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        position: 'relative', zIndex: 1,
+      }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+          padding: '0.32rem 0.65rem',
+          borderRadius: 999,
+          background: `${meta.color}14`,
+          border: `1px solid ${meta.color}33`,
+        }}>
+          <Icon size={13} color={meta.color} />
+          <span style={{
+            fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.1em',
+            textTransform: 'uppercase', color: meta.color,
+          }}>
+            {meta.label}
+          </span>
+        </div>
+        <ArrowUpRight size={16} color="#475569" />
+      </div>
+
+      <h3 style={{
+        color: '#f8fafc', fontSize: '1.08rem', fontWeight: 700, lineHeight: 1.3,
+        margin: 0, letterSpacing: '-0.015em', position: 'relative', zIndex: 1,
+      }}>
+        {d.title}
+      </h3>
+
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '0.35rem',
+        color: '#64748b', fontSize: '0.78rem',
+        position: 'relative', zIndex: 1,
+        fontFamily: 'ui-monospace, monospace',
+      }}>
+        <Clock size={12} />
+        <span>{d.date}</span>
+      </div>
+    </Link>
+  )
+}
+
 function Home() {
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0a0f1e', boxSizing: 'border-box' }}>
+    <div style={{ minHeight: '100vh', boxSizing: 'border-box' }}>
       <SiteNavBar />
-      <div className="home-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
-        {/* Header */}
-        <div style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <BarChart3 size={32} color="#06b6d4" />
-            <h1 className="home-title" style={{ fontSize: '2rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-              Analysis Dashboard Hub
-            </h1>
+      <div className="home-container" style={{ maxWidth: 1240, margin: '0 auto', padding: '2.5rem 2rem' }}>
+
+        {/* Hero */}
+        <div className="float-in" style={{ marginBottom: '2.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '0.85rem' }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+              padding: '0.3rem 0.7rem',
+              borderRadius: 999,
+              background: 'rgba(6,182,212,0.08)',
+              border: '1px solid rgba(6,182,212,0.22)',
+              color: '#22d3ee',
+              fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.06em',
+            }}>
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%', background: '#22d3ee',
+                boxShadow: '0 0 8px #22d3ee', animation: 'pulse 2s ease-in-out infinite',
+              }} />
+              LIVE  ·  AUTO-DEPLOYING
+            </div>
           </div>
-          <p style={{ color: '#94a3b8', fontSize: '1.1rem', margin: 0 }}>
-            Geopolitical & Financial Intelligence Dashboards
+
+          <h1 className="home-title display-1" style={{ margin: 0, marginBottom: '0.6rem' }}>
+            Geopolitical & financial intelligence,
+            <br />
+            <span className="gradient-text-cyan">rendered in real time.</span>
+          </h1>
+          <p style={{
+            color: '#94a3b8', fontSize: '1.02rem', margin: 0,
+            maxWidth: 720, lineHeight: 1.55,
+          }}>
+            Multi-scenario decision dashboards for wars, markets, and sectors. Each analysis is a
+            production React build — committed, deployed, and continuously updated.
           </p>
         </div>
 
@@ -333,76 +449,51 @@ function Home() {
         <BestPicksSection />
         <AnalysisQueue />
 
-        {/* Dashboard Grid */}
+        {/* Library section header */}
+        <div className="title-bar" style={{ marginTop: '2.5rem', marginBottom: '1.25rem' }}>
+          <span style={{
+            fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.14em',
+            textTransform: 'uppercase', color: '#94a3b8',
+          }}>
+            Dashboard Library
+          </span>
+          <span className="chip" style={{ marginLeft: '0.5rem' }}>
+            {dashboards.length} active
+          </span>
+        </div>
+
+        {/* Dashboard grid */}
         {dashboards.length === 0 ? (
-          <div style={{
-            border: '1px dashed #334155',
-            borderRadius: '12px',
-            padding: '3rem',
-            textAlign: 'center',
-            color: '#64748b'
+          <div className="surface" style={{
+            borderStyle: 'dashed', borderColor: '#334155',
+            padding: '3rem', textAlign: 'center', color: '#64748b',
           }}>
             <Globe2 size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
             <h2 style={{ color: '#94a3b8', marginBottom: '0.5rem' }}>No Analyses Yet</h2>
-            <p>Ask Claude Code to create your first analysis dashboard.</p>
-            <p style={{ fontSize: '0.875rem', marginTop: '1rem' }}>
-              Try: "Analyze US-China trade relations" or "Analyze Tesla stock"
-            </p>
+            <p>Ask Claude to create your first analysis dashboard.</p>
           </div>
         ) : (
-          <div className="home-grid" style={{
+          <div className="home-grid stagger" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '1.5rem'
+            gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))',
+            gap: '1.25rem',
           }}>
-            {dashboards.map((d) => (
-              <Link
-                key={d.path}
-                to={d.path}
-                style={{
-                  background: '#111827',
-                  border: '1px solid #1e293b',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
-                  textDecoration: 'none',
-                  transition: 'border-color 0.2s',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#06b6d4'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#1e293b'}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  {d.type === 'geopolitical' ? (
-                    <Globe2 size={18} color="#f59e0b" />
-                  ) : d.type === 'sectors' ? (
-                    <Building2 size={18} color="#8b5cf6" />
-                  ) : (
-                    <TrendingUp size={18} color="#10b981" />
-                  )}
-                  <span style={{
-                    fontSize: '0.75rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    color: d.type === 'geopolitical' ? '#f59e0b' : d.type === 'sectors' ? '#8b5cf6' : '#10b981',
-                    fontWeight: 600,
-                  }}>
-                    {d.type === 'sectors' ? 'sector analysis' : d.type}
-                  </span>
-                </div>
-                <h3 style={{ color: '#f8fafc', fontSize: '1.25rem', fontWeight: 600, margin: '0 0 0.5rem' }}>
-                  {d.title}
-                </h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#64748b', fontSize: '0.875rem' }}>
-                  <Clock size={14} />
-                  <span>{d.date}</span>
-                </div>
-              </Link>
-            ))}
+            {dashboards.map((d) => <DashboardCard key={d.path} d={d} />)}
           </div>
         )}
-      </div>
-      <div style={{ textAlign: 'center', padding: '2rem 0 1rem', color: '#334155', fontSize: '0.7rem', fontFamily: 'monospace' }}>
-        v2.3.1 — 2026-04-05
+
+        <div style={{
+          marginTop: '4rem', paddingTop: '1.5rem',
+          borderTop: '1px solid rgba(148,163,184,0.06)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem',
+        }}>
+          <div style={{ color: '#475569', fontSize: '0.74rem' }}>
+            Built with React, Recharts & Claude · Auto-deployed via Vercel
+          </div>
+          <div style={{ color: '#334155', fontSize: '0.7rem', fontFamily: 'ui-monospace, monospace' }}>
+            v2.4.0 · 2026-04-19
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -1,121 +1,142 @@
 {
   "version": 1,
-  "updatedAt": "2026-04-20T10:36:20.543Z",
+  "updatedAt": "2026-04-20T10:36:00Z",
   "notes": "Schedule config for auto-reanalysis. Read by watcher.cjs every minute. All times are Athens local (Europe/Athens).",
   "dashboards": {},
   "bestPicks": {
     "enabled": false,
     "lastMorningRun": null,
     "lastAfterCloseRun": null,
-    "morningModeAthens": {
-      "hour": 8,
-      "minute": 0
-    },
+    "morningModeAthens": { "hour": 8, "minute": 0 },
     "afterCloseDelayMinutes": 15,
     "watchlist": [
       {
         "ticker": "METLEN.AT",
         "exchange": "ATHEX",
         "sector": "Energy / Industrials",
-        "rationale": "Greek industrial conglomerate with energy, metals, and infrastructure arms. Direct exposure to elevated oil/gas prices from Iran conflict. ATHEX rally leader.",
+        "rationale": "Greek industrial conglomerate — BofA target €64, Morgan Stanley €66. Energy + metals + infrastructure diversification. Direct beneficiary of elevated oil/gas and Greek economic renaissance. ATHEX index at 15-year highs.",
         "addedBy": "auto-GLOBAL",
-        "addedAt": "2026-04-18"
+        "addedAt": "2026-04-20"
       },
       {
-        "ticker": "OPAP.AT",
+        "ticker": "EUROB.AT",
         "exchange": "ATHEX",
-        "sector": "Gaming / Entertainment",
-        "rationale": "Greek gaming monopoly with stable cash flows and high dividend yield. Defensive domestic play — resilient to geopolitical shocks. €5.7B market cap.",
+        "sector": "Banking",
+        "rationale": "Greece's largest bank by market cap (€11.6B). 24 of 27 analysts rate Buy/Strong Buy. Average target €4.31 vs current €2.50 — 73% upside. Greek banking sector up 34% YoY. ECB rate path key catalyst.",
         "addedBy": "auto-GLOBAL",
-        "addedAt": "2026-04-18"
+        "addedAt": "2026-04-20"
       },
       {
-        "ticker": "OTE.AT",
+        "ticker": "ETE.AT",
         "exchange": "ATHEX",
-        "sector": "Telecommunications",
-        "rationale": "Greece's largest telecom (Deutsche Telekom subsidiary). Defensive cash-flow compounder, top ATHEX name by market cap. Low geopolitical beta.",
+        "sector": "Banking",
+        "rationale": "National Bank of Greece — Goldman target €15.10, JPM €15, BofA €13.88. Top holding in GREK ETF at 15.6%. Beneficiary of Greek economic recovery and ATHEX at decade highs.",
         "addedBy": "auto-GLOBAL",
-        "addedAt": "2026-04-18"
-      },
-      {
-        "ticker": "OXY",
-        "exchange": "NYSE",
-        "sector": "Energy / Oil & Gas",
-        "rationale": "Highest operating leverage to rising oil among large-cap E&Ps. Up 58% YTD on Iran war premium. Earnings double when Brent moves $80→$110. Buffett-backed.",
-        "addedBy": "auto-GLOBAL",
-        "addedAt": "2026-04-18"
-      },
-      {
-        "ticker": "XOM",
-        "exchange": "NYSE",
-        "sector": "Energy / Oil & Gas",
-        "rationale": "Fortress balance sheet energy major. Up 39% YTD, all-time highs, strongest FCF in sector. Battle-tested through oil cycles. Defensive energy anchor.",
-        "addedBy": "auto-GLOBAL",
-        "addedAt": "2026-04-18"
-      },
-      {
-        "ticker": "NOC",
-        "exchange": "NYSE",
-        "sector": "Defense / Aerospace",
-        "rationale": "Second-largest US defense contractor. $95.7B backlog. B-21 Raider first deliveries in 2026. Benefits from NATO 5% GDP defense spending pledge.",
-        "addedBy": "auto-GLOBAL",
-        "addedAt": "2026-04-18"
+        "addedAt": "2026-04-20"
       },
       {
         "ticker": "AVGO",
         "exchange": "NASDAQ",
         "sector": "Semiconductors / AI",
-        "rationale": "Custom AI chip leader with incredible growth trajectory. VMware integration driving software recurring revenue. High-conviction AI infrastructure play.",
+        "rationale": "AI chip division grew 106% to $8.4B in Q1 FY2026. AI revenue expected to exceed $100B by end of 2027. Trading 37% below Morningstar fair value of $500. VMware integration driving recurring revenue.",
         "addedBy": "auto-GLOBAL",
-        "addedAt": "2026-04-18"
+        "addedAt": "2026-04-20"
+      },
+      {
+        "ticker": "SNDK",
+        "exchange": "NASDAQ",
+        "sector": "Semiconductors / Memory",
+        "rationale": "S&P 500 top performer — up 160%+ YTD. Global NAND flash shortage colliding with surging AI edge-storage demand. BofA target $1,080, Evercore $1,200. Trading at $914.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-20"
+      },
+      {
+        "ticker": "NBIS",
+        "exchange": "NASDAQ",
+        "sector": "AI Infrastructure / Cloud",
+        "rationale": "Signed $46B in AI cloud deals with Microsoft ($19.4B) and Meta ($27B). Nvidia invested $2B. Targeting $7-9B annualized revenue by end of 2026 — up from ~$1B. Consensus Strong Buy, target $169 vs $113.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-20"
       },
       {
         "ticker": "TSM",
         "exchange": "NYSE",
         "sector": "Semiconductors",
-        "rationale": "World's largest chip foundry with best process technology. 25% revenue CAGR through 2029. Monopoly position in advanced node manufacturing.",
+        "rationale": "World's largest chip foundry — monopoly on advanced nodes. 25% revenue CAGR through 2029. Every AI chip company depends on TSMC. Structural beneficiary of $1T chip capex cycle (BofA).",
         "addedBy": "auto-GLOBAL",
-        "addedAt": "2026-04-18"
+        "addedAt": "2026-04-20"
       },
       {
         "ticker": "META",
         "exchange": "NASDAQ",
         "sector": "Technology / AI",
-        "rationale": "AI investment cycle leader — Meta AI chatbot has billions of daily users. AI glasses product line in high demand. Strong ad revenue base funds AI capex.",
+        "rationale": "AI investment cycle leader. Expanded $27B Nebius AI infra deal. AI chatbot with billions of DAUs, AI glasses in high demand. Strong ad revenue base funds massive AI capex program.",
         "addedBy": "auto-GLOBAL",
-        "addedAt": "2026-04-18"
+        "addedAt": "2026-04-20"
+      },
+      {
+        "ticker": "MRNA",
+        "exchange": "NASDAQ",
+        "sector": "Biotech / Oncology",
+        "rationale": "Up 70%+ YTD, 12th-best in S&P 500. Personalized cancer vaccine (mRNA-4157) pivotal Phase 3 data due Sep 2026 — binary catalyst. RSV vaccine Phase 3 readout also in 2026. 10% revenue growth guided.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-20"
+      },
+      {
+        "ticker": "XOM",
+        "exchange": "NYSE",
+        "sector": "Energy / Oil & Gas",
+        "rationale": "Fortress balance sheet energy major at all-time highs. Brent $94 with Iran war premium. Strongest FCF in sector. Defensive anchor — if Hormuz re-escalates, Brent returns toward $120.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-20"
+      },
+      {
+        "ticker": "NOC",
+        "exchange": "NYSE",
+        "sector": "Defense / Aerospace",
+        "rationale": "Second-largest US defense contractor. $95.7B backlog. B-21 Raider first deliveries 2026. NATO spending at record 2.8% GDP trajectory. All NATO allies met 2% commitment for first time.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-20"
+      },
+      {
+        "ticker": "RTX",
+        "exchange": "NYSE",
+        "sector": "Defense / Aerospace",
+        "rationale": "Record $251B backlog including $103B defense. 13% organic sales growth. Doubled AMRAAM missile production to 1,200/year. $3.5B Ukraine supply contract through 2031. Global defense spend $2.63T.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-20"
       },
       {
         "ticker": "BA.",
         "exchange": "LSE",
         "sector": "Defense / Aerospace",
-        "rationale": "UK's largest defense pure-play. Up 23% YTD, 325% over 5 years. Deep order book, diversified platforms. Space division underappreciated growth engine.",
+        "rationale": "UK's largest defense pure-play. Up 23% YTD, 325% over 5 years. Deep order book, diversified platforms. European rearmament cycle driving record NATO budgets. Space division underappreciated.",
         "addedBy": "auto-GLOBAL",
-        "addedAt": "2026-04-18"
+        "addedAt": "2026-04-20"
       },
       {
         "ticker": "RR.",
         "exchange": "LSE",
-        "sector": "Defense / Aerospace",
-        "rationale": "Rolls-Royce turnaround story continues. Up 15% YTD, 95% in 2025. Defense and civil aerospace engines, SMR nuclear. FTSE 100 top performer.",
+        "sector": "Defense / Aerospace / Nuclear",
+        "rationale": "Rolls-Royce turnaround continues — up 15% YTD, 95% in 2025. Defense + civil aerospace engines + SMR nuclear. FTSE 100 top performer over 2 years.",
         "addedBy": "auto-GLOBAL",
-        "addedAt": "2026-04-18"
+        "addedAt": "2026-04-20"
       },
       {
-        "ticker": "CHG",
+        "ticker": "AZN",
         "exchange": "LSE",
-        "sector": "Defense / Specialist",
-        "rationale": "FTSE 250 defense specialist in high-spec, low-competition niches. Record £1.34B order book. P/E 27.9 vs sector avg 34.3 — relative value in defense.",
+        "sector": "Pharmaceuticals / Oncology",
+        "rationale": "UK's most valuable company at £230B market cap. Leading oncology pipeline with consistent revenue growth. Defensive healthcare compounder with strong analyst upgrades. Diversified across oncology, cardiovascular, renal.",
         "addedBy": "auto-GLOBAL",
-        "addedAt": "2026-04-18"
+        "addedAt": "2026-04-20"
       },
       {
-        "ticker": "SHEL",
-        "exchange": "LSE",
-        "sector": "Energy / Oil & Gas",
-        "rationale": "Top-3 FTSE 100 by market cap. Integrated energy major benefiting from Iran war oil premium. Strong buyback program, diversified gas/LNG portfolio.",
+        "ticker": "LRCX",
+        "exchange": "NASDAQ",
+        "sector": "Semiconductor Equipment",
+        "rationale": "BofA top pick for $1T chip capex surge in 2026. Essential wafer fabrication equipment maker — every fab expansion requires Lam tools. AI demand driving unprecedented equipment orders.",
         "addedBy": "auto-GLOBAL",
-        "addedAt": "2026-04-18"
+        "addedAt": "2026-04-20"
       }
     ]
   }

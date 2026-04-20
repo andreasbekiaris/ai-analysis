@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh api:*)",
+      "Bash(vercel:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm run:*)",
+      "Bash(curl -s \"https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json\" -o /c/Users/Andre/Documents/projects/ai-analysis/public/world-110m.json)",
+      "Bash(tasklist /FI 'IMAGENAME eq node.exe')",
+      "Bash(findstr node:*)",
+      "Bash(node -e \"require\\(''smee-client''\\)\")",
+      "Bash(schtasks:*)",
+      "Bash(cmd /c schtasks /create /tn \"AI Analysis Watcher\" /tr \"cmd /c cd /d C:\\\\\\\\Users\\\\\\\\Andre\\\\\\\\Documents\\\\\\\\projects\\\\\\\\ai-analysis && node watcher.cjs >> watcher.log 2>&1\" /sc onlogon /ru %USERNAME% /f)",
+      "Bash(grep -r \"reanalyz\\\\|RotateCcw\" /c/Users/Andre/Documents/projects/ai-analysis --include=*.js --include=*.cjs --include=*.jsx -l)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -X POST https://ai-analysis-gold.vercel.app/api/reanalyze-stock -H \"Content-Type: application/json\" -d '{\"\"dashboardFile\"\":\"\"test\"\"}')",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(find C:/Users/Andre/Documents/projects/ai-analysis -maxdepth 2 -name watcher* -o -name *.mjs)",
+      "Bash(ls C:/Users/Andre/Documents/projects/ai-analysis/*.js)",
+      "Bash(ls C:/Users/Andre/Documents/projects/ai-analysis/*.mjs)",
+      "Bash(npx vite:*)",
+      "Bash(find /c/Users/Andre/Documents/projects/ai-analysis -type f -name favicon*)",
+      "Bash(ls api/*.js)",
+      "Bash(gh issue:*)",
+      "Bash(tasklist)",
+      "Bash(grep -l \"ANTHROPIC_API_KEY\\\\|GEMINI_API_KEY\" /c/Users/Andre/Documents/projects/ai-analysis/api/*.js)",
+      "Bash(ls -la /c/Users/Andre/Documents/projects/ai-analysis/.env*)",
+      "Bash(git ls-tree:*)",
+      "Bash(curl:*)",
+      "WebSearch",
+      "Bash(ls:*)",
+      "Bash(netstat -ano)",
+      "Bash(tasklist *)"
+    ]
+  }
+}

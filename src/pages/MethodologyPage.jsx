@@ -20,21 +20,41 @@ const T = {
 function Section({ icon: Icon, title, color, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, marginBottom: '1rem', overflow: 'hidden' }}>
+    <div style={{
+      background: 'linear-gradient(180deg, rgba(17,24,39,0.78), rgba(17,24,39,0.55))',
+      backdropFilter: 'blur(10px) saturate(140%)',
+      WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+      border: `1px solid ${open ? `${color}44` : 'rgba(148,163,184,0.08)'}`,
+      borderRadius: 14,
+      marginBottom: '0.85rem',
+      overflow: 'hidden',
+      boxShadow: open ? `0 12px 32px ${color}1a` : '0 4px 12px rgba(0,0,0,0.2)',
+      transition: 'border-color 0.2s, box-shadow 0.2s',
+    }}>
       <button
         onClick={() => setOpen(!open)}
         style={{
-          width: '100%', display: 'flex', alignItems: 'center', gap: '0.65rem',
+          width: '100%', display: 'flex', alignItems: 'center', gap: '0.7rem',
           padding: '1rem 1.25rem', background: 'none', border: 'none', cursor: 'pointer',
-          color: T.text, fontSize: '1rem', fontWeight: 700, textAlign: 'left',
+          color: T.text, fontSize: '0.98rem', fontWeight: 700, textAlign: 'left',
+          letterSpacing: '-0.01em', fontFamily: 'inherit',
         }}
       >
-        <Icon size={18} color={color} />
+        <span style={{
+          width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          background: `${color}14`, border: `1px solid ${color}33`,
+        }}>
+          <Icon size={14} color={color} />
+        </span>
         <span style={{ flex: 1 }}>{title}</span>
         {open ? <ChevronUp size={16} color={T.dim} /> : <ChevronDown size={16} color={T.dim} />}
       </button>
       {open && (
-        <div style={{ padding: '0 1.25rem 1.25rem', color: T.muted, fontSize: '0.85rem', lineHeight: 1.75 }}>
+        <div className="fade-in" style={{
+          padding: '0 1.25rem 1.25rem 3.7rem',
+          color: T.muted, fontSize: '0.86rem', lineHeight: 1.75,
+        }}>
           {children}
         </div>
       )}
@@ -44,15 +64,33 @@ function Section({ icon: Icon, title, color, children, defaultOpen = false }) {
 
 function Formula({ label, formula, example }) {
   return (
-    <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, padding: '0.85rem 1rem', marginBottom: '0.75rem' }}>
-      <div style={{ color: T.cyan, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>
+    <div style={{
+      background: 'rgba(6,9,18,0.65)',
+      border: '1px solid rgba(148,163,184,0.10)',
+      borderLeft: '2px solid rgba(6,182,212,0.5)',
+      borderRadius: 10,
+      padding: '0.9rem 1.05rem',
+      marginBottom: '0.8rem',
+    }}>
+      <div style={{
+        fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
+        background: 'linear-gradient(135deg, #22d3ee, #8b5cf6)',
+        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text', color: 'transparent',
+        marginBottom: '0.5rem',
+      }}>
         {label}
       </div>
-      <div style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: T.text, whiteSpace: 'pre-wrap', marginBottom: example ? '0.5rem' : 0 }}>
+      <div style={{
+        fontFamily: 'ui-monospace, monospace',
+        fontSize: '0.82rem', color: '#e2e8f0',
+        whiteSpace: 'pre-wrap', marginBottom: example ? '0.55rem' : 0,
+        fontVariantNumeric: 'tabular-nums',
+      }}>
         {formula}
       </div>
       {example && (
-        <div style={{ fontSize: '0.78rem', color: T.dim, fontStyle: 'italic' }}>
+        <div style={{ fontSize: '0.78rem', color: T.dim, fontStyle: 'italic', borderTop: '1px solid rgba(148,163,184,0.08)', paddingTop: '0.5rem' }}>
           {example}
         </div>
       )}
@@ -63,36 +101,71 @@ function Formula({ label, formula, example }) {
 function Badge({ children, color }) {
   return (
     <span style={{
-      display: 'inline-block', padding: '2px 8px', borderRadius: 4,
-      fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase',
-      letterSpacing: '0.06em', background: `${color}18`, color, border: `1px solid ${color}33`,
+      display: 'inline-flex', alignItems: 'center',
+      padding: '3px 10px', borderRadius: 999,
+      fontSize: '0.66rem', fontWeight: 700, textTransform: 'uppercase',
+      letterSpacing: '0.08em',
+      background: `${color}14`, color, border: `1px solid ${color}44`,
     }}>
       {children}
     </span>
   )
 }
 
+/* ─── SECTION DIVIDER ────────────────────────────────────────── */
+function SectionHeader({ icon: Icon, label, color }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '0.6rem',
+      marginBottom: '1rem',
+    }}>
+      <span style={{
+        width: 3, height: 18,
+        background: `linear-gradient(180deg, ${color}, ${color}66)`,
+        borderRadius: 2,
+        boxShadow: `0 0 10px ${color}88`,
+      }} />
+      <Icon size={14} color={color} />
+      <span style={{
+        fontSize: '0.74rem', fontWeight: 700, letterSpacing: '0.14em',
+        textTransform: 'uppercase', color,
+      }}>
+        {label}
+      </span>
+    </div>
+  )
+}
+
 /* ─── MAIN PAGE ──────────────────────────────────────────────── */
 export default function MethodologyPage() {
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: T.bg, color: T.text, fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', color: T.text }}>
       <SiteNavBar />
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '2rem 1.5rem' }}>
+      <div style={{ maxWidth: 920, margin: '0 auto', padding: '2.25rem 1.5rem' }}>
         {/* Header */}
-        <div style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <BookOpen size={28} color={T.cyan} />
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>Methodology</h1>
+        <div className="float-in" style={{ marginBottom: '2rem' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+            padding: '0.28rem 0.7rem', borderRadius: 999,
+            background: 'rgba(6,182,212,0.08)',
+            border: '1px solid rgba(6,182,212,0.22)',
+            color: '#22d3ee',
+            fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            marginBottom: '0.85rem',
+          }}>
+            <BookOpen size={11} /> Methodology
           </div>
-          <p style={{ color: T.muted, fontSize: '0.95rem', margin: 0 }}>
-            How Promithea builds analysis dashboards — the frameworks, formulas, data sources, and theories behind every assessment.
+          <h1 className="display-1" style={{ fontSize: 'clamp(1.6rem, 3vw, 2rem)', margin: '0 0 0.5rem' }}>
+            How <span className="gradient-text-cyan">Promithea</span> builds dashboards
+          </h1>
+          <p style={{ color: T.muted, fontSize: '0.95rem', margin: 0, lineHeight: 1.55, maxWidth: 720 }}>
+            The frameworks, formulas, data sources, and theories behind every assessment.
           </p>
         </div>
 
         {/* ─── STOCK ANALYSIS ────────────────────────────────── */}
-        <h2 style={{ color: T.emerald, fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <TrendingUp size={16} /> Stock Analysis
-        </h2>
+        <SectionHeader icon={TrendingUp} label="Stock Analysis" color={T.emerald} />
 
         <Section icon={Target} title="How Stock Analysis Works" color={T.emerald} defaultOpen={true}>
           <p>Every stock analysis follows a structured 5-step pipeline:</p>
@@ -195,9 +268,9 @@ Practitioners use quarter-Kelly to account for estimation error.`}
         </Section>
 
         {/* ─── GEO ANALYSIS ──────────────────────────────────── */}
-        <h2 style={{ color: T.amber, fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', margin: '2rem 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Globe2 size={16} /> Geopolitical Analysis
-        </h2>
+        <div style={{ marginTop: '2.25rem' }}>
+          <SectionHeader icon={Globe2} label="Geopolitical Analysis" color={T.amber} />
+        </div>
 
         <Section icon={Crosshair} title="How Geopolitical Analysis Works" color={T.amber} defaultOpen={true}>
           <p>Every geopolitical analysis follows an 8-step pipeline:</p>
@@ -379,9 +452,9 @@ Low audience costs (autocracies) → easier to back down → less credible`}
         </Section>
 
         {/* ─── DATA SOURCES ──────────────────────────────────── */}
-        <h2 style={{ color: T.cyan, fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', margin: '2rem 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Database size={16} /> Data Sources
-        </h2>
+        <div style={{ marginTop: '2.25rem' }}>
+          <SectionHeader icon={Database} label="Data Sources" color={T.cyan} />
+        </div>
 
         <Section icon={TrendingUp} title="Stock Analysis Sources" color={T.cyan}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
@@ -395,9 +468,18 @@ Low audience costs (autocracies) → easier to back down → less credible`}
               ['ECB / Federal Reserve', 'Rate decisions & monetary policy'],
               ['FRED (St. Louis Fed)', 'Yield curves, CPI, unemployment'],
             ].map(([name, desc], i) => (
-              <div key={i} style={{ padding: '0.5rem 0.65rem', background: T.bg, borderRadius: 6, border: `1px solid ${T.border}` }}>
-                <div style={{ color: T.text, fontSize: '0.8rem', fontWeight: 600 }}>{name}</div>
-                <div style={{ color: T.dim, fontSize: '0.72rem' }}>{desc}</div>
+              <div key={i} style={{
+                padding: '0.6rem 0.75rem',
+                background: 'rgba(6,9,18,0.55)',
+                borderRadius: 8,
+                border: '1px solid rgba(148,163,184,0.08)',
+                transition: 'all 0.2s',
+              }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(6,182,212,0.32)'; e.currentTarget.style.background = 'rgba(6,182,212,0.05)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(148,163,184,0.08)'; e.currentTarget.style.background = 'rgba(6,9,18,0.55)' }}
+              >
+                <div style={{ color: '#e2e8f0', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '-0.005em' }}>{name}</div>
+                <div style={{ color: T.dim, fontSize: '0.72rem', marginTop: 2 }}>{desc}</div>
               </div>
             ))}
           </div>
@@ -417,38 +499,73 @@ Low audience costs (autocracies) → easier to back down → less credible`}
               ['EIA (Energy Info Admin)', 'Oil supply & demand data'],
               ['IISS / Chatham House', 'Strategic analysis (fallback)'],
             ].map(([name, desc], i) => (
-              <div key={i} style={{ padding: '0.5rem 0.65rem', background: T.bg, borderRadius: 6, border: `1px solid ${T.border}` }}>
-                <div style={{ color: T.text, fontSize: '0.8rem', fontWeight: 600 }}>{name}</div>
-                <div style={{ color: T.dim, fontSize: '0.72rem' }}>{desc}</div>
+              <div key={i} style={{
+                padding: '0.6rem 0.75rem',
+                background: 'rgba(6,9,18,0.55)',
+                borderRadius: 8,
+                border: '1px solid rgba(148,163,184,0.08)',
+                transition: 'all 0.2s',
+              }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(6,182,212,0.32)'; e.currentTarget.style.background = 'rgba(6,182,212,0.05)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(148,163,184,0.08)'; e.currentTarget.style.background = 'rgba(6,9,18,0.55)' }}
+              >
+                <div style={{ color: '#e2e8f0', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '-0.005em' }}>{name}</div>
+                <div style={{ color: T.dim, fontSize: '0.72rem', marginTop: 2 }}>{desc}</div>
               </div>
             ))}
           </div>
         </Section>
 
         {/* ─── LIMITATIONS ───────────────────────────────────── */}
-        <h2 style={{ color: T.crimson, fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', margin: '2rem 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <AlertTriangle size={16} /> Limitations & Disclaimers
-        </h2>
+        <div style={{ marginTop: '2.25rem' }}>
+          <SectionHeader icon={AlertTriangle} label="Limitations & Disclaimers" color={T.crimson} />
+        </div>
 
-        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: '1.25rem' }}>
-          <ul style={{ paddingLeft: '1.25rem', margin: 0, color: T.muted, fontSize: '0.85rem', lineHeight: 1.8 }}>
-            <li><strong>Not financial advice.</strong> All analyses are for informational and educational purposes only. Always consult a qualified financial advisor before making investment decisions.</li>
-            <li><strong>AI-generated analysis.</strong> Dashboards are produced by Claude (Anthropic) using web search results. Data may be approximate, delayed, or incomplete.</li>
-            <li><strong>Scenario probabilities are estimates.</strong> They reflect analytical judgment informed by frameworks, not statistical certainty. All models are wrong — some are useful.</li>
-            <li><strong>DCF and DDM valuations are simplified.</strong> They use single-stage growth models and estimated WACC. Professional equity research uses multi-stage models with more granular assumptions.</li>
-            <li><strong>Historical analogs have limits.</strong> Sanctions impact, rally effects, and passthrough coefficients are drawn from past events. Every situation is unique.</li>
-            <li><strong>Data freshness varies.</strong> Prices may be delayed. News may not reflect the last few hours. Check the analysis date on each dashboard.</li>
-            <li><strong>Geopolitical prediction is inherently uncertain.</strong> Black swan events, intelligence gaps, and irrational actors can invalidate any framework.</li>
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(239,68,68,0.06), rgba(17,24,39,0.65))',
+          backdropFilter: 'blur(10px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+          border: '1px solid rgba(239,68,68,0.22)',
+          borderRadius: 14,
+          padding: '1.35rem 1.5rem',
+          boxShadow: '0 12px 28px rgba(239,68,68,0.08)',
+        }}>
+          <ul style={{ paddingLeft: '1.1rem', margin: 0, color: T.muted, fontSize: '0.86rem', lineHeight: 1.8 }}>
+            <li><strong style={{ color: '#fca5a5' }}>Not financial advice.</strong> All analyses are for informational and educational purposes only. Always consult a qualified financial advisor before making investment decisions.</li>
+            <li><strong style={{ color: '#fca5a5' }}>AI-generated analysis.</strong> Dashboards are produced by Claude (Anthropic) using web search results. Data may be approximate, delayed, or incomplete.</li>
+            <li><strong style={{ color: '#fca5a5' }}>Scenario probabilities are estimates.</strong> They reflect analytical judgment informed by frameworks, not statistical certainty. All models are wrong — some are useful.</li>
+            <li><strong style={{ color: '#fca5a5' }}>DCF and DDM valuations are simplified.</strong> They use single-stage growth models and estimated WACC. Professional equity research uses multi-stage models with more granular assumptions.</li>
+            <li><strong style={{ color: '#fca5a5' }}>Historical analogs have limits.</strong> Sanctions impact, rally effects, and passthrough coefficients are drawn from past events. Every situation is unique.</li>
+            <li><strong style={{ color: '#fca5a5' }}>Data freshness varies.</strong> Prices may be delayed. News may not reflect the last few hours. Check the analysis date on each dashboard.</li>
+            <li><strong style={{ color: '#fca5a5' }}>Geopolitical prediction is inherently uncertain.</strong> Black swan events, intelligence gaps, and irrational actors can invalidate any framework.</li>
           </ul>
         </div>
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', padding: '2rem 0 1rem', color: T.dim, fontSize: '0.72rem' }}>
-          <Link to="/help" style={{ color: T.cyan, textDecoration: 'none', fontWeight: 600 }}>
+        <div style={{
+          marginTop: '3rem', paddingTop: '1.25rem',
+          borderTop: '1px solid rgba(148,163,184,0.06)',
+          textAlign: 'center', color: T.dim, fontSize: '0.74rem',
+        }}>
+          <Link to="/help" style={{
+            color: '#22d3ee', textDecoration: 'none', fontWeight: 700,
+            padding: '0.25rem 0.55rem', borderRadius: 6,
+            transition: 'background 0.15s',
+          }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(6,182,212,0.08)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
             Glossary
           </Link>
-          {' · '}
-          <Link to="/" style={{ color: T.cyan, textDecoration: 'none', fontWeight: 600 }}>
+          <span style={{ color: '#334155', margin: '0 0.4rem' }}>·</span>
+          <Link to="/" style={{
+            color: '#22d3ee', textDecoration: 'none', fontWeight: 700,
+            padding: '0.25rem 0.55rem', borderRadius: 6,
+            transition: 'background 0.15s',
+          }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(6,182,212,0.08)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
             Home
           </Link>
         </div>

@@ -39,14 +39,33 @@ const impactColor = (score) => {
 }
 
 const s = {
-  page:      { minHeight: '100vh', backgroundColor: '#0a0f1e', color: '#f8fafc', fontFamily: 'system-ui, sans-serif', padding: '1.5rem' },
+  page:      { minHeight: '100vh', color: '#f8fafc', padding: '1.5rem' },
   container: { maxWidth: '1400px', margin: '0 auto' },
-  panel:     { backgroundColor: '#111827', border: '1px solid #1e293b', borderRadius: '8px', padding: '1.25rem', marginBottom: '1rem' },
-  panelTitle:{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#06b6d4', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' },
+  panel:     {
+    background: 'linear-gradient(180deg, rgba(17,24,39,0.85), rgba(17,24,39,0.65))',
+    backdropFilter: 'blur(10px) saturate(140%)',
+    WebkitBackdropFilter: 'blur(10px) saturate(140%)',
+    border: '1px solid rgba(148,163,184,0.08)',
+    borderRadius: '14px',
+    padding: '1.35rem',
+    marginBottom: '1rem',
+    boxShadow: '0 6px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03)',
+  },
+  panelTitle:{
+    fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase',
+    background: 'linear-gradient(135deg, #22d3ee, #8b5cf6)',
+    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text', color: 'transparent',
+    marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.55rem',
+  },
   grid2:     { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' },
   grid3:     { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' },
-  mono:      { fontFamily: 'monospace' },
-  tag:       (color) => ({ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color, border: `1px solid ${color}`, borderRadius: '3px', padding: '2px 6px', display: 'inline-block' }),
+  mono:      { fontFamily: 'ui-monospace, monospace', fontVariantNumeric: 'tabular-nums' },
+  tag:       (color) => ({
+    fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+    color, border: `1px solid ${color}55`, background: `${color}12`,
+    borderRadius: 999, padding: '3px 9px', display: 'inline-block',
+  }),
   muted:     { color: '#94a3b8', fontSize: '0.8rem' },
   dim:       { color: '#64748b', fontSize: '0.75rem' },
 }
@@ -922,25 +941,40 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
       <div style={s.container}>
 
         {/* ── HEADER ── */}
-        <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid #1e293b', paddingBottom: '1rem' }}>
-          <div className="g-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ marginBottom: '1.5rem', paddingBottom: '1.25rem', borderBottom: '1px solid rgba(148,163,184,0.08)' }} className="float-in">
+          <div className="g-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.25rem' }}>
             <div>
-              <div className="g-header-tags" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
+              <div className="g-header-tags" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.7rem', flexWrap: 'wrap' }}>
                 <span style={s.tag('#ef4444')}>ACTIVE CONFLICT</span>
                 <span style={s.tag('#f59e0b')}>OPEN SOURCE</span>
                 <span style={s.tag('#8b5cf6')}>GEOPOLITICAL</span>
               </div>
-              <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f8fafc', margin: '0 0 0.2rem', letterSpacing: '-0.02em' }}>
+              <h1 style={{
+                fontSize: 'clamp(1.4rem, 3vw, 2.1rem)',
+                fontWeight: 800,
+                margin: '0 0 0.4rem', letterSpacing: '-0.025em',
+                lineHeight: 1.1,
+                background: 'linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text', color: 'transparent',
+              }}>
                 {d.title}
               </h1>
-              <p style={{ ...s.muted, margin: 0 }}>{d.subtitle} · Analysis Date: {d.date}</p>
+              <p style={{ ...s.muted, margin: 0, fontSize: '0.85rem' }}>{d.subtitle} · Analysis Date: <span style={{ color: '#cbd5e1', fontFamily: 'ui-monospace, monospace' }}>{d.date}</span></p>
             </div>
-            <div className="g-header-right" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem' }}>
+            <div className="g-header-right" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.3rem' }}>
               {d.daysElapsed != null && (
-                <div style={{ ...s.mono, fontSize: '2rem', fontWeight: 800, color: '#ef4444' }}>DAY {d.daysElapsed}</div>
+                <div style={{
+                  ...s.mono, fontSize: '2.2rem', fontWeight: 800,
+                  letterSpacing: '-0.02em',
+                  background: 'linear-gradient(135deg, #ef4444, #f59e0b)',
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text', color: 'transparent',
+                  lineHeight: 1,
+                }}>DAY {d.daysElapsed}</div>
               )}
               {d.warStartDate && <div style={{ ...s.dim }}>War began {d.warStartDate}</div>}
-              <div style={{ ...s.dim }}>Confidence: <span style={{ color: '#f59e0b' }}>{d.overallConfidence}</span></div>
+              <div style={{ ...s.dim }}>Confidence: <span style={{ color: '#f59e0b', fontWeight: 700 }}>{d.overallConfidence}</span></div>
             </div>
           </div>
         </div>
@@ -958,21 +992,43 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
         )}
 
         {/* ── TABS ── */}
-        <div className="g-tabs" style={{ display: 'flex', gap: '0.25rem', marginBottom: '1rem', borderBottom: '1px solid #1e293b', paddingBottom: '0.75rem', flexWrap: 'wrap' }}>
-          {tabs.map(({ id, label, icon: Icon, highlight }) => (
-            <button key={id} onClick={() => setActiveTab(id)} style={{
-              display: 'flex', alignItems: 'center', gap: '0.4rem',
-              padding: '0.4rem 0.85rem', borderRadius: '6px', border: 'none', cursor: 'pointer',
-              fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.03em',
-              backgroundColor: activeTab === id ? '#06b6d4' : highlight && activeTab !== id ? 'rgba(245,158,11,0.12)' : 'transparent',
-              color: activeTab === id ? '#0a0f1e' : highlight && activeTab !== id ? '#f59e0b' : '#94a3b8',
-              border: highlight && activeTab !== id ? '1px solid rgba(245,158,11,0.4)' : '1px solid transparent',
-              transition: 'all 0.15s', whiteSpace: 'nowrap',
-            }}>
-              <Icon size={13} />
-              {label}
-            </button>
-          ))}
+        <div className="g-tabs" style={{
+          display: 'flex', gap: '0.3rem', marginBottom: '1.25rem',
+          padding: '0.4rem',
+          background: 'rgba(17,24,39,0.55)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          border: '1px solid rgba(148,163,184,0.08)',
+          borderRadius: 14,
+          flexWrap: 'wrap',
+        }}>
+          {tabs.map(({ id, label, icon: Icon, highlight }) => {
+            const isActive = activeTab === id
+            return (
+              <button key={id} onClick={() => setActiveTab(id)} style={{
+                display: 'flex', alignItems: 'center', gap: '0.4rem',
+                padding: '0.5rem 0.95rem', borderRadius: 10, cursor: 'pointer',
+                fontSize: '0.78rem', fontWeight: 600, letterSpacing: '-0.005em',
+                background: isActive
+                  ? 'linear-gradient(135deg, #06b6d4, #22d3ee)'
+                  : highlight ? 'rgba(245,158,11,0.10)' : 'transparent',
+                color: isActive ? '#04141a' : highlight ? '#f59e0b' : '#94a3b8',
+                border: isActive
+                  ? 'none'
+                  : highlight ? '1px solid rgba(245,158,11,0.35)' : '1px solid transparent',
+                boxShadow: isActive ? '0 6px 16px rgba(6,182,212,0.35)' : 'none',
+                fontFamily: 'inherit',
+                transition: 'all 0.18s cubic-bezier(0.22,1,0.36,1)',
+                whiteSpace: 'nowrap',
+              }}
+                onMouseEnter={(e) => { if (!isActive && !highlight) { e.currentTarget.style.color = '#f1f5f9'; e.currentTarget.style.background = 'rgba(148,163,184,0.06)' } }}
+                onMouseLeave={(e) => { if (!isActive && !highlight) { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent' } }}
+              >
+                <Icon size={13} />
+                {label}
+              </button>
+            )
+          })}
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════════ */}
@@ -981,19 +1037,32 @@ export default function GeoDashboard({ data, politicalComments, verdict, gaps, a
         {activeTab === 'verdict' && (
           <div>
             {/* Stance banner */}
-            <div style={{ ...s.panel, border: `2px solid ${verdict.stanceColor}66`, background: 'rgba(245,158,11,0.06)', marginBottom: '1rem' }}>
-              <div className="g-verdict-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+            <div className="float-in" style={{
+              ...s.panel,
+              border: `1px solid ${verdict.stanceColor}55`,
+              background: `linear-gradient(135deg, ${verdict.stanceColor}10 0%, rgba(17,24,39,0.85) 100%)`,
+              boxShadow: `0 18px 50px ${verdict.stanceColor}1a, inset 0 1px 0 rgba(255,255,255,0.04)`,
+              marginBottom: '1rem',
+              position: 'relative', overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: `radial-gradient(800px 300px at 100% 0%, ${verdict.stanceColor}18, transparent 60%)`,
+                pointerEvents: 'none',
+              }} />
+              <div className="g-verdict-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', position: 'relative', zIndex: 1 }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.6rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.7rem', flexWrap: 'wrap' }}>
                     <div style={{
-                      padding: '0.3rem 1rem', borderRadius: '6px',
-                      background: `${verdict.stanceColor}22`, border: `2px solid ${verdict.stanceColor}`,
-                      color: verdict.stanceColor, fontWeight: 800, fontSize: '1rem', letterSpacing: '0.05em',
+                      padding: '0.45rem 1.15rem', borderRadius: 999,
+                      background: `linear-gradient(135deg, ${verdict.stanceColor}, ${verdict.stanceColor}cc)`,
+                      color: '#0a0f1e', fontWeight: 800, fontSize: '0.92rem', letterSpacing: '0.03em',
+                      boxShadow: `0 8px 22px ${verdict.stanceColor}55, inset 0 1px 0 rgba(255,255,255,0.25)`,
                     }}>{verdict.stance}</div>
-                    <span style={{ color: '#f8fafc', fontWeight: 700 }}>{verdict.timing}</span>
+                    <span style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.92rem' }}>{verdict.timing}</span>
                     <span style={s.tag('#94a3b8')}>Conviction: {verdict.conviction}</span>
                   </div>
-                  <p style={{ ...s.muted, lineHeight: 1.65, margin: 0, maxWidth: 780, fontSize: '0.875rem' }}>{verdict.timingDetail}</p>
+                  <p style={{ ...s.muted, lineHeight: 1.65, margin: 0, maxWidth: 780, fontSize: '0.88rem' }}>{verdict.timingDetail}</p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem', flexShrink: 0 }}>
                   <div style={{ textAlign: 'center' }}>
