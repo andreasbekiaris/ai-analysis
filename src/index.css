@@ -2,25 +2,29 @@
 
 /* ─── DESIGN TOKENS ────────────────────────────────────────────────────────── */
 :root {
-  /* Surfaces */
-  --bg-deep:        #060912;
-  --bg:             #0a0f1e;
-  --bg-elev-1:      #0e1525;
-  --bg-elev-2:      #111827;
-  --bg-elev-3:      #1a2236;
-  --bg-glass:       rgba(17, 24, 39, 0.55);
-  --bg-glass-hi:    rgba(17, 24, 39, 0.78);
+  /* Surfaces — Prometheia deep palette */
+  --bg-deep:        #04040f;
+  --bg:             #06061a;
+  --bg-elev-1:      #08091a;
+  --bg-elev-2:      #0c0d1e;
+  --bg-elev-3:      #101124;
+  --bg-glass:       rgba(6, 8, 28, 0.5);
+  --bg-glass-hi:    rgba(8, 9, 26, 0.78);
 
   /* Borders */
-  --border:         #1e293b;
-  --border-hi:      #334155;
-  --border-soft:    rgba(148, 163, 184, 0.08);
+  --border:         #141528;
+  --border-hi:      #1e1f38;
+  --border-soft:    rgba(255, 255, 255, 0.07);
 
   /* Text */
-  --text:           #f8fafc;
-  --text-muted:     #94a3b8;
-  --text-dim:       #64748b;
-  --text-faint:     #475569;
+  --text:           #f0f0f8;
+  --text-muted:     #8888aa;
+  --text-dim:       #4a4a66;
+  --text-faint:     #2e2e4a;
+
+  /* Typography */
+  --font-display:   'Space Grotesk', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono:      'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
 
   /* Brand accents */
   --cyan:           #06b6d4;
@@ -70,14 +74,14 @@ html, body { height: 100%; }
 
 body {
   margin: 0;
-  background-color: var(--bg);
+  background-color: var(--bg-deep);
   background-image:
-    radial-gradient(1200px 800px at 12% -10%, rgba(6,182,212,0.10), transparent 60%),
-    radial-gradient(900px 700px at 100% 0%,   rgba(139,92,246,0.09), transparent 55%),
-    radial-gradient(900px 900px at 50% 110%,  rgba(16,185,129,0.06), transparent 60%);
+    radial-gradient(1200px 800px at 12% -10%, rgba(6,182,212,0.09), transparent 60%),
+    radial-gradient(900px 700px at 100% 0%,   rgba(139,92,246,0.08), transparent 55%),
+    radial-gradient(900px 900px at 50% 110%,  rgba(16,185,129,0.05), transparent 60%);
   background-attachment: fixed;
   color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', sans-serif;
+  font-family: var(--font-display);
   font-feature-settings: 'ss01', 'cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -100,11 +104,42 @@ body::before {
 
 #root { position: relative; z-index: 1; }
 
+/* ─── HOLOGRAPHIC OVERLAY (ParticleField) ────────────────────────────────── */
+@keyframes holoOpen {
+  0%   { clip-path: inset(50% 50% 50% 50% round 2px); opacity: 0; filter: brightness(3); }
+  30%  { opacity: 1; filter: brightness(1.4); }
+  100% { clip-path: inset(0% 0% 0% 0% round 2px); filter: brightness(1); }
+}
+@keyframes holoFlicker {
+  0%, 100% { opacity: 1; }
+  4%   { opacity: 0.88; }
+  5%   { opacity: 1; }
+  55%  { opacity: 0.94; }
+  56%  { opacity: 1; }
+  80%  { opacity: 0.97; }
+}
+@keyframes crtScan {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(200%); }
+}
+.holo-card {
+  animation: holoOpen 0.5s cubic-bezier(0.16, 1, 0.3, 1) both,
+             holoFlicker 4s 0.5s infinite;
+  position: absolute;
+  transform-origin: center bottom;
+}
+.holo-scan-sweep {
+  position: absolute; left: 0; right: 0; height: 40%;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 255, 200, 0.04) 50%, transparent 100%);
+  animation: crtScan 3s linear infinite;
+  pointer-events: none; z-index: 20;
+}
+
 /* Numbers always tabular for nice column alignment */
 [style*="monospace"], pre, code, kbd, samp {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1, 'zero' 1;
-  font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 /* ─── SCROLLBAR ────────────────────────────────────────────────────────────── */
@@ -167,20 +202,20 @@ a:hover { text-decoration: none; }
 
 /* ─── UTILITY CLASSES ────────────────────────────────────────────────────── */
 
-/* Glass surface — frosted card */
+/* Glass surface — frosted card (Prometheia) */
 .glass {
-  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0)) , var(--bg-glass);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0)) , var(--bg-glass);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
   border: 1px solid var(--border-soft);
   box-shadow: var(--shadow-md);
   border-radius: var(--r-lg);
 }
 
 .glass-hi {
-  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0)) , var(--bg-glass-hi);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0)) , var(--bg-glass-hi);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
   border: 1px solid var(--border-soft);
   box-shadow: var(--shadow-lg);
   border-radius: var(--r-lg);

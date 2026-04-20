@@ -7,6 +7,8 @@ import {
 } from 'lucide-react'
 import SiteNavBar from './components/SiteNavBar'
 import BestPicksSection from './components/BestPicksSection'
+import NewsSection from './components/NewsSection'
+import ParticleField from './components/ParticleField'
 
 // Import dashboards here as they are created
 import UsIranWar from './dashboards/geopolitical/us-iran-war-2026-03-22'
@@ -448,6 +450,7 @@ function Home() {
         <NewAnalysisForm />
         <BestPicksSection />
         <AnalysisQueue />
+        <NewsSection />
 
         {/* Library section header */}
         <div className="title-bar" style={{ marginTop: '2.5rem', marginBottom: '1.25rem' }}>
@@ -502,6 +505,7 @@ function Home() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ParticleField />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/help" element={<HelpPage />} />
