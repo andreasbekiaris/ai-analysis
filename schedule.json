@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "updatedAt": "2026-04-20T10:36:00Z",
+  "updatedAt": "2026-04-22T08:43:00Z",
   "notes": "Schedule config for auto-reanalysis. Read by watcher.cjs every minute. All times are Athens local (Europe/Athens).",
   "dashboards": {},
   "bestPicks": {
-    "enabled": false,
+    "enabled": true,
     "lastMorningRun": null,
     "lastAfterCloseRun": null,
     "morningModeAthens": { "hour": 8, "minute": 0 },

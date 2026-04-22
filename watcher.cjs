@@ -134,29 +134,41 @@ async function startSmeeClient(smeeUrl) {
  * Start local HTTP server to receive webhook events
  */
 function startWebhookServer() {
-  const server = http.createServer((req, res) => {
-    if (req.method === 'POST' && req.url === '/webhook') {
-      let body = '';
-      req.on('data', (chunk) => body += chunk);
-      req.on('end', () => {
-        res.writeHead(200);
-        res.end('ok');
+  return new Promise((resolve) => {
+    const server = http.createServer((req, res) => {
+      if (req.method === 'POST' && req.url === '/webhook') {
+        let body = '';
+        req.on('data', (chunk) => body += chunk);
+        req.on('end', () => {
+          res.writeHead(200);
+          res.end('ok');
 
-        try {
-          const event = JSON.parse(body);
-          handleWebhookEvent(req.headers, event);
-        } catch (err) {
-          logError(`Failed to parse webhook: ${err.message}`);
-        }
-      });
-    } else {
-      res.writeHead(404);
-      res.end();
-    }
-  });
+          try {
+            const event = JSON.parse(body);
+            handleWebhookEvent(req.headers, event);
+          } catch (err) {
+            logError(`Failed to parse webhook: ${err.message}`);
+          }
+        });
+      } else {
+        res.writeHead(404);
+        res.end();
+      }
+    });
 
-  server.listen(CONFIG.port, () => {
-    log(`Webhook server listening on port ${CONFIG.port}`);
+    server.once('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        logError(`Port ${CONFIG.port} is already in use — webhook server disabled. Scheduler will still run. (Another watcher instance may be active.)`);
+      } else {
+        logError(`Webhook server error: ${err.message}`);
+      }
+      resolve(false);
+    });
+
+    server.listen(CONFIG.port, () => {
+      log(`Webhook server listening on port ${CONFIG.port}`);
+      resolve(true);
+    });
   });
 }
 
@@ -572,8 +584,7 @@ function checkPrerequisites() {
     execSync('gh auth status', { encoding: 'utf-8', stdio: 'pipe' });
     log('  GitHub CLI authenticated');
   } catch {
-    logError('GitHub CLI not authenticated. Run: gh auth login');
-    process.exit(1);
+    logError('GitHub CLI not authenticated — issue comments/labels will fail, but scheduler will still run. Fix with: gh auth login -h github.com');
   }
 
   if (!fs.existsSync(CONFIG.projectPath)) {
@@ -655,16 +666,29 @@ async function main() {
 
   checkPrerequisites();
 
-  // Set up webhook pipeline: GitHub -> smee.io -> localhost
-  const smeeUrl = await getSmeeUrl();
-  setupGitHubWebhook(smeeUrl);
-  startWebhookServer();
-  await startSmeeClient(smeeUrl);
-
-  log('Watcher is live! Create a GitHub issue to trigger an analysis.');
+  // Set up webhook pipeline: GitHub -> smee.io -> localhost.
+  // Any failure here (bad port, bad auth, bad smee) is non-fatal — the
+  // scheduler still runs and can fire synthetic issues locally.
+  try {
+    const smeeUrl = await getSmeeUrl();
+    setupGitHubWebhook(smeeUrl);
+    const bound = await startWebhookServer();
+    if (bound) {
+      await startSmeeClient(smeeUrl);
+      log('Watcher is live! Create a GitHub issue to trigger an analysis.');
+    } else {
+      log('Watcher running in scheduler-only mode (no webhook listener).');
+    }
+  } catch (err) {
+    logError(`Webhook pipeline setup failed: ${err.message} — continuing in scheduler-only mode.`);
+  }
 
   // Process any issues that were opened while the watcher was offline
-  await processExistingIssues();
+  try {
+    await processExistingIssues();
+  } catch (err) {
+    logError(`processExistingIssues failed: ${err.message} — continuing.`);
+  }
 
   // Start the per-minute scheduler for auto-reanalysis + best picks
   startScheduler();

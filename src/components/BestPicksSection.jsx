@@ -155,7 +155,7 @@ function PicksColumn({ title, side, items }) {
           padding: '1rem', border: `1px dashed ${T.border}`, borderRadius: 10,
           textAlign: 'center',
         }}>
-          No picks yet. Enable screening from the settings below.
+          No picks yet. Click <strong style={{ color: T.cyan }}>Settings</strong> above → <strong style={{ color: T.cyan }}>Run now</strong>.
         </div>
       )}
     </div>
@@ -179,6 +179,9 @@ function WatchlistManager({ onClose, onSaved }) {
   const [autoScope, setAutoScope] = useState('GLOBAL')
   const [autoState, setAutoState] = useState('idle') // idle | sending | dispatched | error
   const [autoMsg, setAutoMsg] = useState(null)
+
+  const [bpState, setBpState] = useState('idle')
+  const [bpMsg, setBpMsg] = useState(null)
 
   useEffect(() => {
     setLoading(true)
@@ -213,6 +216,26 @@ function WatchlistManager({ onClose, onSaved }) {
       ...bestPicksCfg,
       watchlist: bestPicksCfg.watchlist.filter((w) => w.ticker !== ticker),
     })
+  }
+
+  const dispatchBestPicks = async () => {
+    if (!password) { setBpMsg('Enter the password below before dispatching'); setBpState('error'); return }
+    setBpState('sending')
+    setBpMsg(null)
+    try {
+      const res = await fetch(`${API_BASE}/api/best-picks/dispatch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, runType: 'manual' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || `Dispatch failed (${res.status})`)
+      setBpState('dispatched')
+      setBpMsg(`Issue #${data.issueNumber} created — Claude Code is screening your watchlist. Best picks will appear on the home page in ~3–6 minutes (auto-refresh).`)
+    } catch (err) {
+      setBpState('error')
+      setBpMsg(err.message)
+    }
   }
 
   const dispatchAutoWatchlist = async () => {
@@ -302,6 +325,44 @@ function WatchlistManager({ onClose, onSaved }) {
                 onChange={(e) => setBestPicksCfg({ ...bestPicksCfg, morningModeAthens: { ...bestPicksCfg.morningModeAthens, minute: Math.max(0, Math.min(59, parseInt(e.target.value || '0', 10))) } })}
                 style={{ width: 60, background: T.bg, color: T.text, border: `1px solid ${T.border}`, borderRadius: 4, padding: '0.3rem 0.5rem', fontFamily: 'monospace' }} />
               <span style={{ color: T.dim, fontSize: '0.75rem' }}>(default 08:00 — before all exchanges open)</span>
+            </div>
+
+            <div style={{
+              border: `1px solid ${T.cyan}44`, background: `${T.cyan}08`,
+              borderRadius: 8, padding: '0.75rem 0.85rem', marginBottom: '1rem',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                <RefreshCw size={14} color={T.cyan} />
+                <span style={{ color: T.text, fontSize: '0.82rem', fontWeight: 700 }}>Run Best Picks now</span>
+              </div>
+              <div style={{ color: T.muted, fontSize: '0.72rem', marginBottom: '0.6rem', lineHeight: 1.4 }}>
+                Dispatch a one-shot screening pass across your watchlist. Claude Code selects the top 3 buys + top 3 shorts per region and writes src/data/best-picks.json. The section below refreshes on next deploy (~3–6 minutes).
+              </div>
+              <button
+                onClick={dispatchBestPicks}
+                disabled={bpState === 'sending'}
+                style={{
+                  background: bpState === 'sending' ? T.border : T.cyan,
+                  color: bpState === 'sending' ? T.dim : '#0a0f1e',
+                  border: 'none', borderRadius: 4,
+                  padding: '0.35rem 0.85rem', fontSize: '0.8rem', fontWeight: 700,
+                  cursor: bpState === 'sending' ? 'wait' : 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                }}
+              >
+                {bpState === 'sending'
+                  ? <><Loader size={12} style={{ animation: 'spin 1s linear infinite' }} /> Dispatching...</>
+                  : <><RefreshCw size={12} /> Run now</>}
+              </button>
+              {bpMsg && (
+                <div style={{
+                  marginTop: '0.5rem', fontSize: '0.72rem',
+                  color: bpState === 'error' ? T.crimson : bpState === 'dispatched' ? T.emerald : T.muted,
+                  lineHeight: 1.4,
+                }}>
+                  {bpMsg}
+                </div>
+              )}
             </div>
 
             <div style={{

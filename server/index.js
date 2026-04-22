@@ -5,6 +5,7 @@ import { handler as reanalyzeHandler } from './routes/reanalyze.js'
 import { handler as reanalyzeStockHandler } from './routes/reanalyze-stock.js'
 import { getScheduleHandler, postScheduleHandler } from './routes/schedule.js'
 import { autoWatchlistHandler } from './routes/auto-watchlist.js'
+import { bestPicksDispatchHandler } from './routes/best-picks-dispatch.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -92,6 +93,9 @@ app.post('/api/schedule', postScheduleHandler)
 
 // Auto-watchlist dispatch — creates a GitHub issue for the watcher to process
 app.post('/api/auto-watchlist', autoWatchlistHandler)
+
+// Best-picks dispatch — manually trigger a best-picks screening run
+app.post('/api/best-picks/dispatch', bestPicksDispatchHandler)
 
 const server = app.listen(PORT, () => {
   console.log(`AI Analysis API running on port ${PORT}`)
