@@ -21,9 +21,9 @@ export default function SiteNavBar({ onRefresh }) {
   }, [])
 
   return (
-    <div style={{
+    <div className="site-navbar" style={{
       position: 'sticky', top: 0, zIndex: 200,
-      height: 56,
+      minHeight: 56,
       background: scrolled
         ? 'linear-gradient(180deg, rgba(4,4,15,0.92), rgba(4,4,15,0.78))'
         : 'linear-gradient(180deg, rgba(4,4,15,0.78), rgba(4,4,15,0.45))',
@@ -31,7 +31,7 @@ export default function SiteNavBar({ onRefresh }) {
       WebkitBackdropFilter: 'blur(28px) saturate(160%)',
       borderBottom: `1px solid ${scrolled ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)'}`,
       boxShadow: scrolled ? '0 8px 28px rgba(0,0,0,0.45)' : 'none',
-      padding: '0 1.5rem',
+      padding: '0.5rem 1.5rem',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       gap: '1rem', flexWrap: 'wrap',
       transition: 'background 220ms cubic-bezier(0.22,1,0.36,1), border-color 220ms, box-shadow 220ms',
@@ -50,7 +50,7 @@ export default function SiteNavBar({ onRefresh }) {
           <BarChart3 size={16} color="#04040f" strokeWidth={2.5} />
         </span>
         <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1 }}>
-          <span style={{
+          <span className="site-navbar-brand-sub" style={{
             fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.22em',
             color: '#8888aa', textTransform: 'uppercase', marginBottom: 2,
             fontFamily: 'JetBrains Mono, ui-monospace, monospace',
@@ -73,7 +73,7 @@ export default function SiteNavBar({ onRefresh }) {
       </Link>
 
       {/* Nav */}
-      <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="site-navbar-links" style={{ display: 'flex', gap: '0.3rem', alignItems: 'center', flexWrap: 'wrap' }}>
         {links.map(({ to, icon: Icon, label }) => {
           const active = pathname === to
           return (
@@ -103,7 +103,7 @@ export default function SiteNavBar({ onRefresh }) {
                 e.currentTarget.style.background = 'transparent'
               }}
             >
-              <Icon size={13} /> {label}
+              <Icon size={13} /> <span className="site-navbar-link-label">{label}</span>
             </Link>
           )
         })}
@@ -129,7 +129,7 @@ export default function SiteNavBar({ onRefresh }) {
             e.currentTarget.style.background = 'transparent'
           }}
         >
-          <RefreshCw size={13} /> Refresh
+          <RefreshCw size={13} /> <span className="site-navbar-link-label">Refresh</span>
         </button>
       </div>
     </div>

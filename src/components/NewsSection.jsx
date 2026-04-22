@@ -179,7 +179,7 @@ export default function NewsSection() {
         </span>
       </div>
 
-      <div className="stagger" style={{
+      <div className="stagger news-grid" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
         gap: '0.85rem',

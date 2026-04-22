@@ -123,15 +123,15 @@ body::before {
   100% { transform: translateY(200%); }
 }
 .holo-card {
-  animation: holoOpen 0.5s cubic-bezier(0.16, 1, 0.3, 1) both,
-             holoFlicker 4s 0.5s infinite;
+  animation: holoOpen 1.3s cubic-bezier(0.16, 1, 0.3, 1) both,
+             holoFlicker 8s 1.3s infinite;
   position: absolute;
   transform-origin: center bottom;
 }
 .holo-scan-sweep {
   position: absolute; left: 0; right: 0; height: 40%;
   background: linear-gradient(180deg, transparent 0%, rgba(0, 255, 200, 0.04) 50%, transparent 100%);
-  animation: crtScan 3s linear infinite;
+  animation: crtScan 7s linear infinite;
   pointer-events: none; z-index: 20;
 }
 
@@ -410,12 +410,42 @@ a:hover { text-decoration: none; }
   .home-container   { padding: 1.25rem !important; }
   .home-grid        { grid-template-columns: 1fr !important; }
   .best-picks-grid  { grid-template-columns: 1fr !important; }
+  .news-grid        { grid-template-columns: 1fr !important; }
+
+  /* Site navbar: allow vertical growth, tighter padding, smaller links */
+  .site-navbar {
+    padding: 0.55rem 0.9rem !important;
+    gap: 0.5rem !important;
+  }
+  .site-navbar-brand-sub { display: none !important; }
+  .site-navbar-links     { gap: 0.2rem !important; }
+  .site-navbar-links > a,
+  .site-navbar-links > button {
+    padding: 0.38rem 0.6rem !important;
+    font-size: 0.74rem !important;
+  }
+
+  /* Card padding tightens on phones */
+  .new-analysis-card { padding: 1.1rem 1.1rem 1rem !important; }
+  .best-picks-card   { padding: 1.05rem !important; }
 }
+
+@media (max-width: 560px) {
+  /* Hide nav labels — icons only, keeps the row to one line */
+  .site-navbar-link-label { display: none !important; }
+  .site-navbar-links > a,
+  .site-navbar-links > button { padding: 0.42rem 0.55rem !important; }
+
+  /* Pending queue: drop the issue number to keep title readable */
+  .queue-issue-num { display: none !important; }
+}
+
 @media (max-width: 480px) {
   .home-container { padding: 1rem !important; }
   .home-form      { flex-direction: column !important; }
   .home-form button { width: 100% !important; justify-content: center !important; }
-  .home-title     { font-size: 1.6rem !important; }
+  .home-title     { font-size: 1.6rem !important; line-height: 1.15 !important; }
+  .hero-break     { display: none !important; }
 }
 
 /* Reduce motion respect */

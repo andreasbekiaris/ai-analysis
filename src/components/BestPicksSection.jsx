@@ -440,7 +440,7 @@ export default function BestPicksSection() {
 
   return (
     <div className="grad-border" style={{ marginBottom: '2rem' }}>
-      <div style={{
+      <div className="best-picks-card" style={{
         background: 'linear-gradient(180deg, rgba(17,24,39,0.85), rgba(17,24,39,0.65))',
         backdropFilter: 'blur(16px) saturate(140%)',
         WebkitBackdropFilter: 'blur(16px) saturate(140%)',

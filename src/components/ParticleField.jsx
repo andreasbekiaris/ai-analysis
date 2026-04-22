@@ -193,6 +193,7 @@ export default function ParticleField() {
       node.holoTop = top
       node.holoW = holoW
       node.holoH = holoH
+      node.beamT = 0
       overlay.innerHTML = node.isStock ? buildStockHolo(node.data) : buildEventHolo(node.data)
       const el = overlay.firstChild
       if (el) {
@@ -202,13 +203,14 @@ export default function ParticleField() {
     }
 
     const hideHolo = () => {
+      for (const n of nodes) { n.beamT = 0; n.holoTop = null }
       const el = overlay.firstChild
       if (!el) return
       el.style.animation = 'none'
       el.style.opacity = '0'
       el.style.transform = 'scaleY(0)'
-      el.style.transition = 'opacity 0.15s, transform 0.15s'
-      setTimeout(() => { overlay.innerHTML = '' }, 160)
+      el.style.transition = 'opacity 0.25s, transform 0.25s'
+      setTimeout(() => { overlay.innerHTML = '' }, 260)
     }
 
     const onMove = (e) => {

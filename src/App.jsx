@@ -91,7 +91,7 @@ function NewAnalysisForm() {
 
   return (
     <div className="grad-border" style={{ marginBottom: '2rem' }}>
-      <div style={{
+      <div className="new-analysis-card" style={{
         background: 'linear-gradient(180deg, rgba(17,24,39,0.85), rgba(17,24,39,0.65))',
         backdropFilter: 'blur(16px) saturate(140%)',
         WebkitBackdropFilter: 'blur(16px) saturate(140%)',
@@ -316,7 +316,7 @@ function AnalysisQueue() {
                 {issue.title}
               </div>
             </div>
-            <span style={{ color: '#475569', fontSize: '0.7rem', fontFamily: 'ui-monospace, monospace', flexShrink: 0 }}>
+            <span className="queue-issue-num" style={{ color: '#475569', fontSize: '0.7rem', fontFamily: 'ui-monospace, monospace', flexShrink: 0 }}>
               #{issue.number}
             </span>
             <span style={{ color: '#475569', fontSize: '0.7rem', flexShrink: 0 }}>
@@ -435,7 +435,7 @@ function Home() {
 
           <h1 className="home-title display-1" style={{ margin: 0, marginBottom: '0.6rem' }}>
             Geopolitical & financial intelligence,
-            <br />
+            <br className="hero-break" />{' '}
             <span className="gradient-text-cyan">rendered in real time.</span>
           </h1>
           <p style={{
