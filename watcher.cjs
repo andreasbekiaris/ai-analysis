@@ -73,6 +73,8 @@ const CLAUDE_MODEL_OPTIONS = new Set([
   'claude-3-haiku-20240307',
 ]);
 
+const CLAUDE_CODE_TIMEOUT_MS = 30 * 60 * 1000;
+
 // ============================================
 // WATCHER LOGIC
 // ============================================
@@ -358,6 +360,7 @@ function buildReanalyzePrompt(dashboardFile, analysisTitle, extraContext) {
     `7. git add ${dashboardFile}`,
     `8. Commit: "refactor: reanalyze — ${analysisTitle} — ${today}"`,
     '9. Push to origin main',
+    '10. Do not stop to ask whether to commit or push; these steps are already authorized by this task.',
   ]
   if (extraContext) lines.push('', `Additional context: ${extraContext}`)
   return lines.join('\n')
@@ -475,7 +478,7 @@ function runClaudeCode(prompt, issueNumber, modelId) {
     const escapedPrompt = fullPrompt.replace(/"/g, '""');
     const claude = spawn(
       `claude --model ${model} --dangerously-skip-permissions -p "${escapedPrompt}"`,
-      { cwd: CONFIG.projectPath, stdio: ['pipe', 'pipe', 'pipe'], shell: true, timeout: 600000 }
+      { cwd: CONFIG.projectPath, stdio: ['pipe', 'pipe', 'pipe'], shell: true, timeout: CLAUDE_CODE_TIMEOUT_MS }
     );
 
     let stdout = '';

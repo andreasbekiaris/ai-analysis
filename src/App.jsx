@@ -25,7 +25,7 @@ import CasinoMarketDashboard from './dashboards/sectors/casino-market-analysis-2
 const dashboards = [
   { path: '/geo/us-iran-war',                  component: UsIranWar,             title: 'US–Iran War: Operation Epic Fury',                              type: 'geopolitical', date: '2026-03-22' },
   { path: '/geo/russia-ukraine-war',           component: RussiaUkraineWar,      title: 'Russia–Ukraine War: Year Four',                                 type: 'geopolitical', date: '2026-03-24' },
-  { path: '/stocks/alpha',                     component: AlphaBank,             title: 'Alpha Bank (ALPHA.AT / ALBKY)',                                 type: 'stocks',       date: '2026-04-05' },
+  { path: '/stocks/alpha',                     component: AlphaBank,             title: 'Alpha Bank (ALPHA.AT / ALBKY)',                                 type: 'stocks',       date: '2026-04-24' },
   { path: '/stocks/eurob',                     component: EurobankDashboard,     title: 'Eurobank (EUROB)',                                              type: 'stocks',       date: '2026-03-30' },
   { path: '/stocks/lmt',                       component: LockheedMartinLMT,     title: 'Lockheed Martin (LMT)',                                         type: 'stocks',       date: '2026-04-02' },
   { path: '/sectors/casino-market-analysis',   component: CasinoMarketDashboard, title: 'Global Casino Market: Regulatory Disruption & Realignment',    type: 'sectors',      date: '2026-04-02' },
