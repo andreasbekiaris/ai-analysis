@@ -137,6 +137,10 @@ function buildEventHolo(d) {
 const NODE_COUNT = 52
 const MAX_DIST = 200
 const HOVER_R = 22
+const HOLO_W = 240
+const HOLO_H = 160
+const HOLO_GAP = 58
+const VIEWPORT_PAD = 12
 
 export default function ParticleField() {
   const canvasRef = useRef(null)
@@ -153,7 +157,7 @@ export default function ParticleField() {
     let mouse = { x: -9999, y: -9999 }
     let hoveredNode = null
     let holoTimer = null
-    let holoPos = { x: 0, y: 0 }
+    let holoHideTimer = null
     let rafId = 0
     const t0 = Date.now()
 
@@ -182,24 +186,31 @@ export default function ParticleField() {
       })
     }
 
-    const showHolo = (node, mx, my) => {
+    const showHolo = (node) => {
+      clearTimeout(holoHideTimer)
       const W2 = window.innerWidth
-      const holoW = 240, holoH = 160, beamH = 60
-      let left = node.x - holoW / 2
-      let top = node.y - node.r - beamH - holoH
-      if (left < 8) left = 8
-      if (left + holoW > W2 - 8) left = W2 - holoW - 8
-      if (top < 8) top = 8
+      const H2 = window.innerHeight
+      const spaceAbove = node.y - VIEWPORT_PAD
+      const spaceBelow = H2 - node.y - VIEWPORT_PAD
+      const placeAbove = spaceAbove >= HOLO_H + HOLO_GAP || spaceAbove > spaceBelow
+      let left = node.x - HOLO_W / 2
+      let top = placeAbove
+        ? node.y - node.r - HOLO_GAP - HOLO_H
+        : node.y + node.r + HOLO_GAP
+      left = Math.max(VIEWPORT_PAD, Math.min(left, W2 - HOLO_W - VIEWPORT_PAD))
+      top = Math.max(VIEWPORT_PAD, Math.min(top, H2 - HOLO_H - VIEWPORT_PAD))
       node.holoLeft = left
       node.holoTop = top
-      node.holoW = holoW
-      node.holoH = holoH
+      node.holoW = HOLO_W
+      node.holoH = HOLO_H
+      node.holoPlacement = placeAbove ? 'above' : 'below'
       node.beamT = 0
       overlay.innerHTML = node.isStock ? buildStockHolo(node.data) : buildEventHolo(node.data)
       const el = overlay.firstChild
       if (el) {
         el.style.left = left + 'px'
         el.style.top = top + 'px'
+        el.style.transformOrigin = placeAbove ? 'center bottom' : 'center top'
       }
     }
 
@@ -211,7 +222,8 @@ export default function ParticleField() {
       el.style.opacity = '0'
       el.style.transform = 'scaleY(0)'
       el.style.transition = 'opacity 0.25s, transform 0.25s'
-      setTimeout(() => { overlay.innerHTML = '' }, 260)
+      clearTimeout(holoHideTimer)
+      holoHideTimer = setTimeout(() => { overlay.innerHTML = '' }, 260)
     }
 
     const onMove = (e) => {
@@ -222,15 +234,15 @@ export default function ParticleField() {
       }
       if (found !== hoveredNode) {
         clearTimeout(holoTimer); holoTimer = null
-        if (hoveredNode) hoveredNode.hoverT = 0
+        if (hoveredNode) {
+          hoveredNode.hoverT = 0
+          hideHolo()
+        }
         hoveredNode = found
         if (!found) { hideHolo(); return }
-        holoPos = { x: e.clientX, y: e.clientY }
         holoTimer = setTimeout(() => {
-          if (hoveredNode === found) showHolo(found, holoPos.x, holoPos.y)
+          if (hoveredNode === found) showHolo(found)
         }, 500)
-      } else if (found) {
-        holoPos = { x: e.clientX, y: e.clientY }
       }
     }
     const onLeave = () => {
@@ -301,42 +313,43 @@ export default function ParticleField() {
         n.beamT = Math.min(1, (n.beamT || 0) + 0.055)
         const beamEase = 1 - Math.pow(1 - n.beamT, 3)
         const h = n.hoverT * beamEase
-        const beamBottom = n.y - n.r
-        const beamTop = n.holoTop + (n.holoH || 160)
+        const isAbove = n.holoPlacement !== 'below'
+        const nodeEdgeY = isAbove ? n.y - n.r : n.y + n.r
+        const cardEdgeY = isAbove ? n.holoTop + (n.holoH || HOLO_H) : n.holoTop
         const holoMidX = n.holoLeft + (n.holoW || 240) / 2
         const spreadTop = (n.holoW || 240) * 0.45
         const spreadBot = n.r * 0.8
 
-        const beamGrad = ctx.createLinearGradient(n.x, beamBottom, n.x, beamTop)
+        const beamGrad = ctx.createLinearGradient(n.x, nodeEdgeY, holoMidX, cardEdgeY)
         beamGrad.addColorStop(0, 'rgba(0,255,200,0)')
         beamGrad.addColorStop(0.18, `rgba(0,255,200,${0.12 * h})`)
         beamGrad.addColorStop(0.62, `rgba(0,255,220,${0.18 * h})`)
         beamGrad.addColorStop(1, `rgba(0,255,220,${0.04 * h})`)
         ctx.beginPath()
-        ctx.moveTo(n.x - spreadBot, beamBottom)
-        ctx.lineTo(holoMidX - spreadTop, beamTop)
-        ctx.lineTo(holoMidX + spreadTop, beamTop)
-        ctx.lineTo(n.x + spreadBot, beamBottom)
+        ctx.moveTo(n.x - spreadBot, nodeEdgeY)
+        ctx.lineTo(holoMidX - spreadTop, cardEdgeY)
+        ctx.lineTo(holoMidX + spreadTop, cardEdgeY)
+        ctx.lineTo(n.x + spreadBot, nodeEdgeY)
         ctx.closePath()
         ctx.fillStyle = beamGrad
         ctx.fill()
 
-        const coreGrad = ctx.createLinearGradient(n.x, beamBottom, n.x, beamTop)
+        const coreGrad = ctx.createLinearGradient(n.x, nodeEdgeY, holoMidX, cardEdgeY)
         coreGrad.addColorStop(0, 'rgba(0,255,220,0)')
         coreGrad.addColorStop(0.45, `rgba(0,255,220,${0.16 * h})`)
         coreGrad.addColorStop(1, `rgba(0,255,220,${0.05 * h})`)
         ctx.beginPath()
-        ctx.moveTo(n.x - spreadBot * 0.35, beamBottom)
-        ctx.lineTo(holoMidX - spreadTop * 0.22, beamTop)
-        ctx.lineTo(holoMidX + spreadTop * 0.22, beamTop)
-        ctx.lineTo(n.x + spreadBot * 0.35, beamBottom)
+        ctx.moveTo(n.x - spreadBot * 0.35, nodeEdgeY)
+        ctx.lineTo(holoMidX - spreadTop * 0.22, cardEdgeY)
+        ctx.lineTo(holoMidX + spreadTop * 0.22, cardEdgeY)
+        ctx.lineTo(n.x + spreadBot * 0.35, nodeEdgeY)
         ctx.closePath()
         ctx.fillStyle = coreGrad
         ctx.fill()
 
         ctx.beginPath()
-        ctx.moveTo(n.x, beamBottom)
-        ctx.lineTo(holoMidX, beamTop)
+        ctx.moveTo(n.x, nodeEdgeY)
+        ctx.lineTo(holoMidX, cardEdgeY)
         ctx.strokeStyle = `rgba(0,255,220,${0.26 * h})`
         ctx.lineWidth = 0.6 + 0.3 * beamEase
         ctx.stroke()
@@ -402,6 +415,7 @@ export default function ParticleField() {
     return () => {
       cancelAnimationFrame(rafId)
       clearTimeout(holoTimer)
+      clearTimeout(holoHideTimer)
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseleave', onLeave)
       window.removeEventListener('resize', onResize)
