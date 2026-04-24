@@ -1,4 +1,4 @@
-import { readModelConfig } from '../model-config.js'
+import { maxOutputTokensForModel, readModelConfig, uniqueModelList } from '../model-config.js'
 
 const REPO = 'andreasbekiaris/ai-analysis'
 
@@ -372,52 +372,58 @@ export async function handler(req, res) {
   // ── Step 3: Call Claude — NO timeout pressure, full tokens ──────────────────
   const maxRetries = 3
   let claudeText = ''
-  let usedModel = modelConfig.generationModel
+  let usedModel = null
+  const modelAttempts = uniqueModelList(modelConfig.generationModel, modelConfig.fallbackModel)
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anthropicKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: usedModel,
-          max_tokens: 16000,
-          messages: [{ role: 'user', content: claudePrompt }],
-        }),
-      })
+  for (const model of modelAttempts) {
+    usedModel = model
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: usedModel,
+            max_tokens: maxOutputTokensForModel(usedModel, 16000),
+            messages: [{ role: 'user', content: claudePrompt }],
+          }),
+        })
 
-      if (claudeRes.status === 529 || claudeRes.status === 503) {
-        if (attempt < maxRetries) {
-          await new Promise(r => setTimeout(r, attempt * 5000))
-          continue
+        if (claudeRes.status === 529 || claudeRes.status === 503) {
+          if (attempt < maxRetries) {
+            await new Promise(r => setTimeout(r, attempt * 5000))
+            continue
+          }
+          break
         }
-        return res.status(502).json({ error: 'Claude API overloaded — try again later' })
-      }
 
-      if (!claudeRes.ok) {
-        const err = await claudeRes.json().catch(() => ({}))
-        return res.status(502).json({ error: `Claude API error: ${err.error?.message || claudeRes.status}` })
-      }
-      const data = await claudeRes.json()
-      claudeText = data?.content?.[0]?.text || ''
-      if (claudeText) break
+        if (!claudeRes.ok) {
+          const err = await claudeRes.json().catch(() => ({}))
+          return res.status(502).json({ error: `Claude API error: ${err.error?.message || claudeRes.status}` })
+        }
+        const data = await claudeRes.json()
+        claudeText = data?.content?.[0]?.text || ''
+        if (claudeText) break
 
-      if (attempt < maxRetries) {
-        await new Promise(r => setTimeout(r, 3000))
+        if (attempt < maxRetries) {
+          await new Promise(r => setTimeout(r, 3000))
+        }
+      } catch (e) {
+        if (attempt === maxRetries) {
+          break
+        }
+        await new Promise(r => setTimeout(r, attempt * 5000))
       }
-    } catch (e) {
-      if (attempt === maxRetries) {
-        return res.status(502).json({ error: `Claude API failed: ${e.message}` })
-      }
-      await new Promise(r => setTimeout(r, attempt * 5000))
     }
+
+    if (claudeText) break
   }
 
-  if (!claudeText) return res.status(502).json({ error: 'Claude returned empty response after retries' })
+  if (!claudeText) return res.status(502).json({ error: 'Configured Claude models failed or timed out - try again in a few minutes' })
 
   // ── Step 4: Parse metadata + JSX ─────────────────────────────────────────────
   claudeText = claudeText.replace(/^```(?:jsx|javascript|js)?\s*\n?/gm, '').replace(/\n?```\s*$/gm, '').trim()

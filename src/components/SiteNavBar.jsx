@@ -13,7 +13,7 @@ const links = [
 export default function SiteNavBar({
   onRefresh,
   analysisEngine = {
-    model: 'Claude Sonnet 4.6',
+    model: 'Claude Sonnet 4',
     detail: 'Dashboard analysis and generation. Gemini 2.5 Flash handles web search.',
   },
 }) {

@@ -7,6 +7,7 @@ import {
   MODEL_CONFIG_API_BASE,
   fetchModelConfig,
   labelModel,
+  normalizeModelConfig,
 } from '../lib/modelConfig'
 
 const BOX = {
@@ -23,7 +24,9 @@ const BOX = {
   crimson: '#ef4444',
 }
 
-function ModelInput({ label, value, onChange, listId, detail }) {
+function ModelSelect({ label, value, onChange, options, detail }) {
+  const optionSet = options.includes(value) || !value ? options : [value, ...options]
+
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
       <span style={{
@@ -35,10 +38,10 @@ function ModelInput({ label, value, onChange, listId, detail }) {
       }}>
         {label}
       </span>
-      <input
-        list={listId}
+      <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        title={value}
         style={{
           width: '100%',
           background: BOX.deep,
@@ -49,8 +52,15 @@ function ModelInput({ label, value, onChange, listId, detail }) {
           fontSize: '0.82rem',
           fontFamily: 'ui-monospace, monospace',
           outline: 'none',
+          cursor: 'pointer',
         }}
-      />
+      >
+        {optionSet.map((model) => (
+          <option key={model} value={model}>
+            {labelModel(model)}
+          </option>
+        ))}
+      </select>
       <span style={{ color: BOX.dim, fontSize: '0.68rem', lineHeight: 1.35 }}>{detail}</span>
     </label>
   )
@@ -68,8 +78,9 @@ export default function ModelSettingsButton({ analysisEngine = {} }) {
 
   useEffect(() => {
     if (analysisEngine.config) {
-      setConfig(analysisEngine.config)
-      setDraft(analysisEngine.config)
+      const next = normalizeModelConfig(analysisEngine.config)
+      setConfig(next)
+      setDraft(next)
     }
   }, [analysisEngine.config])
 
@@ -83,16 +94,35 @@ export default function ModelSettingsButton({ analysisEngine = {} }) {
       .catch(() => {})
   }, [onConfigChange])
 
+  useEffect(() => {
+    if (!open) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
+
   const save = async () => {
     setLoading(true)
     setErrorMsg(null)
     setSavedAt(null)
     try {
+      const normalizedDraft = normalizeModelConfig(draft)
       const patch = {
-        generationModel: draft.generationModel,
-        reanalysisModel: draft.reanalysisModel,
-        stockReanalysisModel: draft.stockReanalysisModel,
-        searchModel: draft.searchModel,
+        generationModel: normalizedDraft.generationModel,
+        fallbackModel: normalizedDraft.fallbackModel,
+        reanalysisModel: normalizedDraft.reanalysisModel,
+        stockReanalysisModel: normalizedDraft.stockReanalysisModel,
+        searchModel: normalizedDraft.searchModel,
       }
       const res = await fetch(`${MODEL_CONFIG_API_BASE}/api/model-config`, {
         method: 'POST',
@@ -135,12 +165,24 @@ export default function ModelSettingsButton({ analysisEngine = {} }) {
           fontFamily: 'JetBrains Mono, ui-monospace, monospace',
           letterSpacing: '0.02em',
           whiteSpace: 'nowrap',
+          minWidth: 0,
+          maxWidth: 'min(100%, 320px)',
           cursor: 'pointer',
         }}
       >
         <BrainCircuit size={13} />
-        <span className="site-navbar-engine-label" style={{ color: '#8888aa' }}>LLM</span>
-        <strong style={{ color: BOX.text, fontSize: '0.73rem' }}>{labelModel(config.generationModel)}</strong>
+        <span className="site-navbar-engine-label" style={{ color: '#8888aa' }}>LLMs</span>
+        <strong style={{
+          display: 'block',
+          flex: '1 1 auto',
+          color: BOX.text,
+          fontSize: '0.73rem',
+          minWidth: 0,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}>
+          {labelModel(config.generationModel)}
+        </strong>
       </button>
 
       {open && (
@@ -153,8 +195,9 @@ export default function ModelSettingsButton({ analysisEngine = {} }) {
             padding: '1rem',
             background: 'rgba(0,0,0,0.72)',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'center',
+            overflowY: 'auto',
           }}
         >
           <div
@@ -166,6 +209,9 @@ export default function ModelSettingsButton({ analysisEngine = {} }) {
               border: `1px solid ${BOX.border2}`,
               borderRadius: 12,
               padding: '1.35rem',
+              margin: 'auto 0',
+              maxHeight: 'calc(100vh - 2rem)',
+              overflowY: 'auto',
               boxShadow: '0 24px 70px rgba(0,0,0,0.55)',
             }}
           >
@@ -183,38 +229,38 @@ export default function ModelSettingsButton({ analysisEngine = {} }) {
               </button>
             </div>
 
-            <datalist id="claude-models">
-              {CLAUDE_MODEL_OPTIONS.map((model) => <option key={model} value={model}>{labelModel(model)}</option>)}
-            </datalist>
-            <datalist id="gemini-models">
-              {GEMINI_MODEL_OPTIONS.map((model) => <option key={model} value={model}>{labelModel(model)}</option>)}
-            </datalist>
-
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '0.85rem', marginBottom: '1rem' }}>
-              <ModelInput
+              <ModelSelect
                 label="New dashboards"
-                listId="claude-models"
+                options={CLAUDE_MODEL_OPTIONS}
                 value={draft.generationModel}
                 onChange={(generationModel) => setDraft({ ...draft, generationModel })}
                 detail="Used for fresh geopolitical, equity, and sector dashboard generation."
               />
-              <ModelInput
+              <ModelSelect
+                label="Fallback"
+                options={CLAUDE_MODEL_OPTIONS}
+                value={draft.fallbackModel}
+                onChange={(fallbackModel) => setDraft({ ...draft, fallbackModel })}
+                detail="Tried after the primary model if generation is overloaded or returns no output."
+              />
+              <ModelSelect
                 label="Geo reanalysis"
-                listId="claude-models"
+                options={CLAUDE_MODEL_OPTIONS}
                 value={draft.reanalysisModel}
                 onChange={(reanalysisModel) => setDraft({ ...draft, reanalysisModel })}
                 detail="Used when a geopolitical dashboard is deeply reanalyzed."
               />
-              <ModelInput
+              <ModelSelect
                 label="Stock reanalysis"
-                listId="claude-models"
+                options={CLAUDE_MODEL_OPTIONS}
                 value={draft.stockReanalysisModel}
                 onChange={(stockReanalysisModel) => setDraft({ ...draft, stockReanalysisModel })}
                 detail="Used when an equity dashboard is deeply reanalyzed."
               />
-              <ModelInput
+              <ModelSelect
                 label="Search grounding"
-                listId="gemini-models"
+                options={GEMINI_MODEL_OPTIONS}
                 value={draft.searchModel}
                 onChange={(searchModel) => setDraft({ ...draft, searchModel })}
                 detail="Used for the live web-search research pass before dashboard generation."

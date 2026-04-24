@@ -225,8 +225,8 @@ CRITICAL RULES:
   // ── Claude API call with retry, timeout, and model fallback ──────────────
   // Budget: ~30s Gemini + Claude + ~10s GitHub = must fit in 300s Vercel limit
   const models = [
-    { id: 'claude-sonnet-4-6', timeout: 180000, maxTokens: 12000 },
-    { id: 'claude-haiku-4-5-20251001', timeout: 120000, maxTokens: 10000 },
+    { id: 'claude-sonnet-4-20250514', timeout: 180000, maxTokens: 12000 },
+    { id: 'claude-3-7-sonnet-20250219', timeout: 120000, maxTokens: 10000 },
   ]
   let result = null
   let usedModel = null

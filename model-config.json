@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generationModel": "claude-sonnet-4-6",
-  "fallbackModel": "claude-haiku-4-5-20251001",
-  "reanalysisModel": "claude-sonnet-4-6",
-  "stockReanalysisModel": "claude-sonnet-4-6",
+  "generationModel": "claude-sonnet-4-20250514",
+  "fallbackModel": "claude-3-7-sonnet-20250219",
+  "reanalysisModel": "claude-sonnet-4-20250514",
+  "stockReanalysisModel": "claude-sonnet-4-20250514",
   "searchModel": "gemini-2.5-flash"
 }

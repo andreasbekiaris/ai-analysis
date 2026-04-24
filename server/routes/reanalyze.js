@@ -1,4 +1,4 @@
-import { readModelConfig } from '../model-config.js'
+import { maxOutputTokensForModel, readModelConfig } from '../model-config.js'
 
 const REPO = 'andreasbekiaris/ai-analysis'
 
@@ -171,7 +171,7 @@ CRITICAL RULES:
         },
         body: JSON.stringify({
           model: usedModel,
-          max_tokens: 16000,
+          max_tokens: maxOutputTokensForModel(usedModel, 16000),
           tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 10 }],
           messages: [{ role: 'user', content: claudePrompt }],
         }),

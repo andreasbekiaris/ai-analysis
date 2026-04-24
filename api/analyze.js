@@ -399,8 +399,8 @@ export default async function handler(req, res) {
 
   // ── Step 3: Call Claude with retry, timeout, and model fallback ──────────────
   const models = [
-    { id: 'claude-sonnet-4-6', timeout: 180000, maxTokens: 12000 },
-    { id: 'claude-haiku-4-5-20251001', timeout: 120000, maxTokens: 10000 },
+    { id: 'claude-sonnet-4-20250514', timeout: 180000, maxTokens: 12000 },
+    { id: 'claude-3-7-sonnet-20250219', timeout: 120000, maxTokens: 10000 },
   ]
   let claudeText = ''
   let usedModel = null

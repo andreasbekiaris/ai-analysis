@@ -46,6 +46,33 @@ const CONFIG = {
   smeeUrlFile: path.join(process.env.HOME || process.env.USERPROFILE, 'Documents', 'projects', 'ai-analysis', '.smee-url'),
 };
 
+const DEFAULT_MODEL_CONFIG = {
+  version: 1,
+  generationModel: 'claude-sonnet-4-20250514',
+  fallbackModel: 'claude-3-7-sonnet-20250219',
+  reanalysisModel: 'claude-sonnet-4-20250514',
+  stockReanalysisModel: 'claude-sonnet-4-20250514',
+  searchModel: 'gemini-2.5-flash',
+};
+
+const MODEL_ID_ALIASES = {
+  'claude-opus-4-6': 'claude-opus-4-1-20250805',
+  'claude-opus-4-5': 'claude-opus-4-1-20250805',
+  'claude-sonnet-4-6': 'claude-sonnet-4-20250514',
+  'claude-sonnet-4-5-20250929': 'claude-sonnet-4-20250514',
+  'claude-haiku-4-5-20251001': 'claude-3-5-haiku-20241022',
+};
+
+const CLAUDE_MODEL_OPTIONS = new Set([
+  'claude-opus-4-1-20250805',
+  'claude-opus-4-20250514',
+  'claude-sonnet-4-20250514',
+  'claude-3-7-sonnet-20250219',
+  'claude-3-5-sonnet-20241022',
+  'claude-3-5-haiku-20241022',
+  'claude-3-haiku-20240307',
+]);
+
 // ============================================
 // WATCHER LOGIC
 // ============================================
@@ -62,6 +89,31 @@ const logError = (msg) => {
 
 // Track issues currently being processed to avoid duplicates
 const processing = new Set();
+
+function normalizeModelId(value) {
+  if (typeof value !== 'string') return '';
+  const model = value.trim();
+  if (!/^[a-zA-Z0-9._:-]+$/.test(model)) return '';
+  return MODEL_ID_ALIASES[model] || model;
+}
+
+function normalizeModelConfig(input = {}) {
+  const next = { ...DEFAULT_MODEL_CONFIG, ...(input || {}), version: 1 };
+  for (const key of ['generationModel', 'fallbackModel', 'reanalysisModel', 'stockReanalysisModel']) {
+    const normalized = normalizeModelId(next[key]);
+    next[key] = CLAUDE_MODEL_OPTIONS.has(normalized) ? normalized : DEFAULT_MODEL_CONFIG[key];
+  }
+  return next;
+}
+
+function readLocalModelConfig() {
+  const configPath = path.join(CONFIG.projectPath, 'model-config.json');
+  try {
+    return normalizeModelConfig(JSON.parse(fs.readFileSync(configPath, 'utf-8')));
+  } catch {
+    return { ...DEFAULT_MODEL_CONFIG };
+  }
+}
 
 /**
  * Get or create a smee.io channel URL
@@ -412,16 +464,17 @@ function buildBestPicksPrompt(runType, watchlistContext) {
 /**
  * Run Claude Code with the analysis prompt
  */
-function runClaudeCode(prompt, issueNumber) {
+function runClaudeCode(prompt, issueNumber, modelId) {
   return new Promise((resolve, reject) => {
     const fullPrompt = prompt;
+    const model = normalizeModelId(modelId) || DEFAULT_MODEL_CONFIG.generationModel;
 
-    log(`Launching Claude Code for issue #${issueNumber}`);
+    log(`Launching Claude Code for issue #${issueNumber} with ${model}`);
 
     // Escape double quotes for cmd.exe and wrap prompt in quotes
     const escapedPrompt = fullPrompt.replace(/"/g, '""');
     const claude = spawn(
-      `claude --model claude-opus-4-6 --dangerously-skip-permissions -p "${escapedPrompt}"`,
+      `claude --model ${model} --dangerously-skip-permissions -p "${escapedPrompt}"`,
       { cwd: CONFIG.projectPath, stdio: ['pipe', 'pipe', 'pipe'], shell: true, timeout: 600000 }
     );
 
@@ -492,6 +545,7 @@ async function processIssue(issue) {
   const isBestPicks = title.startsWith('BestPicks:');
   const isAutoWatchlist = title.startsWith('AutoWatchlist:');
   let prompt;
+  let selectedModelKey = 'generationModel';
 
   if (isAutoWatchlist) {
     // "AutoWatchlist: GLOBAL" | "AutoWatchlist: GR" | "AutoWatchlist: US" | "AutoWatchlist: GB"
@@ -512,6 +566,9 @@ async function processIssue(issue) {
     }
     const dashboardFile = match[1].trim();
     const analysisTitle = match[2].trim();
+    selectedModelKey = dashboardFile.includes('/stocks/') || dashboardFile.includes('\\stocks\\')
+      ? 'stockReanalysisModel'
+      : 'reanalysisModel';
     const isQuick = (body || '').toLowerCase().includes('quick');
     const extraContext = isQuick
       ? 'QUICK MODE: Only update prices, political signals, scenario probabilities, and verdict. Skip full web research, valuation model recalculation, and fundamental data refresh.'
@@ -532,13 +589,16 @@ async function processIssue(issue) {
     logError(`git pull failed: ${err.message} — continuing anyway`);
   }
 
+  const modelConfig = readLocalModelConfig();
+  const selectedModel = modelConfig[selectedModelKey] || modelConfig.generationModel;
+
   const startMsg = isReanalyze
     ? `Reanalysis started. Claude Code is researching fresh data and updating the dashboard. You will be notified when done (~5–10 minutes).`
     : `Analysis started. Claude Code is working on this. You will be notified when the dashboard is live.`;
   updateIssue(number, 'processing', startMsg);
 
   try {
-    await runClaudeCode(prompt, number);
+    await runClaudeCode(prompt, number, selectedModel);
 
     const siteUrl = `https://${CONFIG.repo}.vercel.app`;
 
