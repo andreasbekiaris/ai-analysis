@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { BrainCircuit, Check, Loader, Lock, Save, X } from 'lucide-react'
 import {
   CLAUDE_MODEL_OPTIONS,
@@ -185,13 +186,14 @@ export default function ModelSettingsButton({ analysisEngine = {} }) {
         </strong>
       </button>
 
-      {open && (
+      {open && typeof document !== 'undefined' && createPortal(
         <div
           onClick={() => setOpen(false)}
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 1000,
+            zIndex: 2147483000,
+            isolation: 'isolate',
             padding: '1rem',
             background: 'rgba(0,0,0,0.72)',
             display: 'flex',
@@ -212,6 +214,8 @@ export default function ModelSettingsButton({ analysisEngine = {} }) {
               margin: 'auto 0',
               maxHeight: 'calc(100vh - 2rem)',
               overflowY: 'auto',
+              position: 'relative',
+              zIndex: 1,
               boxShadow: '0 24px 70px rgba(0,0,0,0.55)',
             }}
           >
@@ -333,7 +337,8 @@ export default function ModelSettingsButton({ analysisEngine = {} }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )
