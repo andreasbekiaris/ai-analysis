@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   TrendingUp, TrendingDown, Lock, Plus, Trash2, Loader, Check, X,
-  Sparkles, Clock, ExternalLink, Flame, RefreshCw, Wand2,
+  Sparkles, Clock, ExternalLink, Flame, RefreshCw, Wand2, FileText,
 } from 'lucide-react'
 import bestPicks from '../data/best-picks.json'
 import { COUNTRIES, EXCHANGES } from '../lib/exchanges'
@@ -18,6 +18,54 @@ const T = {
 function PickCard({ pick, side }) {
   const color = side === 'buy' ? T.emerald : T.crimson
   const Icon  = side === 'buy' ? TrendingUp : TrendingDown
+  const [analysisStatus, setAnalysisStatus] = useState('idle')
+  const [analysisMsg, setAnalysisMsg] = useState(null)
+  const [generatedPath, setGeneratedPath] = useState(null)
+
+  const startFullAnalysis = async () => {
+    if (analysisStatus === 'loading') return
+    setAnalysisStatus('loading')
+    setAnalysisMsg(null)
+    setGeneratedPath(null)
+
+    const thesis = pick.rationale || pick.reason || ''
+    const catalyst = pick.catalyst ? ` Catalyst: ${pick.catalyst}` : ''
+    const geoOverlay = pick.geoOverlay ? ` Geo overlay to test: ${pick.geoOverlay}` : ''
+    const prompt = [
+      `Full stock analysis for ${pick.name || pick.ticker} (${pick.ticker}) on ${pick.exchange}.`,
+      `This came from Best Picks as a ${side === 'buy' ? 'buy/long' : 'short/avoid'} candidate.`,
+      thesis ? `Best Picks thesis: ${thesis}` : '',
+      catalyst,
+      geoOverlay,
+      'Build a complete stock dashboard with valuation, technicals, news, event impact, risks, and a clear verdict.',
+    ].filter(Boolean).join(' ')
+
+    try {
+      const submitRes = await fetch(`${API_BASE}/api/analyze-async`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      })
+      const { jobId, error } = await submitRes.json()
+      if (!submitRes.ok || !jobId) throw new Error(error || 'Failed to start analysis job')
+
+      while (true) {
+        await new Promise((r) => setTimeout(r, 8000))
+        const pollRes = await fetch(`${API_BASE}/api/job/${jobId}`)
+        const job = await pollRes.json()
+        if (job.status === 'done') {
+          setAnalysisStatus('success')
+          setGeneratedPath(job.result?.path || null)
+          setAnalysisMsg('Full analysis is deploying now.')
+          break
+        }
+        if (job.status === 'error') throw new Error(job.error || 'Analysis failed')
+      }
+    } catch (err) {
+      setAnalysisStatus('error')
+      setAnalysisMsg(err.message)
+    }
+  }
 
   let badge = null
   if (pick.hasRecentAnalysis) {
@@ -78,41 +126,62 @@ function PickCard({ pick, side }) {
           {pick.reason}
         </div>
       )}
+      {!pick.reason && pick.rationale && (
+        <div style={{ color: T.muted, fontSize: '0.72rem', lineHeight: 1.4, marginBottom: '0.3rem' }}>
+          {pick.rationale}
+        </div>
+      )}
       {pick.catalyst && (
         <div style={{ color: T.amber, fontSize: '0.7rem', lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
           <Flame size={10} /> {pick.catalyst}
         </div>
       )}
       <div style={{ marginTop: '0.55rem', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-        {pick.analysisPath && (
-          <Link to={pick.analysisPath} style={{
+        {(generatedPath || pick.analysisPath) && (
+          <Link to={generatedPath || pick.analysisPath} style={{
             display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
             color: T.cyan, fontSize: '0.7rem', fontWeight: 600,
             textDecoration: 'none', padding: '0.25rem 0.5rem',
             border: `1px solid ${T.cyan}44`, borderRadius: 4,
           }}>
-            View analysis <ExternalLink size={10} />
+            View full analysis <ExternalLink size={10} />
           </Link>
         )}
-        {pick.hasStaleAnalysis && (
-          <a href={`/#/?deep=${encodeURIComponent(pick.ticker)}`} style={{
-            color: T.amber, fontSize: '0.7rem', fontWeight: 600,
-            textDecoration: 'none', padding: '0.25rem 0.5rem',
-            border: `1px solid ${T.amber}44`, borderRadius: 4,
-          }}>
-            Deep reanalyze
-          </a>
-        )}
-        {pick.hasNoAnalysis && (
-          <a href={`/#/?new=${encodeURIComponent(pick.ticker)}`} style={{
-            color: T.violet, fontSize: '0.7rem', fontWeight: 600,
-            textDecoration: 'none', padding: '0.25rem 0.5rem',
-            border: `1px solid ${T.violet}44`, borderRadius: 4,
-          }}>
-            Run analysis
-          </a>
-        )}
+        <button
+          type="button"
+          onClick={startFullAnalysis}
+          disabled={analysisStatus === 'loading'}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '0.28rem',
+            color: analysisStatus === 'loading' ? T.dim : T.violet,
+            fontSize: '0.7rem', fontWeight: 700,
+            padding: '0.25rem 0.5rem',
+            border: `1px solid ${analysisStatus === 'loading' ? T.border2 : `${T.violet}44`}`,
+            borderRadius: 4,
+            background: analysisStatus === 'loading' ? 'rgba(148,163,184,0.06)' : `${T.violet}0f`,
+            cursor: analysisStatus === 'loading' ? 'wait' : 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          {analysisStatus === 'loading'
+            ? <><Loader size={10} style={{ animation: 'spin 1s linear infinite' }} /> Building...</>
+            : <><FileText size={10} /> Want full analysis?</>}
+        </button>
       </div>
+      {analysisMsg && (
+        <div style={{
+          marginTop: '0.45rem',
+          color: analysisStatus === 'error' ? T.crimson : T.emerald,
+          fontSize: '0.68rem',
+          lineHeight: 1.35,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.3rem',
+        }}>
+          {analysisStatus === 'error' ? <X size={10} /> : <Check size={10} />}
+          {analysisMsg}
+        </div>
+      )}
     </div>
   )
 }
