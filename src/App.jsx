@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import {
   BarChart3, Globe2, TrendingUp, Building2, Clock, Plus, Send,
   CheckCircle, AlertCircle, Loader, ExternalLink, ListTodo, RefreshCw,
-  Sparkles, ArrowUpRight, Activity, ShieldCheck, Radar,
+  Sparkles, ArrowUpRight, Activity, ShieldCheck, Radar, BrainCircuit,
 } from 'lucide-react'
 import SiteNavBar from './components/SiteNavBar'
 import BestPicksSection from './components/BestPicksSection'
@@ -47,6 +47,14 @@ const signalStack = [
   { label: 'Equity Tape', value: 'Selective', tone: '#10b981', note: 'banking resilience, defense bid' },
   { label: 'Macro Pulse', value: 'Watch', tone: '#22d3ee', note: 'rates, oil beta, tariff pressure' },
 ]
+
+const analysisEngine = {
+  model: 'Claude Sonnet 4.6',
+  modelId: 'claude-sonnet-4-6',
+  role: 'dashboard analysis + JSX generation',
+  researchModel: 'Gemini 2.5 Flash',
+  researchRole: 'live web-search grounding',
+}
 
 function NewAnalysisForm() {
   const [prompt, setPrompt] = useState('')
@@ -124,6 +132,54 @@ function NewAnalysisForm() {
         </div>
         <div style={{ color: '#94a3b8', fontSize: '0.86rem', marginBottom: '1.1rem' }}>
           Spin up a fresh dashboard from a single prompt. Geopolitical, equity, or sector — Claude figures out the rest.
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+          gap: '0.55rem',
+          marginBottom: '1rem',
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.6rem',
+            padding: '0.62rem 0.75rem',
+            border: '1px solid rgba(6,182,212,0.18)',
+            borderRadius: 10,
+            background: 'rgba(6,182,212,0.055)',
+          }}>
+            <BrainCircuit size={16} color="#22d3ee" />
+            <span style={{ minWidth: 0 }}>
+              <strong style={{
+                display: 'block', color: '#f8fafc', fontSize: '0.78rem',
+                fontFamily: 'ui-monospace, monospace',
+              }}>
+                {analysisEngine.model}
+              </strong>
+              <small style={{ display: 'block', color: '#64748b', fontSize: '0.68rem' }}>
+                Analysis LLM
+              </small>
+            </span>
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.6rem',
+            padding: '0.62rem 0.75rem',
+            border: '1px solid rgba(148,163,184,0.10)',
+            borderRadius: 10,
+            background: 'rgba(10,15,30,0.42)',
+          }}>
+            <Sparkles size={15} color="#f59e0b" />
+            <span style={{ minWidth: 0 }}>
+              <strong style={{
+                display: 'block', color: '#e2e8f0', fontSize: '0.78rem',
+                fontFamily: 'ui-monospace, monospace',
+              }}>
+                {analysisEngine.researchModel}
+              </strong>
+              <small style={{ display: 'block', color: '#64748b', fontSize: '0.68rem' }}>
+                Research assist
+              </small>
+            </span>
+          </div>
         </div>
 
         <form onSubmit={submit} className="home-form" style={{ display: 'flex', gap: '0.6rem' }}>
@@ -422,7 +478,10 @@ function DashboardCard({ d }) {
 function Home() {
   return (
     <div style={{ minHeight: '100vh', boxSizing: 'border-box' }}>
-      <SiteNavBar />
+      <SiteNavBar analysisEngine={{
+        model: analysisEngine.model,
+        detail: `${analysisEngine.role}; ${analysisEngine.researchModel} provides ${analysisEngine.researchRole}.`,
+      }} />
       <div className="home-container" style={{ maxWidth: 1240, margin: '0 auto', padding: '2.5rem 2rem' }}>
 
         {/* Hero */}

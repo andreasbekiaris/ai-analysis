@@ -695,6 +695,10 @@ a:hover { text-decoration: none; }
     padding: 0.38rem 0.6rem !important;
     font-size: 0.74rem !important;
   }
+  .site-navbar-engine {
+    padding: 0.38rem 0.6rem !important;
+    max-width: 100%;
+  }
 
   /* Card padding tightens on phones */
   .new-analysis-card { padding: 1.1rem 1.1rem 1rem !important; }
@@ -704,6 +708,7 @@ a:hover { text-decoration: none; }
 @media (max-width: 560px) {
   /* Hide nav labels — icons only, keeps the row to one line */
   .site-navbar-link-label { display: none !important; }
+  .site-navbar-engine-label { display: none !important; }
   .site-navbar-links > a,
   .site-navbar-links > button { padding: 0.42rem 0.55rem !important; }
 
