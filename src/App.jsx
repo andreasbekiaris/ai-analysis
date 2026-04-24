@@ -522,18 +522,21 @@ function Home() {
           </p>
 
           <div className="hero-stat-grid">
-            {heroStats.map(({ label, value, detail, icon: Icon, color }) => (
-              <div className="hero-stat-card" key={label}>
-                <span className="hero-stat-icon" style={{ color, borderColor: `${color}44`, background: `${color}12` }}>
-                  <Icon size={14} />
-                </span>
-                <span>
-                  <strong style={{ color }}>{value}</strong>
-                  <span>{label}</span>
-                  <small>{detail}</small>
-                </span>
-              </div>
-            ))}
+            {heroStats.map((stat) => {
+              const StatIcon = stat.icon
+              return (
+                <div className="hero-stat-card" key={stat.label}>
+                  <span className="hero-stat-icon" style={{ color: stat.color, borderColor: `${stat.color}44`, background: `${stat.color}12` }}>
+                    <StatIcon size={14} />
+                  </span>
+                  <span>
+                    <strong style={{ color: stat.color }}>{stat.value}</strong>
+                    <span>{stat.label}</span>
+                    <small>{stat.detail}</small>
+                  </span>
+                </div>
+              )
+            })}
           </div>
 
           </section>
@@ -564,9 +567,18 @@ function Home() {
         </div>
 
         <NewAnalysisForm modelConfig={modelConfig} />
-        <BestPicksSection />
-        <AnalysisQueue />
-        <NewsSection />
+        <div className="home-main-grid" style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) minmax(360px, 420px)',
+          gap: '1.25rem',
+          alignItems: 'start',
+        }}>
+          <div style={{ minWidth: 0 }}>
+            <BestPicksSection />
+            <AnalysisQueue />
+          </div>
+          <NewsSection />
+        </div>
 
         {/* Library section header */}
         <div className="title-bar" style={{ marginTop: '2.5rem', marginBottom: '1.25rem' }}>

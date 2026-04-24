@@ -1,0 +1,9 @@
+{
+  "name": "dashboard-skills",
+  "version": "0.1.0",
+  "description": "Project-scoped skills for building geopolitical, stock, and sector analysis dashboards in this React app. Lazy-loaded so the heavy workflow specs only enter context when needed.",
+  "author": {
+    "name": "Andreas Bekiaris",
+    "email": "andreasmpekiaris2905@gmail.com"
+  }
+}

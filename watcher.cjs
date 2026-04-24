@@ -44,6 +44,9 @@ const CONFIG = {
 
   // File to persist the smee channel URL across restarts
   smeeUrlFile: path.join(process.env.HOME || process.env.USERPROFILE, 'Documents', 'projects', 'ai-analysis', '.smee-url'),
+
+  // Single-instance lock — prevents duplicate daemons racing on schedule.json and port 7890
+  pidFile: path.join(process.env.HOME || process.env.USERPROFILE, 'Documents', 'projects', 'ai-analysis', '.watcher.pid'),
 };
 
 const DEFAULT_MODEL_CONFIG = {
@@ -118,6 +121,49 @@ function readLocalModelConfig() {
 }
 
 /**
+ * Single-instance lock. Prevents two watcher daemons from racing on
+ * schedule.json, port 7890, and duplicate scheduled fires.
+ */
+function isProcessAlive(pid) {
+  if (!pid || Number.isNaN(pid)) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    // EPERM means the process exists but we lack permission — still alive.
+    return err.code === 'EPERM';
+  }
+}
+
+function acquireLock() {
+  if (fs.existsSync(CONFIG.pidFile)) {
+    const content = fs.readFileSync(CONFIG.pidFile, 'utf-8').trim();
+    const existingPid = parseInt(content, 10);
+    if (isProcessAlive(existingPid)) {
+      logError(`Watcher already running as PID ${existingPid}. Refusing to start a second instance.`);
+      logError(`Stop the existing process, then delete ${CONFIG.pidFile} if needed.`);
+      process.exit(1);
+    }
+    log(`Removing stale pidfile (PID ${existingPid || 'unknown'} not running)`);
+    try { fs.unlinkSync(CONFIG.pidFile); } catch {}
+  }
+  fs.writeFileSync(CONFIG.pidFile, String(process.pid));
+  log(`Acquired single-instance lock (PID ${process.pid})`);
+
+  const release = () => {
+    try {
+      if (fs.existsSync(CONFIG.pidFile)) {
+        const current = fs.readFileSync(CONFIG.pidFile, 'utf-8').trim();
+        if (current === String(process.pid)) fs.unlinkSync(CONFIG.pidFile);
+      }
+    } catch {}
+  };
+  process.on('exit', release);
+  process.on('SIGINT', () => { release(); process.exit(0); });
+  process.on('SIGTERM', () => { release(); process.exit(0); });
+}
+
+/**
  * Get or create a smee.io channel URL
  */
 async function getSmeeUrl() {
@@ -184,6 +230,123 @@ async function startSmeeClient(smeeUrl) {
   log(`Smee client connected: ${smeeUrl} -> localhost:${CONFIG.port}`);
 }
 
+const STATUS_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Watcher Status</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:#0a0f1e;color:#f8fafc;font-family:Consolas,'SF Mono',Menlo,monospace;padding:14px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+  header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  h1{font-size:13px;color:#06b6d4;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+  .meta{color:#64748b;font-size:11px;font-weight:400;letter-spacing:.02em}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .dot.ok{background:#10b981;box-shadow:0 0 8px #10b981}
+  .dot.err{background:#ef4444;box-shadow:0 0 8px #ef4444}
+  .dot.warn{background:#f59e0b}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+  .card{background:#111827;border:1px solid #1e293b;border-radius:6px;padding:11px 13px}
+  .card .label{color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.12em;font-weight:600}
+  .card .value{color:#f8fafc;font-size:15px;margin-top:5px;font-weight:600;line-height:1.2}
+  .card .sub{color:#94a3b8;font-size:11px;margin-top:3px;line-height:1.3}
+  .card.ok .value{color:#10b981}
+  .card.warn .value{color:#f59e0b}
+  .card.err .value{color:#ef4444}
+  .logwrap{flex:1;display:flex;flex-direction:column;background:#111827;border:1px solid #1e293b;border-radius:6px;min-height:0}
+  .loghead{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-bottom:1px solid #1e293b;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+  .loghead .controls{display:flex;gap:10px;align-items:center;text-transform:none;letter-spacing:0}
+  .loghead label{color:#94a3b8;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:5px}
+  .loghead button{background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:4px;padding:3px 9px;font-size:10px;cursor:pointer;font-family:inherit;text-transform:uppercase;letter-spacing:.06em}
+  .loghead button:hover{color:#f8fafc;background:#334155}
+  pre{flex:1;overflow:auto;padding:10px 13px;font-size:11.5px;color:#cbd5e1;white-space:pre-wrap;word-break:break-word;line-height:1.45}
+  pre::-webkit-scrollbar{width:8px}
+  pre::-webkit-scrollbar-track{background:#0a0f1e}
+  pre::-webkit-scrollbar-thumb{background:#334155;border-radius:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="dot ok" id="live"></span> Analysis Watcher</h1>
+  <span class="meta" id="meta">connecting…</span>
+</header>
+<div class="grid">
+  <div class="card" id="c-sched"><div class="label">Scheduler</div><div class="value">—</div><div class="sub"></div></div>
+  <div class="card" id="c-athens"><div class="label">Athens Time</div><div class="value">—</div><div class="sub"></div></div>
+  <div class="card" id="c-last"><div class="label">Last Best Picks Run</div><div class="value">—</div><div class="sub"></div></div>
+  <div class="card" id="c-next"><div class="label">Next Best Picks Run</div><div class="value">—</div><div class="sub"></div></div>
+  <div class="card" id="c-list"><div class="label">Watchlist</div><div class="value">—</div><div class="sub"></div></div>
+  <div class="card" id="c-work"><div class="label">In Flight</div><div class="value">—</div><div class="sub"></div></div>
+</div>
+<div class="logwrap">
+  <div class="loghead">
+    <span>watcher.log — last 128KB</span>
+    <div class="controls">
+      <label><input type="checkbox" id="follow" checked> follow</label>
+      <button onclick="location.reload()">reload</button>
+    </div>
+  </div>
+  <pre id="log">loading…</pre>
+</div>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const set = (id, v, sub, cls) => { const c = $(id); c.querySelector('.value').textContent = v; c.querySelector('.sub').textContent = sub || ''; if (cls !== undefined) c.className = 'card ' + cls; };
+  const fmtRel = (iso) => {
+    if (!iso) return 'never';
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const h = Math.floor(mins / 60);
+    if (h < 24) return h + 'h ago';
+    return Math.floor(h / 24) + 'd ago';
+  };
+  const fmtUptime = (s) => {
+    if (s < 60) return s + 's';
+    const m = Math.floor(s / 60); if (m < 60) return m + 'm ' + (s % 60) + 's';
+    const h = Math.floor(m / 60); if (h < 24) return h + 'h ' + (m % 60) + 'm';
+    return Math.floor(h / 24) + 'd ' + (h % 24) + 'h';
+  };
+  async function pullStatus() {
+    try {
+      const r = await fetch('/status', { cache: 'no-store' });
+      if (!r.ok) throw 0;
+      const s = await r.json();
+      $('live').className = 'dot ok';
+      $('meta').textContent = 'PID ' + s.pid + ' · up ' + fmtUptime(s.uptimeSec);
+      set('c-sched', 'Running', 'polls schedule.json every 60s', 'card ok');
+      set('c-athens', s.athensNow, 'local: ' + new Date().toLocaleTimeString());
+      const lastStamp = s.bestPicks.lastAfterCloseRun || s.bestPicks.lastMorningRun;
+      set('c-last', fmtRel(lastStamp), 'morning: ' + fmtRel(s.bestPicks.lastMorningRun) + ' · close: ' + fmtRel(s.bestPicks.lastAfterCloseRun));
+      set('c-next', s.bestPicks.nextMorningRun, 'after-close: ' + s.bestPicks.nextAfterCloseRun);
+      set('c-list', s.bestPicks.watchlistSize + ' tickers', s.bestPicks.enabled ? 'enabled' : 'disabled', s.bestPicks.enabled ? 'card ok' : 'card warn');
+      const active = (s.inFlight || []).length + (s.processing || []).length;
+      set('c-work', active ? active + ' active' : 'idle', ((s.inFlight || []).concat(s.processing || [])).join(', ') || 'waiting', active ? 'card warn' : 'card');
+    } catch (e) {
+      $('live').className = 'dot err';
+      $('meta').textContent = 'watcher not reachable';
+      set('c-sched', 'Offline', 'daemon not responding', 'card err');
+    }
+  }
+  async function pullLog() {
+    try {
+      const r = await fetch('/logs', { cache: 'no-store' });
+      const text = await r.text();
+      const pre = $('log');
+      const follow = $('follow').checked;
+      pre.textContent = text || '(empty)';
+      if (follow) pre.scrollTop = pre.scrollHeight;
+    } catch {}
+  }
+  pullStatus(); pullLog();
+  setInterval(pullStatus, 4000);
+  setInterval(pullLog, 3000);
+</script>
+</body>
+</html>`;
+
 /**
  * Start local HTTP server to receive webhook events
  */
@@ -204,6 +367,66 @@ function startWebhookServer() {
             logError(`Failed to parse webhook: ${err.message}`);
           }
         });
+      } else if (req.method === 'GET' && (req.url === '/' || req.url === '/status.html')) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(STATUS_HTML);
+      } else if (req.method === 'GET' && req.url === '/logs') {
+        try {
+          const logPath = path.join(CONFIG.projectPath, 'watcher.log');
+          const stat = fs.statSync(logPath);
+          const maxBytes = 128 * 1024;
+          const readBytes = Math.min(stat.size, maxBytes);
+          const fd = fs.openSync(logPath, 'r');
+          const buf = Buffer.alloc(readBytes);
+          fs.readSync(fd, buf, 0, readBytes, stat.size - readBytes);
+          fs.closeSync(fd);
+          res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end(buf.toString('utf-8'));
+        } catch (err) {
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end(`Could not read log: ${err.message}`);
+        }
+      } else if (req.method === 'GET' && req.url === '/status') {
+        try {
+          const schedule = readSchedule() || {};
+          const bp = schedule.bestPicks || {};
+          const athens = getAthensNow();
+          const morn = bp.morningModeAthens || { hour: 8, minute: 0 };
+          const mornMin = morn.hour * 60 + morn.minute;
+          const afterDelay = bp.afterCloseDelayMinutes ?? 15;
+          const afterMin = 23 * 60 + afterDelay;
+          const pad = (n) => String(n).padStart(2, '0');
+          const hhmm = (m) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
+          const nextMorning = athens.minutes < mornMin
+            ? `today ${hhmm(mornMin)} Athens`
+            : `tomorrow ${hhmm(mornMin)} Athens`;
+          const nextAfterClose = athens.minutes < afterMin
+            ? `today ${hhmm(afterMin)} Athens`
+            : `tomorrow ${hhmm(afterMin)} Athens`;
+          const uptimeSec = Math.floor(process.uptime());
+          const body = {
+            pid: process.pid,
+            uptimeSec,
+            startedAt: new Date(Date.now() - uptimeSec * 1000).toISOString(),
+            athensNow: `${pad(athens.hour)}:${pad(athens.minute)}`,
+            bestPicks: {
+              enabled: !!bp.enabled,
+              lastMorningRun: bp.lastMorningRun || null,
+              lastAfterCloseRun: bp.lastAfterCloseRun || null,
+              nextMorningRun: nextMorning,
+              nextAfterCloseRun: nextAfterClose,
+              watchlistSize: (bp.watchlist || []).length,
+            },
+            scheduledDashboards: Object.keys(schedule.dashboards || {}).length,
+            inFlight: Array.from(scheduledInFlight),
+            processing: Array.from(processing),
+          };
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify(body, null, 2));
+        } catch (err) {
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end(`status error: ${err.message}`);
+        }
       } else {
         res.writeHead(404);
         res.end();
@@ -583,10 +806,12 @@ async function processIssue(issue) {
     prompt = buildAnalysisPrompt(`${title}${additionalContext}`);
   }
 
-  // Sync with remote before spawning Claude so pushes don't get rejected
+  // Sync with remote before spawning Claude so pushes don't get rejected.
+  // --autostash handles the common case where the scheduler has just written
+  // lastMorningRun/lastAfterCloseRun to schedule.json, leaving it dirty.
   try {
     log('Pulling latest changes from origin/main...');
-    execSync('git pull --rebase origin main', { cwd: CONFIG.projectPath, encoding: 'utf-8', stdio: 'pipe' });
+    execSync('git pull --rebase --autostash origin main', { cwd: CONFIG.projectPath, encoding: 'utf-8', stdio: 'pipe' });
     log('  Repo synced.');
   } catch (err) {
     logError(`git pull failed: ${err.message} — continuing anyway`);
@@ -727,6 +952,7 @@ async function main() {
   console.log('========================================');
   console.log('');
 
+  acquireLock();
   checkPrerequisites();
 
   // Set up webhook pipeline: GitHub -> smee.io -> localhost.

@@ -35,7 +35,21 @@
       "WebSearch",
       "Bash(ls:*)",
       "Bash(netstat -ano)",
-      "Bash(tasklist *)"
+      "Bash(tasklist *)",
+      "Skill(plugin-dev:create-plugin)",
+      "Bash(mkdir -p .claude/plugins/dashboard-skills/.claude-plugin)",
+      "Bash(mkdir -p .claude/plugins/dashboard-skills/skills/geopolitical-analyzer/references)",
+      "Bash(mkdir -p .claude/plugins/dashboard-skills/skills/stock-analyzer/references)",
+      "Bash(mkdir -p .claude/plugins/dashboard-skills/skills/sector-analyzer/references)",
+      "Bash(powershell *)",
+      "Bash(git config *)",
+      "PowerShell($out = & node 'C:\\\\Users\\\\Andre\\\\Documents\\\\projects\\\\ai-analysis\\\\watcher.cjs' 2>&1 | Out-String; \"EXITCODE=$LASTEXITCODE\"; $out)",
+      "PowerShell(Get-WmiObject *)",
+      "PowerShell(git log *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Stop-Process *)",
+      "Bash(wscript *)"
     ]
   }
 }

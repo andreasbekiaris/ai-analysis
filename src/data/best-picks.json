@@ -1,13 +1,181 @@
 {
-  "generatedAt": null,
-  "runType": null,
+  "generatedAt": "2026-04-23T08:03:00Z",
+  "runType": "auto-GLOBAL",
   "global": {
-    "buy": [],
-    "short": []
+    "buy": [
+      {
+        "ticker": "TSM",
+        "exchange": "NYSE",
+        "sector": "Semiconductors",
+        "price": "~$210",
+        "rationale": "Ultimate AI growth engine. Q1 2026 profit +58% YoY, raised full-year guidance to 30%+ revenue growth. 3nm chips now 25% of revenue. Every AI chip company depends on TSMC. Revenue trajectory: $164B (2026) → $204B (2027) → $311B (2030). Monopoly on advanced nodes is structural.",
+        "catalyst": "Q2 2026 revenue guide $39-40.2B (+10% sequential). CEO called AI demand 'extremely robust'. Capex trending toward upper end of $56B range.",
+        "geoOverlay": "Iran war elevated oil → inflation → rate risk. But TSMC's pricing power and essential monopoly position makes it resilient. Taiwan geopolitical risk is the tail scenario to monitor.",
+        "conviction": "High"
+      },
+      {
+        "ticker": "AVGO",
+        "exchange": "NASDAQ",
+        "sector": "Semiconductors / AI",
+        "price": "~$420",
+        "rationale": "Custom AI chip leader. Expanded Meta partnership through 2029 for MTIA chip design + Ethernet networking. Google AI chip deal also in place. AI revenue expected to exceed $100B by end of 2027. Trading 37% below Morningstar fair value of $500. VMware integration driving recurring revenue.",
+        "catalyst": "Meta deal expansion announced April 14. Stock rallied 21% in 2 weeks to $420. JP Morgan Buy rating. Meta $115-135B capex in 2026 flows directly to AVGO.",
+        "geoOverlay": "Minimal direct exposure to Iran/Ukraine conflicts. AI infrastructure spending is structural and non-cyclical at current phase.",
+        "conviction": "High"
+      },
+      {
+        "ticker": "RHM",
+        "exchange": "XETRA",
+        "sector": "Defense / Aerospace",
+        "price": "~€1,400",
+        "rationale": "European rearmament mega-cycle leader. 2026 sales projected €14.5B (+45%). Record backlog €63.8B → targeting €135B by year-end 2026. Germany ordering 687 Puma IFVs, 500+ Skyranger platforms. Divesting civilian automotive to focus 100% on defense. New €350K/yr ammo plant operational.",
+        "catalyst": "NATO committed to 5% GDP defense spending by 2035 — structural 10-year procurement cycle. Russia-Ukraine frozen conflict means rearmament continues regardless of ceasefire. Up 154% YoY but still has upside per Morningstar.",
+        "geoOverlay": "Direct beneficiary of both Russia-Ukraine (NATO rearmament) and US-Iran (global threat environment). NATO spending hit record $2.63T. European defense M&A wave accelerating.",
+        "conviction": "High"
+      }
+    ],
+    "short": [
+      {
+        "ticker": "TSLA",
+        "exchange": "NASDAQ",
+        "sector": "EV / Technology",
+        "price": "~$245",
+        "rationale": "Core EV business deteriorating. Q1 2026 deliveries 358K — missed estimates by 7,600 units. Built 50K more vehicles than sold (inventory buildup). Revenue missed at $22.39B vs $22.64B expected. Energy storage -38% QoQ to 8.8 GWh. Capex guidance raised to $25B from $20B. Underperformed all megacap tech peers YTD.",
+        "catalyst": "Q1 2026 earnings revealed deepening margin pressure. Sequential revenue decline from Q4's $24.9B. Comparison to Q1 2025 misleading (Model Y shutdown). Tariff exposure from China operations. Competition intensifying globally.",
+        "conviction": "Medium-High"
+      },
+      {
+        "ticker": "CRL",
+        "exchange": "NYSE",
+        "sector": "Life Sciences",
+        "price": "~$95",
+        "rationale": "Existential business model threat. FDA announced plans to phase out traditional animal testing for drug approvals — directly threatens CRL's core Discovery and Safety Assessment segment. Stock crashed 28% in 2 days to lowest since May 2017. AI models, organoids, cell-based assays replacing animal testing long-term.",
+        "catalyst": "FDA roadmap is structural headwind. Revenue and pricing power at risk. Some offset from virtual control groups R&D, but core model is declining. Regulatory shift is irreversible.",
+        "conviction": "Medium-High"
+      },
+      {
+        "ticker": "ROST",
+        "exchange": "NASDAQ",
+        "sector": "Retail",
+        "price": "~$165",
+        "rationale": "Trading 46% premium to Morningstar fair value. High inflation risk: rising wages, occupancy costs, and shrink could outpace productivity gains. Consumer spending vulnerability — discretionary off-price retail gets hit first in inflation spikes. Oil at $114 drives inflation higher.",
+        "catalyst": "Iran war oil premium → higher inflation → consumer spending pullback → off-price retail demand at risk. Morningstar 2-star rating (overvalued). Tariff exposure adds cost pressure.",
+        "conviction": "Medium"
+      }
+    ]
   },
   "byCountry": {
-    "GR": { "buy": [], "short": [] },
-    "US": { "buy": [], "short": [] },
-    "GB": { "buy": [], "short": [] }
+    "GR": {
+      "buy": [
+        {
+          "ticker": "EUROB.AT",
+          "exchange": "ATHEX",
+          "sector": "Banking",
+          "price": "~€2.50",
+          "rationale": "Greece's largest bank by market cap. 24 of 27 analysts rate Buy/Strong Buy. Average target €4.31 — 73% upside. Greek banking sector up 34% YoY. ATHEX at 2,372 — highest since Dec 2009. ECB rate path is key catalyst for NII expansion.",
+          "conviction": "High"
+        },
+        {
+          "ticker": "ETE.AT",
+          "exchange": "ATHEX",
+          "sector": "Banking",
+          "price": "~€11",
+          "rationale": "National Bank of Greece. Goldman target €15.10, JPM €15, BofA €13.88. Top holding in GREK ETF at 15.6%. Beneficiary of Greek economic renaissance and ATHEX at 15-year highs. Strong fundamentals recovery post-crisis.",
+          "conviction": "High"
+        },
+        {
+          "ticker": "METLEN.AT",
+          "exchange": "ATHEX",
+          "sector": "Energy / Industrials",
+          "price": "~€52",
+          "rationale": "Greek industrial conglomerate. BofA target €64, Morgan Stanley €66. Energy + metals + infrastructure diversification. Direct beneficiary of elevated oil/gas prices and data center power demand. ATHEX index momentum adds tailwind.",
+          "conviction": "Medium-High"
+        }
+      ],
+      "short": []
+    },
+    "US": {
+      "buy": [
+        {
+          "ticker": "TSM",
+          "exchange": "NYSE",
+          "sector": "Semiconductors",
+          "price": "~$210",
+          "rationale": "AI foundry monopoly. Q1 profit +58%, 30%+ revenue growth guided. 3nm at 25% of revenue. $56B capex cycle. Revenue to $311B by 2030. Every AI chip company is a TSMC customer.",
+          "conviction": "High"
+        },
+        {
+          "ticker": "AVGO",
+          "exchange": "NASDAQ",
+          "sector": "Semiconductors / AI",
+          "price": "~$420",
+          "rationale": "Custom AI chip powerhouse. Meta deal expanded through 2029. Google AI chips. AI revenue >$100B by 2027. 37% below Morningstar fair value. VMware recurring revenue growing.",
+          "conviction": "High"
+        },
+        {
+          "ticker": "SNDK",
+          "exchange": "NASDAQ",
+          "sector": "Semiconductors / Memory",
+          "price": "~$924",
+          "rationale": "S&P 500 top performer, up 287% YTD. Global NAND flash shortage (30%+ demand growth from AI). BofA target $1,080. Earnings April 30 expected to reflect robust revenue growth. Structural storage supercycle.",
+          "conviction": "Medium-High"
+        }
+      ],
+      "short": [
+        {
+          "ticker": "TSLA",
+          "exchange": "NASDAQ",
+          "sector": "EV / Technology",
+          "price": "~$245",
+          "rationale": "Deliveries declining, 50K inventory overhang, revenue miss, energy storage -38% QoQ, capex +25%. Core EV business in structural decline while valuation remains elevated.",
+          "conviction": "Medium-High"
+        },
+        {
+          "ticker": "CRL",
+          "exchange": "NYSE",
+          "sector": "Life Sciences",
+          "price": "~$95",
+          "rationale": "FDA phasing out animal testing. Core business model under existential threat. -28% in 2 days. AI and organoids replacing traditional testing. Structural, irreversible regulatory shift.",
+          "conviction": "Medium-High"
+        },
+        {
+          "ticker": "ROST",
+          "exchange": "NASDAQ",
+          "sector": "Retail",
+          "price": "~$165",
+          "rationale": "46% premium to Morningstar fair value. Inflation risk from oil shock. Consumer spending vulnerable. Rising wages and occupancy costs compressing margins.",
+          "conviction": "Medium"
+        }
+      ]
+    },
+    "GB": {
+      "buy": [
+        {
+          "ticker": "BA.",
+          "exchange": "LSE",
+          "sector": "Defense / Aerospace",
+          "price": "~2,260p",
+          "rationale": "UK's largest defense pure-play. Record backlog £84.6B. Sales growth 7-9% guided. £180M Swedish TRIDON contract. European rearmament cycle. Approaching £100B market cap. Up 325% over 5 years.",
+          "conviction": "High"
+        },
+        {
+          "ticker": "RR.",
+          "exchange": "LSE",
+          "sector": "Defense / Aerospace / Nuclear",
+          "price": "~1,188p",
+          "rationale": "Up 1,164% over 5 years. SMR nuclear division — Anglesey plant to power 3M homes for 60 years. Defense + civil aerospace engines trifecta. FTSE 100 top performer over 2 years.",
+          "conviction": "High"
+        },
+        {
+          "ticker": "AZN",
+          "exchange": "LSE",
+          "sector": "Pharmaceuticals / Oncology",
+          "price": "~12,000p",
+          "rationale": "UK's most valuable company at £230B. $80B revenue target by 2030. 16 positive Phase 3 trials in 2025. 100+ ongoing Phase 3 studies. Oncology 44% of revenue growing 18%. Entering obesity market with $18B CSPC GLP-1 deal.",
+          "conviction": "High"
+        }
+      ],
+      "short": []
+    }
   }
 }

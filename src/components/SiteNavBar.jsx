@@ -82,12 +82,13 @@ export default function SiteNavBar({
       {/* Nav */}
       <div className="site-navbar-links" style={{ display: 'flex', gap: '0.3rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <ModelSettingsButton analysisEngine={analysisEngine} />
-        {links.map(({ to, icon: Icon, label }) => {
-          const active = pathname === to
+        {links.map((link) => {
+          const active = pathname === link.to
+          const NavIcon = link.icon
           return (
             <Link
-              key={to}
-              to={to}
+              key={link.to}
+              to={link.to}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
                 color: active ? '#22d3ee' : '#8888aa',
@@ -111,7 +112,7 @@ export default function SiteNavBar({
                 e.currentTarget.style.background = 'transparent'
               }}
             >
-              <Icon size={13} /> <span className="site-navbar-link-label">{label}</span>
+              <NavIcon size={13} /> <span className="site-navbar-link-label">{link.label}</span>
             </Link>
           )
         })}

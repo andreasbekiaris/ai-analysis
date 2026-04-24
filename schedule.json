@@ -1,13 +1,16 @@
 {
   "version": 1,
-  "updatedAt": "2026-04-22T08:43:00Z",
+  "updatedAt": "2026-04-23T08:03:00Z",
   "notes": "Schedule config for auto-reanalysis. Read by watcher.cjs every minute. All times are Athens local (Europe/Athens).",
   "dashboards": {},
   "bestPicks": {
     "enabled": true,
     "lastMorningRun": null,
-    "lastAfterCloseRun": null,
-    "morningModeAthens": { "hour": 8, "minute": 0 },
+    "lastAfterCloseRun": "2026-04-23T20:15:12.930Z",
+    "morningModeAthens": {
+      "hour": 8,
+      "minute": 0
+    },
     "afterCloseDelayMinutes": 15,
     "watchlist": [
       {
@@ -137,6 +140,46 @@
         "rationale": "BofA top pick for $1T chip capex surge in 2026. Essential wafer fabrication equipment maker — every fab expansion requires Lam tools. AI demand driving unprecedented equipment orders.",
         "addedBy": "auto-GLOBAL",
         "addedAt": "2026-04-20"
+      },
+      {
+        "ticker": "RHM",
+        "exchange": "XETRA",
+        "sector": "Defense / Aerospace",
+        "rationale": "European rearmament leader. Revenue €14.5B in 2026 (+45% YoY). Record backlog €63.8B, targeting €135B by year-end 2026. Germany ordering 687 Puma IFVs, 500+ Skyranger platforms. Divesting civilian ops to focus 100% on defense. Up 154% YoY.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-23"
+      },
+      {
+        "ticker": "GLW",
+        "exchange": "NYSE",
+        "sector": "Technology / Fiber Optics",
+        "rationale": "AI data center fiber backbone. Up 50% YTD. $6B Meta fiber deal. Upgraded Springboard plan targets $24B annualized sales by 2028. Core operating margin expanded 390bps to 20.2%. Co-packaged optics bringing fiber directly to chip.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-23"
+      },
+      {
+        "ticker": "TPL",
+        "exchange": "NYSE",
+        "sector": "Energy / AI Infrastructure",
+        "rationale": "Up 75% YTD. 882,000 surface acres in Permian Basin. Record oil royalties 37.5 MBoe/d. Pivoting into AI data center infrastructure — invested in Bolt (ex-Google CEO Schmidt), targeting 10GW of data centers on TPL land. Unique asset-light model.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-23"
+      },
+      {
+        "ticker": "CAT",
+        "exchange": "NYSE",
+        "sector": "Industrials / AI Infrastructure",
+        "rationale": "Hidden AI infrastructure play. Up 32% YTD. Energy & Transportation segment +37% demand for data center generators. $51.2B backlog through 2027. Beneficiary of $1T+ global data center buildout and onshoring trend.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-23"
+      },
+      {
+        "ticker": "GNRC",
+        "exchange": "NYSE",
+        "sector": "Industrials / Power Systems",
+        "rationale": "Data center backup power pivot. Up 47% YTD. $400M data center backlog. C&I sales +30% expected 2026. Domestic manufacturing capacity for large generators to surpass $1B by Q4 2026. Four megatrends: lower power quality, higher prices, AI boom, infra cycle.",
+        "addedBy": "auto-GLOBAL",
+        "addedAt": "2026-04-23"
       }
     ]
   }

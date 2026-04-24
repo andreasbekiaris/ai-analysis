@@ -7,6 +7,7 @@ import { getScheduleHandler, postScheduleHandler } from './routes/schedule.js'
 import { autoWatchlistHandler } from './routes/auto-watchlist.js'
 import { bestPicksDispatchHandler } from './routes/best-picks-dispatch.js'
 import { getModelConfigHandler, postModelConfigHandler } from './model-config.js'
+import { newsSearchHandler } from './routes/news-search.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -101,6 +102,9 @@ app.post('/api/auto-watchlist', autoWatchlistHandler)
 
 // Best-picks dispatch — manually trigger a best-picks screening run
 app.post('/api/best-picks/dispatch', bestPicksDispatchHandler)
+
+// Live news search
+app.post('/api/news-search', newsSearchHandler)
 
 const server = app.listen(PORT, () => {
   console.log(`AI Analysis API running on port ${PORT}`)

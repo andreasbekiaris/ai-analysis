@@ -671,6 +671,14 @@ a:hover { text-decoration: none; }
     grid-template-columns: 1fr;
   }
 
+  .home-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .home-news-rail {
+    position: static !important;
+  }
+
   .hero-command-panel {
     min-height: auto;
   }
