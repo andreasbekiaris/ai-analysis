@@ -35,7 +35,9 @@
       "WebSearch",
       "Bash(ls:*)",
       "Bash(netstat -ano)",
-      "Bash(tasklist *)"
+      "Bash(tasklist *)",
+      "Skill(commit-commands:commit)",
+      "Skill(commit-commands:commit:*)"
     ]
   }
 }
