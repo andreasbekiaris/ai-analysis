@@ -226,8 +226,51 @@ export default function ParticleField() {
       holoHideTimer = setTimeout(() => { overlay.innerHTML = '' }, 260)
     }
 
+    const blocksHologramHover = (x, y) => {
+      const stack = document.elementsFromPoint(x, y)
+      const blockingSelector = [
+        'a', 'button', 'input', 'textarea', 'select', '[role="button"]',
+        '.site-navbar', '.surface', '.grad-border', '.dashboard-card',
+        '.new-analysis-card', '.best-picks-card', '.best-picks-card *',
+        '.hero-command-panel', '.hero-stat-card', '.signal-row',
+      ].join(',')
+
+      for (const el of stack) {
+        if (el === canvas || el === overlay || overlay.contains(el)) continue
+        if (el === document.documentElement || el === document.body) continue
+        if (el.id === 'root' || el.classList?.contains('home-container')) continue
+        if (el.closest?.(blockingSelector)) return true
+
+        const style = window.getComputedStyle(el)
+        const rect = el.getBoundingClientRect()
+        const hasPaintedBox =
+          rect.width > 8 &&
+          rect.height > 8 &&
+          style.visibility !== 'hidden' &&
+          style.display !== 'contents' &&
+          style.opacity !== '0' &&
+          (
+            style.backgroundImage !== 'none' ||
+            !/rgba?\(0,\s*0,\s*0,\s*0\)/.test(style.backgroundColor) ||
+            ['Top', 'Right', 'Bottom', 'Left'].some(side => parseFloat(style[`border${side}Width`]) > 0)
+          )
+
+        if (hasPaintedBox) return true
+      }
+
+      return false
+    }
+
     const onMove = (e) => {
       mouse.x = e.clientX; mouse.y = e.clientY
+      if (blocksHologramHover(e.clientX, e.clientY)) {
+        clearTimeout(holoTimer); holoTimer = null
+        if (hoveredNode) hoveredNode.hoverT = 0
+        hoveredNode = null
+        hideHolo()
+        return
+      }
+
       let found = null
       for (const n of nodes) {
         if (Math.hypot(n.x - e.clientX, n.y - e.clientY) < HOVER_R) { found = n; break }
