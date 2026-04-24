@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import {
   BarChart3, Globe2, TrendingUp, Building2, Clock, Plus, Send,
   CheckCircle, AlertCircle, Loader, ExternalLink, ListTodo, RefreshCw,
-  Sparkles, ArrowUpRight,
+  Sparkles, ArrowUpRight, Activity, ShieldCheck, Radar,
 } from 'lucide-react'
 import SiteNavBar from './components/SiteNavBar'
 import BestPicksSection from './components/BestPicksSection'
@@ -35,6 +35,18 @@ const typeMeta = {
   stocks:       { label: 'Equity',       color: '#10b981', icon: TrendingUp, glow: 'rgba(16,185,129,0.20)' },
   sectors:      { label: 'Sector',       color: '#8b5cf6', icon: Building2,  glow: 'rgba(139,92,246,0.20)' },
 }
+
+const heroStats = [
+  { label: 'Active dossiers', value: dashboards.length, detail: 'deployed dashboards', icon: BarChart3, color: '#22d3ee' },
+  { label: 'Coverage lanes', value: 3, detail: 'geo / equity / sectors', icon: Radar, color: '#f59e0b' },
+  { label: 'Research mode', value: 'Live', detail: 'auto-build pipeline', icon: Activity, color: '#10b981' },
+]
+
+const signalStack = [
+  { label: 'Geo Risk', value: 'Elevated', tone: '#f59e0b', note: 'Iran, Ukraine, trade chokepoints' },
+  { label: 'Equity Tape', value: 'Selective', tone: '#10b981', note: 'banking resilience, defense bid' },
+  { label: 'Macro Pulse', value: 'Watch', tone: '#22d3ee', note: 'rates, oil beta, tariff pressure' },
+]
 
 function NewAnalysisForm() {
   const [prompt, setPrompt] = useState('')
@@ -336,7 +348,7 @@ function DashboardCard({ d }) {
   return (
     <Link
       to={d.path}
-      className="surface surface-hover"
+      className="surface surface-hover dashboard-card"
       style={{
         padding: '1.4rem',
         textDecoration: 'none',
@@ -414,21 +426,22 @@ function Home() {
       <div className="home-container" style={{ maxWidth: 1240, margin: '0 auto', padding: '2.5rem 2rem' }}>
 
         {/* Hero */}
-        <div className="float-in" style={{ marginBottom: '2.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '0.85rem' }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              padding: '0.3rem 0.7rem',
-              borderRadius: 999,
-              background: 'rgba(6,182,212,0.08)',
-              border: '1px solid rgba(6,182,212,0.22)',
-              color: '#22d3ee',
-              fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.06em',
-            }}>
-              <span style={{
+        <div className="home-hero-grid float-in" style={{ marginBottom: '2.25rem' }}>
+          <section className="hero-copy">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '0.85rem' }}>
+              <div className="status-pill" style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                padding: '0.3rem 0.7rem',
+                borderRadius: 999,
+                background: 'rgba(6,182,212,0.08)',
+                border: '1px solid rgba(6,182,212,0.22)',
+                color: '#22d3ee',
+                fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.06em',
+              }}>
+                <span className="status-pill-dot" style={{
                 width: 6, height: 6, borderRadius: '50%', background: '#22d3ee',
                 boxShadow: '0 0 8px #22d3ee', animation: 'pulse 2s ease-in-out infinite',
-              }} />
+                }} />
               LIVE  ·  AUTO-DEPLOYING
             </div>
           </div>
@@ -445,6 +458,47 @@ function Home() {
             Multi-scenario decision dashboards for wars, markets, and sectors. Each analysis is a
             production React build — committed, deployed, and continuously updated.
           </p>
+
+          <div className="hero-stat-grid">
+            {heroStats.map(({ label, value, detail, icon: Icon, color }) => (
+              <div className="hero-stat-card" key={label}>
+                <span className="hero-stat-icon" style={{ color, borderColor: `${color}44`, background: `${color}12` }}>
+                  <Icon size={14} />
+                </span>
+                <span>
+                  <strong style={{ color }}>{value}</strong>
+                  <span>{label}</span>
+                  <small>{detail}</small>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          </section>
+
+          <aside className="hero-command-panel">
+            <div className="hero-command-topline">
+              <span><ShieldCheck size={13} /> PROMETHEIA SIGNAL STACK</span>
+              <span>UTC+2</span>
+            </div>
+            <div className="hero-radar">
+              <div className="hero-radar-ring" />
+              <div className="hero-radar-sweep" />
+              <Activity size={22} />
+            </div>
+            <div className="signal-list">
+              {signalStack.map((signal) => (
+                <div className="signal-row" key={signal.label}>
+                  <span className="signal-dot" style={{ background: signal.tone, boxShadow: `0 0 12px ${signal.tone}` }} />
+                  <span>
+                    <strong>{signal.label}</strong>
+                    <small>{signal.note}</small>
+                  </span>
+                  <em style={{ color: signal.tone }}>{signal.value}</em>
+                </div>
+              ))}
+            </div>
+          </aside>
         </div>
 
         <NewAnalysisForm />
