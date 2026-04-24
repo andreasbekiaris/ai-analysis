@@ -175,6 +175,7 @@ export default function ParticleField() {
           r: 2.5 + Math.random() * 5,
           phase: Math.random() * Math.PI * 2,
           hoverT: 0,
+          beamT: 0,
           isStock,
           data,
         }
@@ -297,7 +298,9 @@ export default function ParticleField() {
       // Beam
       if (hoveredNode && hoveredNode.hoverT > 0.1 && hoveredNode.holoTop != null) {
         const n = hoveredNode
-        const h = n.hoverT
+        n.beamT = Math.min(1, (n.beamT || 0) + 0.055)
+        const beamEase = 1 - Math.pow(1 - n.beamT, 3)
+        const h = n.hoverT * beamEase
         const beamBottom = n.y - n.r
         const beamTop = n.holoTop + (n.holoH || 160)
         const holoMidX = n.holoLeft + (n.holoW || 240) / 2
@@ -305,9 +308,10 @@ export default function ParticleField() {
         const spreadBot = n.r * 0.8
 
         const beamGrad = ctx.createLinearGradient(n.x, beamBottom, n.x, beamTop)
-        beamGrad.addColorStop(0, `rgba(0,255,200,${0.25 * h})`)
-        beamGrad.addColorStop(0.4, `rgba(0,255,200,${0.1 * h})`)
-        beamGrad.addColorStop(1, 'rgba(0,255,200,0)')
+        beamGrad.addColorStop(0, 'rgba(0,255,200,0)')
+        beamGrad.addColorStop(0.18, `rgba(0,255,200,${0.12 * h})`)
+        beamGrad.addColorStop(0.62, `rgba(0,255,220,${0.18 * h})`)
+        beamGrad.addColorStop(1, `rgba(0,255,220,${0.04 * h})`)
         ctx.beginPath()
         ctx.moveTo(n.x - spreadBot, beamBottom)
         ctx.lineTo(holoMidX - spreadTop, beamTop)
@@ -317,11 +321,24 @@ export default function ParticleField() {
         ctx.fillStyle = beamGrad
         ctx.fill()
 
+        const coreGrad = ctx.createLinearGradient(n.x, beamBottom, n.x, beamTop)
+        coreGrad.addColorStop(0, 'rgba(0,255,220,0)')
+        coreGrad.addColorStop(0.45, `rgba(0,255,220,${0.16 * h})`)
+        coreGrad.addColorStop(1, `rgba(0,255,220,${0.05 * h})`)
+        ctx.beginPath()
+        ctx.moveTo(n.x - spreadBot * 0.35, beamBottom)
+        ctx.lineTo(holoMidX - spreadTop * 0.22, beamTop)
+        ctx.lineTo(holoMidX + spreadTop * 0.22, beamTop)
+        ctx.lineTo(n.x + spreadBot * 0.35, beamBottom)
+        ctx.closePath()
+        ctx.fillStyle = coreGrad
+        ctx.fill()
+
         ctx.beginPath()
         ctx.moveTo(n.x, beamBottom)
         ctx.lineTo(holoMidX, beamTop)
-        ctx.strokeStyle = `rgba(0,255,220,${0.35 * h})`
-        ctx.lineWidth = 0.8
+        ctx.strokeStyle = `rgba(0,255,220,${0.26 * h})`
+        ctx.lineWidth = 0.6 + 0.3 * beamEase
         ctx.stroke()
       }
 
