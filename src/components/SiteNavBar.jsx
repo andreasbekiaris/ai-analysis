@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { BarChart3, Home, BookOpen, RefreshCw, FileText, Code2, BrainCircuit } from 'lucide-react'
+import { BarChart3, Home, BookOpen, RefreshCw, FileText, Code2 } from 'lucide-react'
+import ModelSettingsButton from './ModelSettingsButton'
 
 const links = [
   { to: '/',            icon: Home,     label: 'Home' },
@@ -80,25 +81,7 @@ export default function SiteNavBar({
 
       {/* Nav */}
       <div className="site-navbar-links" style={{ display: 'flex', gap: '0.3rem', alignItems: 'center', flexWrap: 'wrap' }}>
-        <span
-          className="site-navbar-engine"
-          title={analysisEngine.detail}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.42rem',
-            color: '#22d3ee', fontSize: '0.74rem', fontWeight: 700,
-            padding: '0.42rem 0.78rem',
-            border: '1px solid rgba(6,182,212,0.28)',
-            borderRadius: 999,
-            background: 'rgba(6,182,212,0.08)',
-            fontFamily: 'JetBrains Mono, ui-monospace, monospace',
-            letterSpacing: '0.02em',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <BrainCircuit size={13} />
-          <span className="site-navbar-engine-label" style={{ color: '#8888aa' }}>LLM</span>
-          <strong style={{ color: '#f0f0f8', fontSize: '0.73rem' }}>{analysisEngine.model}</strong>
-        </span>
+        <ModelSettingsButton analysisEngine={analysisEngine} />
         {links.map(({ to, icon: Icon, label }) => {
           const active = pathname === to
           return (

@@ -9,6 +9,7 @@ import SiteNavBar from './components/SiteNavBar'
 import BestPicksSection from './components/BestPicksSection'
 import NewsSection from './components/NewsSection'
 import ParticleField from './components/ParticleField'
+import { DEFAULT_MODEL_CONFIG, fetchModelConfig, labelModel } from './lib/modelConfig'
 
 // Import dashboards here as they are created
 import UsIranWar from './dashboards/geopolitical/us-iran-war-2026-03-22'
@@ -48,15 +49,7 @@ const signalStack = [
   { label: 'Macro Pulse', value: 'Watch', tone: '#22d3ee', note: 'rates, oil beta, tariff pressure' },
 ]
 
-const analysisEngine = {
-  model: 'Claude Sonnet 4.6',
-  modelId: 'claude-sonnet-4-6',
-  role: 'dashboard analysis + JSX generation',
-  researchModel: 'Gemini 2.5 Flash',
-  researchRole: 'live web-search grounding',
-}
-
-function NewAnalysisForm() {
+function NewAnalysisForm({ modelConfig = DEFAULT_MODEL_CONFIG }) {
   const [prompt, setPrompt] = useState('')
   const [status, setStatus] = useState(null)
   const [message, setMessage] = useState('')
@@ -153,7 +146,7 @@ function NewAnalysisForm() {
                 display: 'block', color: '#f8fafc', fontSize: '0.78rem',
                 fontFamily: 'ui-monospace, monospace',
               }}>
-                {analysisEngine.model}
+                {labelModel(modelConfig.generationModel)}
               </strong>
               <small style={{ display: 'block', color: '#64748b', fontSize: '0.68rem' }}>
                 Analysis LLM
@@ -173,7 +166,7 @@ function NewAnalysisForm() {
                 display: 'block', color: '#e2e8f0', fontSize: '0.78rem',
                 fontFamily: 'ui-monospace, monospace',
               }}>
-                {analysisEngine.researchModel}
+                {labelModel(modelConfig.searchModel)}
               </strong>
               <small style={{ display: 'block', color: '#64748b', fontSize: '0.68rem' }}>
                 Research assist
@@ -476,11 +469,21 @@ function DashboardCard({ d }) {
 }
 
 function Home() {
+  const [modelConfig, setModelConfig] = useState(DEFAULT_MODEL_CONFIG)
+
+  useEffect(() => {
+    fetchModelConfig()
+      .then(setModelConfig)
+      .catch(() => {})
+  }, [])
+
   return (
     <div style={{ minHeight: '100vh', boxSizing: 'border-box' }}>
       <SiteNavBar analysisEngine={{
-        model: analysisEngine.model,
-        detail: `${analysisEngine.role}; ${analysisEngine.researchModel} provides ${analysisEngine.researchRole}.`,
+        model: labelModel(modelConfig.generationModel),
+        detail: `${modelConfig.generationModel} generates dashboards; ${modelConfig.searchModel} provides search grounding.`,
+        config: modelConfig,
+        onConfigChange: setModelConfig,
       }} />
       <div className="home-container" style={{ maxWidth: 1240, margin: '0 auto', padding: '2.5rem 2rem' }}>
 
@@ -560,7 +563,7 @@ function Home() {
           </aside>
         </div>
 
-        <NewAnalysisForm />
+        <NewAnalysisForm modelConfig={modelConfig} />
         <BestPicksSection />
         <AnalysisQueue />
         <NewsSection />

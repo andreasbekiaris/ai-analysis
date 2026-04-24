@@ -1,12 +1,14 @@
+import { readModelConfig } from '../model-config.js'
+
 const REPO = 'andreasbekiaris/ai-analysis'
 
 // ── Gemini Google-Search helper ────────────────────────────────────────────────
-async function geminiSearch(key, query) {
+async function geminiSearch(key, query, model = 'gemini-2.5-flash') {
   try {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 60000) // 60s — no rush
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
       {
         method: 'POST',
         signal: controller.signal,
@@ -350,11 +352,12 @@ export async function handler(req, res) {
   const type = detectType(prompt.trim())
   const date = new Date().toISOString().slice(0, 10)
   const subdir = type === 'stock' ? 'stocks' : 'geopolitical'
+  const { config: modelConfig } = await readModelConfig(githubToken)
 
   // ── Step 1: Parallel — Gemini searches + list geo dashboards + read App.jsx ──
   const queries = buildSearchQueries(type, prompt.trim(), date)
   const [searchResults, geoFiles, appFile] = await Promise.all([
-    Promise.all(queries.map(q => geminiSearch(geminiKey, q))),
+    Promise.all(queries.map(q => geminiSearch(geminiKey, q, modelConfig.searchModel))),
     listGitHubDir(githubToken, 'src/dashboards/geopolitical'),
     readGitHubFile(githubToken, 'src/App.jsx'),
   ])
@@ -369,7 +372,7 @@ export async function handler(req, res) {
   // ── Step 3: Call Claude — NO timeout pressure, full tokens ──────────────────
   const maxRetries = 3
   let claudeText = ''
-  let usedModel = 'claude-sonnet-4-6'
+  let usedModel = modelConfig.generationModel
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {

@@ -1,3 +1,5 @@
+import { readModelConfig } from '../model-config.js'
+
 const REPO = 'andreasbekiaris/ai-analysis'
 
 // ── Single-phase stock reanalysis: Claude does research + analysis via web_search ──
@@ -20,6 +22,7 @@ async function runReanalysis(body, job) {
   if (!fileRes.ok) { job.status = 'error'; job.error = 'Failed to read dashboard file'; return }
   const fileData = await fileRes.json()
   const content = Buffer.from(fileData.content, 'base64').toString('utf8')
+  const { config: modelConfig } = await readModelConfig(githubToken)
 
   const today = new Date().toISOString().slice(0, 10)
   const stockName = analysisTitle || ticker || dashboardFile
@@ -145,7 +148,7 @@ CRITICAL RULES:
   // ── Claude API call with web_search tool ───────────────────────────────
   const maxRetries = 3
   let result = null
-  let usedModel = 'claude-sonnet-4-6'
+  let usedModel = modelConfig.stockReanalysisModel
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {

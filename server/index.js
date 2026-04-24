@@ -6,6 +6,7 @@ import { handler as reanalyzeStockHandler } from './routes/reanalyze-stock.js'
 import { getScheduleHandler, postScheduleHandler } from './routes/schedule.js'
 import { autoWatchlistHandler } from './routes/auto-watchlist.js'
 import { bestPicksDispatchHandler } from './routes/best-picks-dispatch.js'
+import { getModelConfigHandler, postModelConfigHandler } from './model-config.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -90,6 +91,10 @@ app.post('/api/reanalyze-stock', reanalyzeStockHandler)
 // Schedule config (password-gated via env SCHEDULE_PASSWORD)
 app.get('/api/schedule', getScheduleHandler)
 app.post('/api/schedule', postScheduleHandler)
+
+// Model config (password-gated via env MODEL_CONFIG_PASSWORD, default 2905)
+app.get('/api/model-config', getModelConfigHandler)
+app.post('/api/model-config', postModelConfigHandler)
 
 // Auto-watchlist dispatch — creates a GitHub issue for the watcher to process
 app.post('/api/auto-watchlist', autoWatchlistHandler)
