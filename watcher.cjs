@@ -562,12 +562,13 @@ function buildReanalyzePrompt(dashboardFile, analysisTitle, extraContext) {
     'REANALYSIS INSTRUCTIONS — follow exactly:',
     '1. Read CLAUDE.md to understand the project structure and data formats.',
     `2. Read the existing file at ${dashboardFile} in full — understand all current data, actors, scenarios, signals, and verdict.`,
-    '3. Run ALL web searches in parallel:',
+    '3. Do NOT ask clarifying questions. Resolve uncertainty by researching current sources and using explicit assumptions inside the dashboard.',
+    '4. Run ALL web searches in parallel:',
     '   - Latest developments / news (last 24-48h)',
     '   - Current market prices (all relevant commodities, stocks, indices)',
     '   - New public statements or signals from all key actors',
     '   - Expert opinion updates from major think tanks or analysts',
-    '4. UPDATE the existing file with everything you found:',
+    '5. UPDATE the existing file with everything you found:',
     '   - Prepend new political signals / news items to the TOP of their arrays',
     '   - Revise scenario probabilities to reflect the latest situation',
     '   - Rewrite the verdict (stance, timing, watchpoints, market positioning)',
@@ -578,12 +579,12 @@ function buildReanalyzePrompt(dashboardFile, analysisTitle, extraContext) {
     '   - For sensitivityAnalysis: update only if macro conditions changed (rate decisions, oil moves >5%)',
     '   - For riskQuantification: recalculate expectedReturn with updated scenario probs; update maxDrawdown if new trough',
     '   - For geo dashboards: add new entry to probabilityHistory; recalculate economicImpact with current oil/trade data; update escalationLadder status',
-    `5. Do NOT create a new file — update ONLY the existing file at ${dashboardFile}`,
-    '6. Do NOT change App.jsx — the route already exists.',
-    `7. git add ${dashboardFile}`,
-    `8. Commit: "refactor: reanalyze — ${analysisTitle} — ${today}"`,
-    '9. Push to origin main',
-    '10. Do not stop to ask whether to commit or push; these steps are already authorized by this task.',
+    `6. Do NOT create a new file — update ONLY the existing file at ${dashboardFile}`,
+    '7. Do NOT change App.jsx — the route already exists.',
+    `8. git add ${dashboardFile}`,
+    `9. Commit: "refactor: reanalyze — ${analysisTitle} — ${today}"`,
+    '10. Push to origin main',
+    '11. Do not stop to ask whether to commit or push; these steps are already authorized by this task.',
   ]
   if (extraContext) lines.push('', `Additional context: ${extraContext}`)
   return lines.join('\n')
@@ -756,6 +757,38 @@ function runClaudeCode(prompt, issueNumber, modelId) {
   });
 }
 
+function gitOutput(command) {
+  return execSync(command, { cwd: CONFIG.projectPath, encoding: 'utf-8', stdio: 'pipe' }).trim();
+}
+
+function shellQuote(value) {
+  return `"${String(value).replace(/"/g, '""')}"`;
+}
+
+function ensureReanalysisPublished(dashboardFile, analysisTitle, beforeHead) {
+  const today = new Date().toISOString().slice(0, 10);
+  const afterHead = gitOutput('git rev-parse HEAD');
+  const fileStatus = gitOutput(`git status --short -- ${shellQuote(dashboardFile)}`);
+
+  if (afterHead !== beforeHead) {
+    log(`  Reanalysis published by Claude Code (${beforeHead.slice(0, 7)} → ${afterHead.slice(0, 7)}).`);
+    return;
+  }
+
+  if (fileStatus) {
+    log(`  Reanalysis changed ${dashboardFile} but did not commit; committing and pushing from watcher.`);
+    execSync(`git add -- ${shellQuote(dashboardFile)}`, { cwd: CONFIG.projectPath, stdio: 'pipe' });
+    execSync(
+      `git commit -m ${shellQuote(`refactor: reanalyze — ${analysisTitle} — ${today}`)}`,
+      { cwd: CONFIG.projectPath, stdio: 'pipe' }
+    );
+    execSync('git push origin main', { cwd: CONFIG.projectPath, stdio: 'pipe' });
+    return;
+  }
+
+  throw new Error(`Reanalysis produced no changes for ${dashboardFile}; refusing to mark it deployed.`);
+}
+
 /**
  * Process a single issue
  */
@@ -772,6 +805,8 @@ async function processIssue(issue) {
   const isAutoWatchlist = title.startsWith('AutoWatchlist:');
   let prompt;
   let selectedModelKey = 'generationModel';
+  let reanalyzeTarget = null;
+  let reanalyzeTitle = null;
 
   if (isAutoWatchlist) {
     // "AutoWatchlist: GLOBAL" | "AutoWatchlist: GR" | "AutoWatchlist: US" | "AutoWatchlist: GB"
@@ -792,6 +827,8 @@ async function processIssue(issue) {
     }
     const dashboardFile = match[1].trim();
     const analysisTitle = match[2].trim();
+    reanalyzeTarget = dashboardFile;
+    reanalyzeTitle = analysisTitle;
     selectedModelKey = dashboardFile.includes('/stocks/') || dashboardFile.includes('\\stocks\\')
       ? 'stockReanalysisModel'
       : 'reanalysisModel';
@@ -826,7 +863,9 @@ async function processIssue(issue) {
   updateIssue(number, 'processing', startMsg);
 
   try {
+    const beforeHead = isReanalyze ? gitOutput('git rev-parse HEAD') : null;
     await runClaudeCode(prompt, number, selectedModel);
+    if (isReanalyze) ensureReanalysisPublished(reanalyzeTarget, reanalyzeTitle, beforeHead);
 
     const siteUrl = `https://${CONFIG.repo}.vercel.app`;
 
