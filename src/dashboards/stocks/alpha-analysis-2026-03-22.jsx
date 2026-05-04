@@ -1,37 +1,37 @@
 import StockDashboard from '../../components/StockDashboard'
 
-/* ─── DATA (Updated April 24, 2026) ──────────────────────────── */
+/* ─── DATA (Updated May 4, 2026) ──────────────────────────── */
 const stock = {
   name: 'Alpha Bank',
   ticker: 'ALPHA.AT',
   adr: 'ALBKY',
   exchange: 'Athens Stock Exchange',
-  date: '2026-04-24',
-  price: 3.580,
-  change: -0.080,
-  changePct: -2.05,
-  open: 3.66,
+  date: '2026-05-04',
+  price: 3.440,
+  change: 0.040,
+  changePct: 1.18,
+  open: 3.460,
   high52w: 4.489,
-  low52w: 2.084,
-  marketCap: '€8.35B',
-  pe: 8.61,
-  peForward: 7.73,
-  eps: 0.416,
+  low52w: 2.118,
+  marketCap: '€7.75B',
+  pe: 9.37,
+  peForward: 8.19,
+  eps: 0.38,
   bookValue: 3.90,
-  pbRatio: 0.92,
-  dividendYield: 3.63,
+  pbRatio: 0.88,
+  dividendYield: 3.82,
   dividendPerShare: 0.13,
   payoutRatio: 55,
-  beta: 0.81,
-  sharesOut: '2.27B',
+  beta: 0.83,
+  sharesOut: '2.25B',
   sector: 'Banking — Greece',
-  overallSignal: 'BUY (Oversold)',
-  analystConsensus: 'Strong Buy',
-  analystCount: 13,
-  avgTarget: 4.57,
+  overallSignal: 'EVENT-RISK WATCH',
+  analystConsensus: 'Buy',
+  analystCount: 14,
+  avgTarget: 4.54,
   highTarget: 5.50,
   lowTarget: 3.12,
-  chartNote: 'Stock rallied +13% from €3.36 to €3.81 on Iran ceasefire (Apr 8-21), then pulled back to €3.58 as ECB hike looms (Apr 30) and Islamabad talks stalled. Now deeply oversold (RSI 34.4, Williams %R -100) below all short-term MAs but above 200D MA (€3.45). Brent eased to $104-106 from $109 but Hormuz blockade continues. MSCI DM upgrade structural positive. ECB "layer cake of shocks" rhetoric weighing on sentiment. Pullback into support zone creates potential entry.',
+  chartNote: 'Alpha closed May 4 at €3.44 (+1.18%), down ~9.7% from the Apr 21 ceasefire-rally high (€3.81). The ECB held its deposit rate at 2.00% on Apr 30, but April euro-area inflation jumped to 3.0% and Greece to 4.6%, while Brent Jul 2026 moved to $113.79 as Project Freedom clashes in Hormuz stressed the US-Iran ceasefire. The stock is no longer deeply oversold (RSI 43.83), but remains below short-term moving averages and near the 200D support band. Structural positives remain: buyback execution, €600M green bond demand, MSCI DM upgrade path, and FY2026 EPS guidance near €0.40.',
 }
 
 const priceHistory = [
@@ -54,58 +54,60 @@ const priceHistory = [
   { date: 'Apr-17', price: 3.80 },
   { date: 'Apr-21', price: 3.81 },
   { date: 'Apr-24', price: 3.58 },
+  { date: 'May-04', price: 3.44 },
 ]
 
 const maData = [
-  { name: '5-Day MA',   value: 3.61, signal: 'SELL',  current: 3.58 },
-  { name: '20-Day MA',  value: 3.65, signal: 'SELL',  current: 3.58 },
-  { name: '50-Day MA',  value: 3.73, signal: 'SELL',  current: 3.58 },
-  { name: '200-Day MA', value: 3.45, signal: 'BUY',   current: 3.58 },
+  { name: '5-Day MA',   value: 3.51, signal: 'SELL', current: 3.44 },
+  { name: '20-Day MA',  value: 3.60, signal: 'SELL', current: 3.44 },
+  { name: '50-Day MA',  value: 3.68, signal: 'SELL', current: 3.44 },
+  { name: '200-Day MA', value: 3.41, signal: 'BUY',  current: 3.44 },
 ]
 
 const technicals = {
   priceRange: [1.5, 4.8],
-  maSignalSummary: '1 of 4 MAs signal Buy (200D only). Price pulled back sharply from €3.81 ceasefire-rally high to €3.58, falling below 5D (€3.61), 20D (€3.65), and 50D (€3.73) MAs. Crucially still above 200D MA (€3.45) — the long-term trend remains intact. The pullback is driven by ECB hawkish rhetoric ahead of Apr 30 meeting and stalled Iran talks. RSI at 34.4 and Williams %R at -100 signal deeply oversold conditions — historically a reversal zone for ALPHA. A bounce from the 200D MA toward the 20D MA (€3.65) would be the first bullish signal.',
+  maSignalSummary: '1 of 4 MAs signal Buy (200D only). Price is below the 5D (€3.51), 20D (€3.60), and 50D (€3.68) moving averages, but still just above the estimated 200D band (€3.41). The Apr 30 ECB hold avoided the immediate hike shock, but May 4 Hormuz fighting and Brent above $110 reintroduced macro pressure. RSI has recovered to 43.83, so the setup is no longer a pure oversold bounce; it is now an event-risk support test around €3.38-€3.44.',
   oscillators: [
-    { label: 'RSI (14-day)',      value: '34.4',  signal: 'SELL',    note: 'Approaching oversold territory (<30). Last time RSI was this low (late Mar): stock bounced +19% to €3.81' },
-    { label: 'MACD',             value: '-0.038', signal: 'SELL',    note: 'Below signal line after ceasefire rally faded. Histogram narrowing — bearish momentum may be exhausting' },
-    { label: 'Stochastic (9,6)', value: '28.6',  signal: 'SELL',    note: 'Near oversold zone. A cross above 20 from below would trigger buy signal' },
-    { label: 'Williams %R',      value: '-100',  signal: 'SELL',    note: 'Maximum oversold — has historically preceded 5-15% bounces within 5-10 sessions' },
-    { label: 'ADX (14)',         value: '26.5',  signal: 'SELL',    note: 'Moderate trend strength in the bearish direction. Above 25 confirms a real trend, not noise' },
+    { label: 'RSI (14-day)',      value: '43.83', signal: 'NEUTRAL', note: 'Recovered from late-April oversold levels but still below the 50 momentum threshold. Needs >50 plus a close above €3.60 to confirm reversal.' },
+    { label: 'MACD',             value: '-0.052', signal: 'SELL',    note: 'Momentum remains negative after the Apr 21 high. Watch for flattening only if Hormuz news calms and price reclaims the 20D MA.' },
+    { label: 'Stochastic (9,6)', value: '38.0',  signal: 'NEUTRAL', note: 'No longer washed out; still vulnerable to another support test if Brent stays above $110.' },
+    { label: 'Williams %R',      value: '-62',   signal: 'NEUTRAL', note: 'The maximum-oversold bounce signal has faded. Risk/reward now depends more on geopolitics than oscillator mean reversion.' },
+    { label: 'ADX (14)',         value: '24.0',  signal: 'NEUTRAL', note: 'Trend strength is moderate; current move is a support-zone test rather than a confirmed breakdown.' },
   ],
   supportLevels: [
     { level: 4.489, label: '52W High / Major Resistance',          type: 'resistance' },
     { level: 3.81,  label: 'Apr 21 Ceasefire Rally High',          type: 'resistance' },
-    { level: 3.73,  label: '50-Day MA / Key Resistance',           type: 'resistance' },
-    { level: 3.65,  label: '20-Day MA / Near Resistance',          type: 'resistance' },
-    { level: 3.61,  label: '5-Day MA / Immediate Resistance',      type: 'resistance' },
-    { level: 3.580, label: 'Current Price (Apr 24 close)',         type: 'current' },
-    { level: 3.45,  label: '200-Day MA / Critical Support',        type: 'support' },
+    { level: 3.68,  label: '50-Day MA / Key Resistance',           type: 'resistance' },
+    { level: 3.60,  label: '20-Day MA / Reclaim Level',            type: 'resistance' },
+    { level: 3.51,  label: '5-Day MA / Immediate Resistance',      type: 'resistance' },
+    { level: 3.440, label: 'Current Price (May 4 close)',          type: 'current' },
+    { level: 3.41,  label: '200-Day MA / Critical Support Band',   type: 'support' },
+    { level: 3.384, label: 'May 4 Intraday Low / First Support',   type: 'support' },
     { level: 3.28,  label: 'Mar 31 Pre-MSCI Level / Support',      type: 'support' },
     { level: 3.15,  label: 'Apr 4 Ultimatum Low / Support',        type: 'support' },
     { level: 2.95,  label: 'Mar Intraday Low / Strong Support',    type: 'support' },
     { level: 2.48,  label: 'October 2025 Base / Major Support',    type: 'support' },
-    { level: 2.084, label: '52W Low / Floor',                      type: 'support' },
+    { level: 2.118, label: '52W Low / Floor',                      type: 'support' },
   ],
-  priceNote: 'Price pulled back 6% from the Apr 21 ceasefire-extension high (€3.81) to €3.58 on Apr 24. The selloff is driven by three factors: (1) ECB "layer cake of shocks" rhetoric on Apr 16 raised hike certainty to near-100%, (2) Islamabad peace talks stalled as Iran refuses to negotiate under US naval blockade, (3) profit-taking after the 13% ceasefire rally. The 200D MA (€3.45) is the critical support — 13 cents below current price. A break below would negate the medium-term uptrend and expose €3.15 (April 4 ultimatum low). However, the deeply oversold RSI (34.4) and Williams %R (-100) historically precede reversals. The ECB Apr 30 decision is the next catalyst — a hawkish hold could trigger the bounce; a larger-than-expected hike could push through the 200D MA.',
+  priceNote: 'Price is now testing the €3.38-€3.44 support area after the ceasefire rally unwound. The ECB did not hike on Apr 30, but the April inflation flash and May 4 Hormuz clashes shifted the catalyst from "ECB event" to "oil/ceasefire event." A daily close above €3.60 would repair the short-term trend. A close below €3.38 exposes €3.28 and then €3.15. This is no longer a clean oversold setup; position timing should be gated by whether Project Freedom produces a navigable Hormuz corridor or a renewed US-Iran shooting cycle.',
 }
 
 const fundamentalData = {
   valuation: [
-    { label: 'P/E (TTM)',     value: 8.61,              bench: '8–10×',       note: 'Fair vs sector ~9× for Greek banks; cheapened by pullback',  ok: true },
-    { label: 'P/E (Forward)', value: 7.73,              bench: '7–9×',        note: 'Cheap on 2026E pre-AT1 earnings (€0.463)',                   ok: true },
-    { label: 'P/B Ratio',     value: 0.92,              bench: '0.9–1.1×',    note: 'Still below book — MSCI upgrade narrows gap over 12-18 months', ok: true },
+    { label: 'P/E (TTM)',     value: 9.37,              bench: '8–10×',       note: 'Near the top half of the Greek-bank range after EPS normalization; not distressed despite pullback', ok: null },
+    { label: 'P/E (Forward)', value: 8.19,              bench: '7–9×',        note: 'Fair-to-cheap on 2026E EPS around €0.40, but geopolitical discount is now justified', ok: true },
+    { label: 'P/B Ratio',     value: 0.88,              bench: '0.85–1.05×',  note: 'Back below book; support depends on stable CET1 and no energy-driven NPE deterioration', ok: true },
     { label: 'PEG Ratio',     value: '0.58',            bench: '<1 = cheap',  note: 'Strong EPS growth path; 11% normalised growth guided',       ok: true },
-    { label: 'Div. Yield',    value: '3.63%',           bench: '2–4% sector', note: 'In-line; buyback program adds ~1.5% total return',           ok: true },
+    { label: 'Div. Yield',    value: '3.82%',           bench: '2–4% sector', note: 'Yield improved as price fell; buyback remains the more flexible return lever', ok: true },
     { label: 'Payout Ratio',  value: '55%',             bench: '40–60%',      note: 'Sustainable — split 50/50 dividends + buybacks',             ok: true },
   ],
   scorecard: [
-    { label: 'Valuation',      score: 8, note: 'P/B 0.92x — still below book; P/E 8.6x vs sector 9x. MSCI DM upgrade should compress discount. Pullback improved entry.' },
+    { label: 'Valuation',      score: 7, note: 'P/B 0.88x and forward P/E 8.2x look reasonable, but not enough to offset a 36% combined ceasefire-collapse / regime-crisis tail in the geo overlay.' },
     { label: 'Profitability',  score: 7, note: 'RoTE 12.9% reported, 13.8% normalized. Improving but not sector-leading vs Eurobank (15.2%).' },
     { label: 'Capital Quality',score: 8, note: 'CET1 15.0% — robust; 206bps organic capital generated in FY2025. Well above sector avg 15.6%.' },
     { label: 'Asset Quality',  score: 9, note: 'NPE ~3.0%, declining. Sector avg 2.6%. Scope Ratings: risk costs falling below 50bps.' },
-    { label: 'Dividend',       score: 7, note: '3.63% yield + active buyback (61M treasury shares, 2.63% of capital). Total return ~5-5.5%.' },
-    { label: 'Growth Outlook', score: 8, note: 'NII >€1.7B guided for 2026; fee income → €600M target. ECB hike would boost NII. Q2 investor day expected.' },
+    { label: 'Dividend',       score: 7, note: '3.82% yield + active buyback support. Treasury shares were already 60.997M after Apr 14-17 activity; Apr 29 ATHEX notice indicates continued programme activity.' },
+    { label: 'Growth Outlook', score: 7, note: 'NII >€1.7B guided for 2026 and fee income target near €600M, but Greece HICP at 4.6% raises loan-demand and credit-cost sensitivity.' },
   ],
 }
 
@@ -127,7 +129,7 @@ const capitalMetrics = [
 ]
 
 const peerComparison = [
-  { bank: 'Alpha Bank', pe: 8.61, pb: 0.92, rote: 12.9, cet1: 15.0, npe: 3.0, target: 4.57, divYield: 3.63 },
+  { bank: 'Alpha Bank', pe: 9.37, pb: 0.88, rote: 13.5, cet1: 15.0, npe: 3.0, target: 4.54, divYield: 3.82 },
   { bank: 'Eurobank',   pe: 7.90, pb: 0.92, rote: 15.2, cet1: 17.5, npe: 3.1, target: 4.35, divYield: 3.80 },
   { bank: 'Piraeus',    pe: 8.10, pb: 0.70, rote: 13.8, cet1: 14.2, npe: 4.1, target: 8.95, divYield: 3.50 },
   { bank: 'NBG',        pe: 9.50, pb: 0.88, rote: 14.5, cet1: 18.2, npe: 2.9, target: 15.95, divYield: 5.20 },
@@ -143,28 +145,30 @@ const radarPeer = [
 ]
 
 const analystTargets = [
-  { firm: 'Goldman Sachs',  target: 5.10, rating: 'Buy',        upside: 42 },
-  { firm: 'Deutsche Bank',  target: 4.45, rating: 'Buy',        upside: 24 },
-  { firm: 'UBS',            target: 4.30, rating: 'Buy',        upside: 20 },
-  { firm: 'Citi',           target: 4.10, rating: 'Buy',        upside: 15 },
-  { firm: 'JPMorgan',       target: 3.90, rating: 'Overweight', upside: 9 },
-  { firm: 'Morgan Stanley', target: 4.20, rating: 'Overweight', upside: 17 },
-  { firm: 'Barclays',       target: 3.12, rating: 'Hold',       upside: -13 },
+  { firm: 'Jefferies',      target: 4.85, rating: 'Buy',        upside: 41 },
+  { firm: 'Goldman Sachs',  target: 5.10, rating: 'Buy',        upside: 48 },
+  { firm: 'Deutsche Bank',  target: 4.45, rating: 'Buy',        upside: 29 },
+  { firm: 'UBS',            target: 4.30, rating: 'Buy',        upside: 25 },
+  { firm: 'Citi',           target: 4.10, rating: 'Buy',        upside: 19 },
+  { firm: 'JPMorgan',       target: 3.90, rating: 'Overweight', upside: 13 },
+  { firm: 'MarketScreener Consensus', target: 4.54, rating: 'Buy', upside: 32 },
+  { firm: 'Barclays',       target: 3.12, rating: 'Hold',       upside: -9 },
 ]
 
 const eventImpacts = [
-  { event: 'US-Iran Ceasefire Agreed (Apr 8) — Extended Indefinitely (Apr 21)',   level: 'Critical', direction: 'Positive', rationale: 'Two-week ceasefire mediated by Pakistan on Apr 8 — called off Trump\'s "Power Plant Day" strikes. Extended indefinitely Apr 21 after Iran described as "seriously fractured." Ceasefire reduced Conflagration risk from 25% to 12%. Oil dropped from $109 to $104-106. Alpha rallied +13% from €3.36 to €3.81. However: US naval blockade of Iranian ports continues, Hormuz traffic remains a trickle, and Iran refuses to negotiate "under shadow of threats." Ceasefire is fragile — could collapse if talks fail.' },
-  { event: 'Islamabad Talks Stalled — Iran Demands Blockade Removal (Apr 11-24)', level: 'High',     direction: 'Negative', rationale: 'Vance-led 300-member US team vs Ghalibaf-led 70-member Iranian team at Islamabad Talks (Apr 11-12). First round failed. Iran\'s core demand: blockade removal before negotiations. US demand: Hormuz fully reopened + nuclear verification. Impasse persists. US envoys heading back to Pakistan Apr 24 for fresh talks. Stalemate keeps oil elevated and blocks full risk-off rally for Greek equities.' },
-  { event: 'ECB April 30 Rate Decision — Hike 88% Probable',                     level: 'Critical', direction: 'Mixed',    rationale: 'ECB held at 2.15% in March. April 30 meeting near-certain to deliver 25bps hike. March CPI 2.6%, energy inflation surged to +5.1%. ECB staff projects inflation surging to 3.1% in Q2 on Middle East energy shock. Markets pricing deposit rate reaching 2.5%+ by year-end (50bps+ of hikes). SHORT-TERM: Higher rates boost Alpha NII (positive). MEDIUM-TERM: Tighter conditions slow growth, compress multiples, raise NPE risk (negative). ECB Governing Council member described the economic environment as a "layer cake of shocks" on Apr 16.' },
-  { event: 'MSCI Developed Market Upgrade (Mar 31 — effective May 2027)',         level: 'High',     direction: 'Positive', rationale: 'Greece upgraded from Emerging to Developed Market status — first time since 2013. Implementation confirmed for May 2027 index review. Passive fund inflows est. $2-4B over 12-18 months. Alpha Bank as largest private bank is a primary beneficiary. Structural re-rating catalyst that operates on a 12-18 month horizon. Athens General Index up 8.7% in past month, up 31% YoY. Provides medium-term floor under the stock.' },
-  { event: 'S&P/Fitch Greece Reviews Due April-May 2026',                         level: 'High',     direction: 'Positive', rationale: 'Greece currently at BBB (Fitch upgraded from BBB- in Nov 2025). S&P and Fitch reviews expected in April and May 2026. Further sovereign upgrade would reduce funding costs for Greek banks, expand investor base, and support re-rating. All four systemic banks already at investment grade with positive outlooks. A sovereign upgrade to BBB+ would be a significant catalyst for Alpha.' },
-  { event: 'Alpha Bank Share Buyback Active (Apr 14-17: 2.15M shares at €3.77)',  level: 'Medium',   direction: 'Positive', rationale: 'Management buying at avg €3.77 — above current price of €3.58. Total treasury shares now 61M (2.63% of outstanding). Part of €519M total distribution (55% payout, split 50/50 dividends/buybacks). Management buying into the pullback signals conviction. Accretive to EPS and P/B.' },
-  { event: 'UniCredit Stake 29.8% Direct → Instruments to 32.1%',                level: 'Medium',   direction: 'Positive', rationale: 'Converted to direct holding Jan 5. Financial instruments (TRS, options) for additional 2.3% expired Q1. CEO Orcel building cooperation without triggering mandatory takeover bid. Strategic anchor investor. Boosts wholesale banking and institutional credibility.' },
-  { event: 'AstroBank Integration — Digital Unification Completing 2026',         level: 'Medium',   direction: 'Positive', rationale: 'Created Cyprus\' 3rd-largest bank (€6.6B assets). Digital platform, cards, and applications unification completing in 2026. Altius-Universal Life insurance merger expected Q3 2026 — creates top-3 Cyprus insurer. RoCET >20% expected from Cyprus. 2026 is "year of consolidation and targeted growth" per Cyprus CEO.' },
-  { event: 'Q4 2025 Results Beat — Profit +44% YoY, Q1 2026 Pending',            level: 'High',     direction: 'Positive', rationale: 'FY2025 net profit €943M (+44% YoY). Fee income +19% YoY. CET1 at 15.0%. For FY2026: guides normalized EPS ~€0.40, NII >€1.7B, 11% earnings growth. Q2 2026 investor day to lay out new strategic priorities. Q1 2026 results not yet reported.' },
-  { event: 'Greek GDP Growth 1.8-2.2% (2026 Forecasts)',                          level: 'Medium',   direction: 'Positive', rationale: 'EC forecasts 2.2%, IMF 1.8% for 2026. Greece outperforming Eurozone avg (0.9%). Investment-grade; RRP-driven investment robust. Corporate lending double-digit growth. However, IMF warns inflation may reach 3.5% in Greece in 2026 due to energy costs.' },
-  { event: 'Israel-Lebanon Ceasefire Extended 3 Weeks (Apr 21)',                  level: 'Medium',   direction: 'Positive', rationale: 'Fragile Lebanon ceasefire extended after White House talks. However, Israel and Hezbollah continue exchanging attacks during the extension. Partial de-escalation of the broader Middle East conflict reduces tail risk for European banks. But risk persists — any breakdown reignites regional conflagration fears.' },
-  { event: 'Basel IV / EU CRR3 Phase-In (2025-2030)',                             level: 'Medium',   direction: 'Negative', rationale: 'New capital output floors could require 10-15% more RWA capital by 2030. Est. impact: -80 to -130bps CET1. Current 15.0% buffer adequate. Scope Ratings: stable outlook for Greek banks despite regulatory phase-in.' },
+  { event: 'Project Freedom / Hormuz Shooting Resumes (May 4)',                    level: 'Critical', direction: 'Negative', rationale: 'The US began a military-backed effort to reopen Hormuz. Reuters reported US forces destroyed six Iranian small boats and intercepted Iranian missiles/drones; AP reported the UAE came under Iranian attack and two cargo vessels were ablaze off the UAE. This is the largest stress test of the Apr 8 ceasefire. For Alpha: Brent at $113.79 raises Greek inflation, ECB hike risk, sovereign-spread sensitivity, and bank multiple compression.' },
+  { event: 'ECB Holds at 2.00% But Flags Higher Inflation / Lower Growth (Apr 30)', level: 'Critical', direction: 'Mixed',    rationale: 'The ECB kept deposit/refi/marginal rates at 2.00% / 2.15% / 2.40%. This avoided the immediate 25bps hike feared on Apr 24, but the statement said upside inflation risks and downside growth risks intensified because of the Middle East energy shock. For Alpha: no instant NII bump from an Apr hike, but June-hike optionality remains; the bigger issue is stagflation pressure on loan demand and NPEs.' },
+  { event: 'Eurostat April Flash: EA HICP 3.0%, Greece 4.6%, Energy 10.9%',        level: 'High',     direction: 'Negative', rationale: 'Euro-area inflation accelerated to 3.0% in April from 2.6% in March; energy jumped to 10.9% and Greece printed an estimated 4.6%. This confirms the oil shock is reaching consumer prices. Higher rates help bank NII only if credit losses and valuation multiples stay contained; at current inflation levels that trade-off is deteriorating.' },
+  { event: 'Alpha Bank €600M Senior Preferred Green Bond Priced (Apr 28)',         level: 'Medium',   direction: 'Positive', rationale: 'Alpha successfully priced a 6NC5 senior preferred green bond of €600M, with Greek press reporting orders above €2.5B. This is a strong funding-access signal during a volatile week and supports the bank\'s MREL/funding plan. It partially offsets the broader macro-risk premium.' },
+  { event: 'Alpha Bank Buyback Continues / Treasury Shares Already 2.63%',         level: 'Medium',   direction: 'Positive', rationale: 'The Apr 14-17 buyback acquired 2.148M shares at €3.7676 average, leaving 60.998M treasury shares, 2.6346% of capital. ATHEX posted another own-share announcement on Apr 29. Management is buying above the current €3.44 price, providing tactical support but not enough to neutralize geopolitical beta.' },
+  { event: 'Alpha Trust 69.61% Acquisition Agreement (Apr 7)',                     level: 'Medium',   direction: 'Positive', rationale: 'Alpha signed binding agreements to acquire 69.61% of Alpha Trust Holdings and intends a voluntary bid for the remainder. Strategic rationale: deepen asset management, fee income, and wealth platform. This supports the 2026 fee target but integration risk now matters more under a weaker macro tape.' },
+  { event: 'MSCI Developed Market Upgrade (Mar 31 — effective May 2027)',          level: 'High',     direction: 'Positive', rationale: 'Greece upgraded from Emerging to Developed Market status, with implementation expected in May 2027. Passive inflow estimates remain a medium-term floor for Greek banks, but the May 4 oil/geopolitical shock delays the re-rating path rather than invalidating it.' },
+  { event: 'S&P/Fitch Greece Reviews Due April-May 2026',                          level: 'High',     direction: 'Positive', rationale: 'Further sovereign-rating progress would reduce funding costs and widen the investor base. However, energy inflation and Middle East risk raise the bar for near-term upgrades. Treat as a catalyst, not a base-case guarantee.' },
+  { event: 'UniCredit Stake 29.8% Direct → Instruments to 32.1%',                  level: 'Medium',   direction: 'Positive', rationale: 'UniCredit remains a strategic anchor and a governance/wholesale-banking credibility signal. It supports the medium-term thesis, but does not protect short-term price action if oil and Greek spreads gap higher.' },
+  { event: 'AstroBank Integration — Digital Unification Completing 2026',          level: 'Medium',   direction: 'Positive', rationale: 'Cyprus integration is still a fee and RoTE catalyst. The key watch is whether higher energy prices slow Cyprus/Greece/Romania credit growth before synergies arrive.' },
+  { event: 'Q4 2025 Results Beat — Profit +44% YoY, Q1 2026 Due May 28',           level: 'High',     direction: 'Positive', rationale: 'FY2025 profit was €943M (+44% YoY), normalized profit €907M, and management guided 2026 normalized EPS near €0.40 / reported profit around €950M, NII above €1.7B, and fee growth. Next hard company data point is Q1 2026 results on May 28.' },
+  { event: 'Greek Macro: IMF 2026 Growth 1.8%, Inflation 3.5%',                    level: 'Medium',   direction: 'Mixed',    rationale: 'Greece still outgrows much of the euro area, but IMF assumptions were already revised for higher inflation before the latest Hormuz flare-up. Alpha\'s bull case needs credit expansion without a material rise in NPEs.' },
+  { event: 'Basel IV / EU CRR3 Phase-In (2025-2030)',                              level: 'Medium',   direction: 'Negative', rationale: 'New capital output floors could require Greek banks to hold 10-15% more RWA capital by 2030. Est. impact: -80 to -130bps CET1. Current 15.0% buffer remains adequate, but capital-return assumptions should not be stretched.' },
 ]
 
 const keyMetrics = [
@@ -172,17 +176,76 @@ const keyMetrics = [
   { label: 'CET1 Capital Ratio',     value: '15.0%',    change: '206bps organic generation', pos: true  },
   { label: 'NPE Ratio',              value: '~3.0%',    change: 'Sector avg 2.6%, declining', pos: true  },
   { label: 'Cost-to-Income',         value: '39.5%',    change: 'Target: ~37%',             pos: true  },
-  { label: 'RoTE (Normalised)',       value: '13.8%',    change: 'Vs 14-15% peers',          pos: null  },
+  { label: 'RoTE Target',             value: '13-14%',   change: 'Jefferies sees ~13.5% by 2028', pos: null  },
   { label: 'Net Interest Income',    value: '€1.65B',   change: '2026 guide: >€1.7B',      pos: true  },
-  { label: 'Fee Income',             value: '€582M',    change: '+19% YoY; target €620M',  pos: true  },
+  { label: 'Fee Income',             value: '€582M',    change: 'Target near €600M; Alpha Trust adds optionality', pos: true  },
   { label: 'Total Distribution',     value: '€519M',    change: '55% payout + buyback',     pos: true  },
   { label: 'UniCredit Stake',        value: '29.8%',    change: 'Instruments to 32.1%',     pos: true },
   { label: 'Treasury Shares',        value: '61.0M',    change: '2.63% of capital; buying at €3.77', pos: true },
-  { label: 'Brent Crude (Apr 24)',   value: '$104-106', change: 'Down from $109; blockade continues', pos: null },
+  { label: 'Brent Jul 2026',         value: '$113.79',  change: '+5.2% on May 4; Hormuz clash', pos: false },
+  { label: 'ECB Deposit Rate',       value: '2.00%',    change: 'Held Apr 30; June hike risk alive', pos: null },
+  { label: 'EA / Greece HICP',       value: '3.0% / 4.6%', change: 'April flash inflation spike', pos: false },
   { label: 'MSCI Status',           value: 'Developed', change: 'Effective May 2027; $2-4B inflows', pos: true },
+  { label: 'Q1 2026 Results',        value: 'May 28',   change: 'Next company catalyst', pos: null },
 ]
 
 const newsItems = [
+  {
+    headline: "Reuters: US sinks Iranian small boats and intercepts missiles/drones as Project Freedom opens Hormuz",
+    source: "Reuters via Investing.com",
+    date: "2026-05-04",
+    url: "https://za.investing.com/news/stock-market-news/us-sinks-iranian-small-boats-shoots-down-missiles-drones-as-it-opens-strait-4250942",
+    sentiment: "negative",
+  },
+  {
+    headline: "AP: UAE under attack as US effort to reopen Strait of Hormuz tests Iran truce",
+    source: "Associated Press",
+    date: "2026-05-04",
+    url: "https://apnews.com/article/iran-us-war-ceasefire-negotiations-strait-a4857f28d9b47e0170b65ced19451a25",
+    sentiment: "negative",
+  },
+  {
+    headline: "Athens market closes higher; Alpha Bank ends at €3.44, up 1.18%",
+    source: "Dnews",
+    date: "2026-05-04",
+    url: "https://www.dnews.gr/eidhseis/oikonomia/586201/me-kerdi-ekleise-ti-deftera-to-xrimatistirio-athinon",
+    sentiment: "neutral",
+  },
+  {
+    headline: "ECB holds deposit rate at 2.00% but says inflation and growth risks have intensified",
+    source: "European Central Bank",
+    date: "2026-04-30",
+    url: "https://www.ecb.europa.eu/press/pr/date/2026/html/ecb.mp260430~81b7179e6f.en.html",
+    sentiment: "negative",
+  },
+  {
+    headline: "Eurostat April flash: euro-area inflation 3.0%, Greece 4.6%, energy 10.9%",
+    source: "Eurostat",
+    date: "2026-04-30",
+    url: "https://ec.europa.eu/eurostat/en/web/products-euro-indicators/w/2-30042026-ap",
+    sentiment: "negative",
+  },
+  {
+    headline: "Brent Jul 2026 trades at $113.79 as Hormuz disruption premium returns",
+    source: "Oilprice.com",
+    date: "2026-05-04",
+    url: "https://oilprice.com/futures/brent/",
+    sentiment: "negative",
+  },
+  {
+    headline: "Alpha Bank prices €600M 6NC5 senior preferred green bond",
+    source: "Euronext Athens",
+    date: "2026-04-28",
+    url: "https://athens.euronext.com/el/more-options/announcements/alpha-bank-epityhis-timologisi-6etoys-prasinoy-omologoy-ypsilis",
+    sentiment: "positive",
+  },
+  {
+    headline: "Alpha Bank buys 2.15M own shares at €3.7676 average; treasury shares reach 2.63%",
+    source: "Cyprus Mail",
+    date: "2026-04-22",
+    url: "https://cyprus-mail.com/2026/04/22/alpha-bank-buys-over-2-1-million-of-its-own-shares",
+    sentiment: "positive",
+  },
   {
     headline: "Trump extends Iran ceasefire indefinitely, citing 'seriously fractured' Tehran government",
     source: "CNBC",
@@ -271,26 +334,62 @@ const newsItems = [
 
 /* ─── GEOPOLITICAL CROSS-REFERENCE: US-IRAN WAR / CEASEFIRE ────── */
 const geoOverlay = {
-  analysis: 'US–Iran War: Operation Epic Fury — Ceasefire Day 16 / Talks Stalled',
+  analysis: 'US–Iran War: Operation Epic Fury — Project Freedom Stress Test',
   analysisPath: '/geo/us-iran-war',
-  date: '2026-04-24',
-  relevance: 'HIGH — The Iran war has shifted from active combat to a fragile ceasefire with indefinite extension. The April 6 "Power Plant Day" deadline that dominated the last analysis was averted by Pakistan-mediated ceasefire on April 8. Ceasefire extended indefinitely on April 21. However, US naval blockade of Iranian ports continues, Hormuz traffic remains minimal, and Islamabad talks have stalled as Iran refuses to negotiate "under shadow of threats." Oil eased from $109 to $104-106 but remains elevated due to ongoing disruption. The Conflagration risk has dropped sharply (25%→12%) but the Stalemate risk has risen (22%→35%). ECB now near-certain to hike on Apr 30, driven by energy inflation from the blockade. For Alpha Bank: the acute binary event risk is gone, replaced by grinding uncertainty that caps the re-rating thesis.',
+  date: '2026-05-04',
+  relevance: 'CRITICAL — The Iran-war overlay has worsened since Apr 24. The ceasefire did not collapse immediately, but the May 4 US Project Freedom operation to reopen Hormuz triggered direct US-Iran fire, Iranian attacks on the UAE, and renewed oil-price stress. Brent Jul 2026 is $113.79, euro-area HICP is 3.0%, and Greece HICP is 4.6%. For Alpha Bank, this directly gates position timing through three channels: oil → Greek inflation → ECB path, risk sentiment → Greek bank multiples, and sovereign spreads → bank funding costs.',
   keyChannels: [
-    { channel: 'Oil → Inflation → ECB Rate Hike', detail: 'Brent at $104-106 (down from $109 at last analysis). Ceasefire eased acute pressure but blockade keeps prices elevated. March CPI 2.6%, energy +5.1%. Q2 inflation projected at 3.1%. ECB near-certain to hike 25bps on Apr 30, markets pricing 2.5%+ deposit rate by year-end. SHORT-TERM: higher rates boost NII (positive ~€20-30M per 25bps). MEDIUM-TERM: stagflation risk — growth slows, loan demand drops, NPE risk rises (negative). Net for Alpha: earnings mildly positive, valuation multiple negative.', severity: 'Critical' },
-    { channel: 'Ceasefire → Risk Sentiment → Greek Equities', detail: 'Ceasefire reduced tail risk significantly — Conflagration probability dropped from 25% to 12%. Athens General Index up 8.7% in past month. But the stalemate (blockade + stalled talks) prevents a full risk-off rally. Greek sovereign spreads have partially normalized but remain wider than pre-war. MSCI DM upgrade provides structural floor.', severity: 'High' },
-    { channel: 'MSCI DM Upgrade → Structural Floor', detail: 'Greece\'s MSCI Developed Market upgrade (effective May 2027) creates a structural bid under Greek equities. Passive fund inflows estimated $2-4B over 12-18 months. This provides a medium-term floor that partially insulates Alpha from further geo shocks. The floor is estimated around €3.20-3.40 (0.85x book).', severity: 'High' },
-    { channel: 'Blockade → Hormuz → Energy Supply', detail: 'Hormuz traffic at "relative trickle" despite ceasefire. US naval blockade of Iranian ports continues as leverage. Iran demands blockade removal as precondition for talks. This impasse keeps Brent at $100+ and drives the ECB hawkish stance. Resolution of the blockade is the key catalyst for oil normalization and Alpha re-rating.', severity: 'Critical' },
-    { channel: 'SE Europe Spillover → Romania', detail: 'Romania (~10% of Alpha loan book) exposed to energy prices and Balkans instability. Ceasefire reduced acute risk. Israel-Lebanon ceasefire extended 3 weeks. But ongoing energy shock weighs on Eastern European growth.', severity: 'Medium' },
+    { channel: 'Oil → Greece HICP → ECB Path', detail: 'Brent moved from the Apr 24 $104-106 zone to $113.79. Eurostat April flash shows energy inflation at 10.9%, euro-area HICP at 3.0%, and Greece at 4.6%. The ECB held on Apr 30, but the next move is now more likely higher unless energy cools. Alpha gets some NII optionality from rate hikes, but the growth/NPE/multiple drag dominates above $110 oil.', severity: 'Critical' },
+    { channel: 'Hormuz Firefight → Risk Sentiment → Greek Banks', detail: 'May 4 created a genuine ceasefire stress point: US boats/aircraft defending ships, Iranian missiles/drones, UAE attacked. Greek banks are high-beta financials; ALPHA can fall faster than fundamentals if investors de-risk Europe/periphery exposure.', severity: 'Critical' },
+    { channel: 'Sovereign Spreads → Funding Cost', detail: 'Greek 10Y yields were already around 3.7-3.8% in mid-April. A sustained oil shock can widen spreads and raise wholesale funding costs. Alpha\'s €600M green bond demand is positive, but future issuance costs remain macro-sensitive.', severity: 'High' },
+    { channel: 'MSCI DM Upgrade → Structural Floor', detail: 'The May 2027 MSCI developed-market path remains the main medium-term floor for Alpha. It supports accumulation on clean de-escalation dips, but does not neutralize a near-term naval escalation shock.', severity: 'High' },
+    { channel: 'SE Europe Spillover → Romania/Cyprus', detail: 'Romania and Cyprus exposure makes Alpha sensitive to energy prices, tourism, shipping, and regional confidence. A short Hormuz corridor crisis is manageable; a multi-week naval conflict is not.', severity: 'Medium' },
   ],
   scenarios: [
-    { name: 'Prolonged Stalemate / Cold Standoff',   probability: 35, color: '#f59e0b', priceImpact: '-5% to +5%', direction: 'Neutral-Negative', rationale: 'Ceasefire holds but talks drag for months. Blockade continues. Oil $95-110. ECB hikes. Alpha drifts in €3.40-3.80 range. No re-rating catalyst. THIS IS ESSENTIALLY THE CURRENT SCENARIO. Management buyback at €3.77 provides some support.' },
-    { name: 'Negotiated Settlement',                  probability: 25, color: '#10b981', priceImpact: '+20% to +35%', direction: 'Strongly Positive', rationale: 'Pakistan/US/Iran mediators bridge gap over 1-3 months. Hormuz reopens fully. Blockade lifted. Oil collapses to $75-85. ECB pivots back to cuts. Alpha surges to €4.20-4.57 as MSCI + peace = full re-rating. Requires Iran to accept modified terms and US to lift blockade. UPGRADED from 15% — ceasefire existence proves both sides can negotiate.' },
-    { name: 'Escalatory Resolution (Coerced)',        probability: 18, color: '#06b6d4', priceImpact: '-10% then +15%', direction: 'Volatile then Positive', rationale: 'Talks fail completely. Trump resumes infrastructure strikes or tightens blockade to force Iranian capitulation within 2-4 weeks. Short-term negative (risk-off), medium-term positive (oil drops on resolution). Alpha: initial drop to €3.20-3.40, then recovery to €3.80+.' },
-    { name: 'Ceasefire Collapse / Conflagration',     probability: 12, color: '#ef4444', priceImpact: '-20% to -35%', direction: 'Strongly Negative', rationale: 'Ceasefire breaks down on blockade dispute or proxy provocation. War resumes with Houthi-Hezbollah-PMF escalation. Oil $130-150+. Eurozone recession. Alpha retests €2.50-2.80. SHARPLY REDUCED from 25% — ceasefire existence and Trump\'s willingness to extend indicate preference for diplomacy over escalation.' },
-    { name: 'Regime Change / Nuclear Crisis',         probability: 10, color: '#dc2626', priceImpact: '-40%+', direction: 'Catastrophic', rationale: 'Trump cited Iran\'s government as "seriously fractured." If combined military/economic pressure topples Islamic Republic or triggers nuclear breakout: global market panic. Tail risk — SLIGHTLY INCREASED from 8% given Trump\'s "fractured government" language and extended blockade pressure on Iranian economy.' },
+    { name: 'Frozen Maritime Confrontation',          probability: 30, color: '#f59e0b', priceImpact: '-8% to +2%',  direction: 'Negative', rationale: 'Project Freedom opens limited corridors but Iran keeps contesting control. Brent $100-120, ECB remains hawkish, Alpha trades around €3.25-3.60 until oil falls or Q1 results surprise positively. This is the current center of gravity.' },
+    { name: 'Ceasefire Collapse / Limited Naval War', probability: 30, color: '#ef4444', priceImpact: '-25% to -40%', direction: 'Strongly Negative', rationale: 'May 4 fire escalates into repeated US-Iran maritime exchanges, UAE/Gulf infrastructure attacks, or a ship casualty event. Brent $130-150, Greece inflation stays above 4%, ECB hikes into weak growth. Alpha could retest €2.75-3.05 despite buybacks.' },
+    { name: 'Negotiated Hormuz Corridor',             probability: 22, color: '#10b981', priceImpact: '+20% to +35%', direction: 'Strongly Positive', rationale: 'US/Iran/Qatar/Oman agree a monitored shipping channel and verification sequencing. Brent falls below $95, ECB June hike risk fades, and ALPHA reclaims €3.80 then targets the €4.54 consensus path.' },
+    { name: 'Escalatory Coercive Resolution',         probability: 12, color: '#06b6d4', priceImpact: '-15% then +10%', direction: 'Volatile', rationale: 'US force opens Hormuz through heavier strikes. Short-term risk-off hits Greek banks, but if shipping normalizes quickly the stock recovers. Path depends on whether Iran absorbs the blow or widens the war.' },
+    { name: 'Regime / Nuclear Crisis',                probability: 6,  color: '#dc2626', priceImpact: '-40%+', direction: 'Catastrophic', rationale: 'Internal Iranian fracture, nuclear-site incident, or proxy mass-casualty event breaks containment. Not base case, but the May 4 shooting raises the need for a wider stop and smaller tactical sizing.' },
   ],
-  probabilityWeightedImpact: 'Net probability-weighted impact: -1% to +5% (IMPROVED from -6% to -10% three weeks ago). Ceasefire halved the Conflagration risk and nearly doubled the Negotiated Settlement probability. The dominant scenario (35% Stalemate) is now neutral-negative rather than actively destructive. MSCI structural floor provides medium-term support. The key remaining risk is the ECB hike cycle — if energy inflation from the blockade forces 75bps+ of hikes in 2026, the growth/valuation drag could offset the NII benefit.',
+  probabilityWeightedImpact: 'Net probability-weighted impact: approximately -6% to -8% for Alpha. The positive 22% negotiated-corridor case is now outweighed by a 36% combined ceasefire-collapse / regime-crisis tail. This reverses the Apr 24 improvement. Position timing should wait for evidence that Project Freedom produces stable transit rather than repeated fire.',
   keyPoliticalSignals: [
+    {
+      actor: 'Donald Trump',
+      role: 'US President',
+      platform: 'Truth Social',
+      date: '2026-05-03',
+      quote: 'We will guide their Ships safely out of these restricted Waterways.',
+      signalType: 'ambiguous',
+      stockImpact: 'Project Freedom is positive only if it opens a shipping corridor without sustained fire. For Alpha it is a binary signal: corridor success lowers oil/ECB risk; Iranian interference converts the signal into escalation.',
+    },
+    {
+      actor: 'US Central Command / Adm. Brad Cooper',
+      role: 'US CENTCOM Commander',
+      platform: 'Press Briefing',
+      date: '2026-05-04',
+      quote: 'The IRGC has launched multiple cruise missiles, drones and small boats at ships we are protecting.',
+      signalType: 'escalatory',
+      stockImpact: 'Confirms Project Freedom is already kinetic. Raises ceasefire-collapse probability and keeps Alpha below the €3.60 repair level unless the confrontation stops quickly.',
+    },
+    {
+      actor: 'Ali Abdollahi',
+      role: 'Iran Central Military Commander',
+      platform: 'Official Statement',
+      date: '2026-05-04',
+      quote: 'Any foreign armed forces... will be attacked if they intend to approach and enter the Strait of Hormuz.',
+      signalType: 'escalatory',
+      stockImpact: 'Clear red line against US naval operations. For Alpha, this is a wait signal: no full-risk entry until commercial transit occurs without follow-on missile/drone attacks.',
+    },
+    {
+      actor: 'European Central Bank',
+      role: 'Governing Council',
+      platform: 'Monetary Policy Decision',
+      date: '2026-04-30',
+      quote: 'Upside risks to inflation and downside risks to growth have intensified.',
+      signalType: 'economic',
+      stockImpact: 'The ECB hold helped near-term sentiment, but the statement validates stagflation risk. For Alpha, higher rates are not automatically bullish if Greek HICP and NPE risk rise together.',
+    },
     {
       actor: 'Donald Trump',
       role: 'US President',
@@ -325,7 +424,7 @@ const geoOverlay = {
       date: '2026-04-16',
       quote: 'We face a layer cake of shocks. The energy shock from the Middle East conflict requires a firm response. Price stability is non-negotiable.',
       signalType: 'economic',
-      stockImpact: 'Confirms April 30 rate hike. "Layer cake of shocks" = multiple inflationary pressures stacking. For Alpha: NII uplift ~€20-30M per 25bps hike, but growth/multiple drag. This statement drove the Apr 17-24 pullback from €3.81 to €3.58.',
+      stockImpact: 'Pre-Apr 30 hawkish signal rather than a realized hike. The ECB ultimately held at 2.00%, but the "layer cake of shocks" framing foreshadowed the later inflation/growth-risk language. For Alpha: possible NII uplift if hikes resume, offset by growth, credit-cost, and multiple drag.',
     },
     {
       actor: 'Pakistani PM Shehbaz Sharif',
@@ -350,40 +449,58 @@ const geoOverlay = {
 
 const riskNotices = [
   {
-    type: 'Monetary Policy — IMMINENT',
-    icon: '🏦',
-    event: 'ECB Rate Hike 88% Probability at April 30 Meeting — 6 Days Away',
-    description: 'ECB near-certain to deliver 25bps hike on April 30. March CPI revised up to 2.6%, energy inflation at +5.1%. Markets pricing deposit rate reaching 2.5%+ by year-end. ECB GC member described economic outlook as "layer cake of shocks." For Alpha: NII upside from higher rates, but growth/valuation downside from tighter conditions. This is the IMMEDIATE catalyst driving the pullback from €3.81 to €3.58.',
+    type: 'Geopolitical — CRITICAL',
+    icon: '🇮🇷',
+    event: 'Project Freedom triggered direct US-Iran fire in Hormuz on May 4',
+    description: 'The ceasefire is no longer simply stalled. US forces began reopening Hormuz, Iran fired missiles/drones/small boats, US forces destroyed Iranian boats, and the UAE reported Iranian attacks. The geo-overlay collapse tail rises to 36% combined for Ceasefire Collapse plus Regime/Nuclear Crisis.',
     impact: 'Critical',
     impactColor: '#ef4444',
-    suggestion: 'Monitor ECB April 30 decision and press conference closely. A 25bps hike is priced in — watch for forward guidance: hawkish (more hikes signaled) = negative for Alpha multiple; dovish hold (one-and-done) = positive. Alpha is deeply oversold (RSI 34.4) going into the decision — a dovish surprise could trigger a sharp bounce.',
+    suggestion: 'Gate any larger exposure on 24-72 hours of evidence: commercial vessels transit without additional missile/drone strikes, UAE/Gulf attacks stop, and Brent retreats below $105. If the next signal is another hit ship or US casualty, downside toward €3.05 becomes more relevant than analyst targets.',
   },
   {
-    type: 'Geopolitical — FRAGILE CEASEFIRE',
-    icon: '🇮🇷',
-    event: 'US-Iran Ceasefire Holding But Talks Stalled — Blockade Continues',
-    description: 'Ceasefire agreed Apr 8, extended indefinitely Apr 21. But Islamabad talks stalled — Iran demands blockade removal as precondition, US demands Hormuz reopened. US envoys heading to Pakistan Apr 24 for fresh round. Hormuz traffic at a "trickle." Oil at $104-106. Conflagration risk reduced to 12% (from 25%) but stalemate risk elevated to 35%. Ceasefire could collapse if proxy forces provoke or talks fail permanently.',
+    type: 'Monetary Policy — HAWKISH HOLD',
+    icon: '🏦',
+    event: 'ECB held rates at 2.00%, but inflation risks intensified',
+    description: 'The Apr 30 ECB decision removed the immediate hike event, but not the risk. Euro-area inflation is 3.0%, Greece is 4.6%, energy is 10.9%, and the ECB statement explicitly tied the Middle East war to higher inflation and weaker sentiment.',
     impact: 'High',
     impactColor: '#f59e0b',
-    suggestion: 'The ceasefire has transformed the risk profile from "binary event" to "grinding uncertainty." Monitor Islamabad talks for breakthrough signals. Any indication of partial blockade easing or Iran returning to talks = strong positive for Alpha. Ceasefire breakdown = immediate risk-off.',
+    suggestion: 'Watch June ECB pricing and Lagarde follow-up language. A June hike is modestly positive for NII but negative for multiples if paired with slower GDP and higher NPE assumptions.',
+  },
+  {
+    type: 'Commodity / Inflation',
+    icon: '🛢️',
+    event: 'Brent back above $110 and Greece HICP at 4.6%',
+    description: 'Brent Jul 2026 is $113.79 and Oilprice shows a +47% YTD move. Eurostat estimates Greek April HICP at 4.6%. This is the direct transmission channel from Hormuz to Alpha Bank valuation: inflation → ECB path → loan demand/NPEs → P/B multiple.',
+    impact: 'High',
+    impactColor: '#f59e0b',
+    suggestion: 'Treat Brent below $100 as the first macro all-clear. Brent above $120 would likely force another valuation haircut even if Alpha-specific fundamentals stay sound.',
+  },
+  {
+    type: 'Funding Positive',
+    icon: '💶',
+    event: '€600M senior preferred green bond priced on Apr 28',
+    description: 'Alpha priced a 6NC5 senior preferred green bond, with Greek press indicating demand above €2.5B. This shows market access remains open despite volatility and supports MREL/funding execution.',
+    impact: 'Medium',
+    impactColor: '#10b981',
+    suggestion: 'Positive for funding confidence, but not a timing override while Hormuz is kinetic. It matters most if the stock tests book-value support on macro panic rather than company weakness.',
   },
   {
     type: 'Structural Positive',
     icon: '📈',
-    event: 'MSCI Developed Market Upgrade (Effective May 2027) + S&P/Fitch Reviews Due',
-    description: 'Greece upgraded to DM status Mar 31. Implementation May 2027. Passive fund inflows $2-4B est. S&P review due April 2026, Fitch review May 2026. Greece currently at BBB (Fitch upgraded Nov 2025). Further sovereign upgrade to BBB+ would be significant catalyst. S&P Global already revised Greek bank outlooks to Positive.',
+    event: 'MSCI Developed Market upgrade path remains intact',
+    description: 'Greece remains on the May 2027 developed-market implementation path. This is the main 12-18 month re-rating support for Greek banks, but the timing of realization is now hostage to the oil/ECB shock.',
     impact: 'High',
     impactColor: '#10b981',
-    suggestion: 'MSCI + potential sovereign upgrades create a structural re-rating trajectory that operates independently of the Iran conflict. Every geo-driven dip below €3.50 is a structural accumulation opportunity on this thesis alone.',
+    suggestion: 'Use the MSCI thesis as the medium-term floor, not as permission to ignore a 30% ceasefire-collapse scenario.',
   },
   {
-    type: 'Technical — OVERSOLD',
+    type: 'Technical — SUPPORT TEST',
     icon: '📉',
-    event: 'RSI 34.4 / Williams %R -100 — Deeply Oversold After -6% Pullback',
-    description: 'Alpha Bank pulled back from €3.81 (Apr 21) to €3.58 (Apr 24) as ECB hike fears and stalled talks weighed. RSI at 34.4, Williams %R at -100, price below 5D/20D/50D MAs but above 200D MA (€3.45). Last time these oversold levels were reached (late March): stock bounced +19% over the next 3 weeks.',
+    event: '€3.38-€3.44 support zone; RSI 43.83',
+    description: 'Alpha is below the 5D/20D/50D averages and only just above the 200D support band. RSI is no longer deeply oversold, so the setup depends on event de-risking rather than oscillator mean reversion.',
     impact: 'Medium',
     impactColor: '#06b6d4',
-    suggestion: 'Oversold technicals are a tactical buying signal, NOT a fundamental all-clear. Wait for ECB Apr 30 decision before acting. If ECB delivers expected 25bps with no hawkish surprise: buy the oversold bounce toward €3.73 (50D MA). If ECB signals aggressive hiking cycle: wait for 200D MA test at €3.45.',
+    suggestion: 'A close above €3.60 repairs the short-term chart. A close below €3.38 exposes €3.28 and €3.15.',
   },
   {
     type: 'Geopolitical',
@@ -407,34 +524,139 @@ const riskNotices = [
 
 /* ─── VERDICT ────────────────────────────────────────────────── */
 const verdict = {
-  stance: "CAUTIOUS BUY — ACCUMULATE ON OVERSOLD PULLBACK",
-  stanceColor: "#10b981",
-  stanceBg: "rgba(16,185,129,0.1)",
-  timing: "Initiate 50% position now; add on ECB Apr 30 clarity",
-  timingDetail: "The situation has IMPROVED MATERIALLY since the April 5 analysis. The April 6 'Power Plant Day' deadline — which was a 25% Conflagration event — was averted by Pakistan-mediated ceasefire on April 8. The ceasefire was extended indefinitely on April 21. Conflagration risk dropped from 25% to 12%. Alpha rallied +13% from €3.36 to €3.81 on the ceasefire, then pulled back to €3.58 on ECB hike concerns and stalled talks.\n\nThe pullback has created a TACTICAL BUYING OPPORTUNITY. Alpha is deeply oversold (RSI 34.4, Williams %R -100) at levels that historically precede 10-19% bounces. The stock trades at 0.92x book, 7.7x forward P/E, with management actively buying back shares at €3.77 (above current price). The fundamental thesis is intact: MSCI DM upgrade, S&P/Fitch review upgrades pending, NII upside from ECB hike, and FY2026E net profit of €1.05B.\n\nPOSITION SIZING STRATEGY:\n• PHASE 1 (NOW): Initiate 50% of target position at €3.55-3.60. Stop at €3.20 (-10.6%). The oversold bounce is the near-term trade.\n• PHASE 2 (POST-ECB Apr 30): If ECB delivers 25bps with dovish forward guidance → add remaining 50% on bounce toward €3.73. If ECB signals aggressive hiking cycle → wait for 200D MA test at €3.45 to add.\n• If Islamabad talks produce breakthrough → full position immediately. Oil drops → ECB pivots → Alpha gaps to €4.20+.\n• If ceasefire collapses → stop out at €3.20, reassess at €2.80 for structural MSCI-floor entry.\n\nThe MSCI DM upgrade means every geo-driven dip below €3.50 is a structural buying opportunity on a 12-18 month horizon. The question is no longer WHETHER to buy Alpha, but WHEN and HOW MUCH.",
-  entryZone: { low: 3.45, high: 3.60, ideal: 3.55 },
-  stopLoss:  { price: 3.20, pct: -10.6, rationale: 'Below Apr 4 ultimatum low (€3.15) and well below 200D MA (€3.45). Triggers only in ceasefire collapse scenario (12% probability). Tight enough to protect capital, wide enough to survive ECB-driven volatility.' },
+  stance: "CAUTIOUS HOLD — EVENT-RISK WATCH",
+  stanceColor: "#f59e0b",
+  stanceBg: "rgba(245,158,11,0.1)",
+  timing: "Wait 24-72h for Hormuz transit clarity",
+  timingDetail: "The April 24 thesis has deteriorated. The expected ECB Apr 30 hike did not happen, which was initially supportive, but the market now has a worse macro/geopolitical mix: April euro-area inflation is 3.0%, Greece is 4.6%, Brent is $113.79, and the US-Iran ceasefire is being stress-tested by Project Freedom in Hormuz.\n\nThe key political signals are explicit: Trump announced the US would guide ships through the strait; Iran's Ali Abdollahi warned US forces would be attacked if they entered; CENTCOM then confirmed the IRGC launched missiles, drones, and small boats at protected shipping. These signals raise the geo-overlay downside tail. The prior 'oversold pullback' setup has become an event-risk support test.\n\nTACTICAL FRAMEWORK:\n• Keep risk staged while the next 24-72 hours clarify whether commercial vessels can transit without follow-on fire.\n• If Project Freedom stabilizes, Brent falls below $105, and ALPHA closes back above €3.60, the data supports rebuilding exposure toward the €3.81 / €4.54 target path.\n• If another ship is hit, UAE/Gulf attacks continue, or Brent moves above $120, wait for the €3.28-€3.15 support band rather than treating €3.44 as a clean entry.\n• Q1 2026 results on May 28 are the company-specific checkpoint: NII >€1.7B guide, fee growth, NPE ratio, and cost-of-risk commentary decide whether the structural MSCI thesis can absorb the oil shock.",
+  entryZone: { low: 3.35, high: 3.45, ideal: 3.40 },
+  stopLoss:  { price: 3.05, pct: -11.3, rationale: 'Widened below the Apr 4 ultimatum low (€3.15) because the combined ceasefire-collapse / regime-crisis tail is now 36%. A break below €3.05 would imply the market is pricing sustained oil shock and wider Greek spreads, not just a technical dip.' },
   targets: [
-    { price: 3.73, label: 'Target 1',  horizon: '1–2 weeks',     upside: 4.2,  trigger: 'Oversold bounce to 50D MA; ECB Apr 30 dovish hold or expected hike with no hawkish surprise' },
-    { price: 4.00, label: 'Target 2',  horizon: '1–3 months',    upside: 11.7, trigger: 'Iran talks progress; partial blockade easing; oil drops below $95; Fitch/S&P sovereign upgrade' },
-    { price: 4.57, label: 'Consensus', horizon: '6–12 months',   upside: 27.7, trigger: 'Analyst avg target; requires Hormuz reopened + oil normalized + MSCI passive inflows begin + RoTE → 14%' },
-    { price: 5.10, label: 'Bull case', horizon: '12–18 months',  upside: 42.5, trigger: 'Goldman target; full peace deal + MSCI DM inflows + ECB cuts resume + UniCredit premium bid' },
+    { price: 3.58, label: 'Target 1',  horizon: '1–2 weeks',     upside: 4.1,  trigger: 'Hormuz transit stabilizes; Brent below $105; price reclaims Apr 24 breakdown level' },
+    { price: 3.81, label: 'Target 2',  horizon: '1–3 months',    upside: 10.8, trigger: 'Ceasefire holds and Q1 results confirm NII/fee guide; reclaim Apr 21 high' },
+    { price: 4.54, label: 'Consensus', horizon: '6–12 months',   upside: 32.0, trigger: 'MarketScreener average target; needs oil normalization, MSCI path, and no NPE deterioration' },
+    { price: 4.85, label: 'Bull case', horizon: '12–18 months',  upside: 41.0, trigger: 'Jefferies target; requires negotiated Hormuz corridor, Greek spread stability, and fee-growth delivery' },
   ],
-  riskReward: '4.1:1',
-  conviction: "Medium-High (UPGRADED from Medium — ceasefire materially reduced tail risk)",
+  riskReward: '0.4:1 to T1 / 2.8:1 to consensus',
+  conviction: "Medium (downgraded from Medium-High — May 4 Hormuz clash raised tail risk)",
   keyConditions: [
-    { label: 'Iran ceasefire extended indefinitely (Apr 21)',                    status: 'met',      impact: 'MAJOR POSITIVE — Conflagration risk halved from 25% to 12%. Active combat ceased. Diplomatic channel exists.' },
+    { label: 'Project Freedom produces stable Hormuz transit',                   status: 'pending',  impact: 'CRITICAL — commercial ships must transit without repeated missile/drone/small-boat attacks. This is the main entry gate.' },
+    { label: 'No further UAE/Gulf infrastructure attacks after May 4',           status: 'pending',  impact: 'CRITICAL — repeated Gulf attacks would move the ceasefire-collapse scenario above 35% and push ALPHA toward €3.15 or lower.' },
+    { label: 'Brent crude falls back below $105',                                status: 'failed',   impact: 'FAILED — Brent Jul 2026 is $113.79. Above $110 keeps ECB and Greek HICP risk active.' },
+    { label: 'ECB Apr 30: no immediate hike, deposit rate held at 2.00%',        status: 'met',      impact: 'POSITIVE NEAR TERM — but statement was hawkish on inflation/growth risks, so June remains live.' },
+    { label: 'Eurostat April inflation: EA 3.0%, Greece 4.6%',                  status: 'failed',   impact: 'NEGATIVE — confirms oil shock transmission into Alpha\'s home market.' },
     { label: 'MSCI Developed Market upgrade (Mar 31)',                          status: 'met',      impact: 'STRUCTURAL POSITIVE — $2-4B passive inflows over 12-18 months. Floor under the stock at ~€3.20-3.40.' },
-    { label: 'S&P/Fitch Greece sovereign review (Apr-May 2026)',               status: 'emerging', impact: 'Upgrade to BBB+ would be significant catalyst. S&P Global already revised Greek bank outlooks to Positive.' },
-    { label: 'ECB April 30 rate decision — hike near-certain',                 status: 'pending',  impact: 'IMMEDIATE CATALYST — 25bps priced in. Watch forward guidance. Dovish = bounce; hawkish = 200D MA test.' },
-    { label: 'Islamabad talks — breakthrough or failure',                      status: 'pending',  impact: 'Fresh US envoys heading to Pakistan Apr 24. Breakthrough = oil drops, Alpha surges. Failure = stalemate continues.' },
-    { label: 'Hormuz blockade removal / oil normalization below $95',          status: 'failed',   impact: 'STILL FAILING — blockade continues, oil at $104-106. Key impasse: Iran demands removal, US demands Hormuz open.' },
-    { label: 'ALPHA holds above 200D MA (€3.45)',                              status: 'met',      impact: 'At €3.58, 13 cents above 200D MA. Long-term uptrend intact. Break below = bearish signal.' },
-    { label: 'Management buyback signals conviction',                          status: 'met',      impact: 'Buying at €3.77 avg (above current price). 61M treasury shares, 2.63% of capital. Management actions > words.' },
-    { label: 'Alpha Bank oversold bounce (RSI <35, Williams %R -100)',         status: 'emerging', impact: 'Technical setup favors near-term bounce of 5-10%. Last similar setup (late Mar): stock rallied +19%.' },
+    { label: 'Alpha Bank green bond demand / funding access',                  status: 'met',      impact: 'POSITIVE — €600M 6NC5 senior preferred green bond priced Apr 28; demand reported above €2.5B.' },
+    { label: 'ALPHA holds €3.38-€3.41 support band',                           status: 'met',      impact: 'At €3.44, the support band is holding by a narrow margin. Close below €3.38 shifts focus to €3.28/€3.15.' },
+    { label: 'Q1 2026 results confirm guidance on May 28',                     status: 'pending',  impact: 'Company-specific catalyst. Need NII, fees, NPE, and cost-of-risk confirmation under higher inflation.' },
   ],
-  bearCase: 'If ECB delivers aggressive hiking cycle (75bps+ in 2026) AND Iran talks collapse AND ceasefire breaks down: triple negative. Oil $130+, Eurozone recession, Greek spreads blow out. ALPHA retests €2.50-2.80 (-30%). Probability of this combined scenario: ~8%. The MSCI upgrade provides a structural floor around €3.00-3.20 that limits permanent capital loss. Position sizing at 50% and stop at €3.20 protects against this tail.',
+  bearCase: 'If Project Freedom becomes a sustained naval fight, Brent trades $130+, and the ECB prepares a June hike into slowing growth: Alpha retests €2.75-3.05 despite strong capital and buybacks. This is now a 30% ceasefire-collapse scenario plus a 6% regime/nuclear crisis tail, not an 8-12% remote risk. The MSCI upgrade remains the 12-18 month floor, but the near-term drawdown path is governed by oil, Greek inflation, and sovereign spreads.',
   disclaimer: 'Analytical data only. Not financial advice. Consult a qualified advisor.',
+}
+
+/* ─── VALUATION MODELS (Updated May 4, 2026) ──────────────────────────── */
+const valuationModels = {
+  dcf: {
+    fcf: 450,
+    growthRate: 0.05,
+    wacc: 0.076,
+    terminalGrowthRate: 0.02,
+    projectedFCFs: [472, 496, 521, 547, 574],
+    terminalValue: 10461,
+    fairValuePerShare: 4.15,
+    currentPrice: 3.44,
+    upside: 20.7,
+    assumptions: 'Bank cash-flow DCF is used as a conservative FCFE proxy: distributable free equity cash flow €450M after growth capital. g = 5.0%; WACC = 3.05% German 10Y proxy + 0.83 beta * 5.5% ERP = 7.6%; terminal g = 2.0%; shares = 2.25B. Full reported profit DCF would overstate bank value, so this is intentionally haircut.',
+  },
+  ddm: {
+    dps: 0.13,
+    growthRate: 0.035,
+    requiredReturn: 0.076,
+    fairValuePerShare: 3.28,
+    assumptions: 'DDM = €0.13 * (1 + 3.5%) / (7.6% - 3.5%) = €3.28. Dividend growth is capped at nominal sustainable growth rather than ROE * retention because the raw Gordon model would overstate value when r-g is too narrow.',
+  },
+  relativeValuation: [
+    { model: 'P/E vs European Banks', sectorMedian: 8.5, companyMetric: 0.40, impliedPrice: 3.40, verdict: 'Fair' },
+    { model: 'P/B vs Historical', historicalAvg: 0.95, currentBookValue: 3.90, impliedPrice: 3.71, verdict: 'Slightly Undervalued' },
+    { model: 'Consensus Target', sectorMedian: 14, companyMetric: 4.54, impliedPrice: 4.54, verdict: 'Undervalued if geo risk normalizes' },
+  ],
+  summary: {
+    bullCase: 4.85,
+    baseCase: 3.82,
+    bearCase: 3.28,
+    currentPrice: 3.44,
+    verdict: 'Moderately undervalued on base models, but near-term expected return is negative until Hormuz/oil risk clears.',
+  },
+}
+
+/* ─── SENSITIVITY ANALYSIS (Updated for oil/ECB shock) ─────────────────── */
+const sensitivityAnalysis = {
+  niiSensitivity: {
+    loanBookSize: 37500,
+    repricingGapPct: 0.20,
+    impactPer25bps: 19,
+    note: '€37.5B performing loans * 20% repricing gap * 0.0025 = ~€18.8M pre-tax NII impact per 25bps. Deposit beta and wholesale-funding costs can offset part of this.',
+  },
+  oilSensitivity: {
+    chain: [
+      { variable: 'Brent +8% vs Apr 24', impact: 'EA energy HICP 10.9%; Greece HICP 4.6%', mechanism: 'Eurostat Apr flash confirms pass-through already visible' },
+      { variable: 'Inflation above target', impact: 'June ECB hike probability rises', mechanism: 'ECB held Apr 30 but flagged higher inflation/lower growth risks' },
+      { variable: 'ECB +25bps', impact: 'NII +~€19M, but P/B multiple -3% to -7%', mechanism: 'NII benefit is smaller than valuation/growth drag if oil remains above $110' },
+    ],
+    netImpact: 'Oil +10% from here is negative for ALPHA unless it is paired with a fast Hormuz resolution. NII uplift does not compensate for Greek HICP, NPE, and multiple pressure.',
+  },
+  fxSensitivity: {
+    exposures: [
+      { currency: 'EUR', share: 'Core', note: 'Primary reporting and loan currency' },
+      { currency: 'RON/Cyprus-linked activity', share: '~10% Romania plus Cyprus operations', note: 'Indirect sensitivity through regional credit quality, tourism, shipping and energy costs' },
+    ],
+    impactPer1Pct: 'Low direct translation impact; medium indirect credit-cycle impact in SE Europe.',
+  },
+  earningsTornado: [
+    { variable: 'ECB rate +25bps', epsImpactBear: -0.01, epsImpactBull: 0.02, baseEps: 0.40 },
+    { variable: 'NPE ratio +1pp', epsImpactBear: -0.06, epsImpactBull: 0.01, baseEps: 0.40 },
+    { variable: 'Loan growth +/-2pp', epsImpactBear: -0.02, epsImpactBull: 0.03, baseEps: 0.40 },
+    { variable: 'Fee income +/-10%', epsImpactBear: -0.02, epsImpactBull: 0.02, baseEps: 0.40 },
+    { variable: 'Cost-income ratio +/-2pp', epsImpactBear: -0.03, epsImpactBull: 0.03, baseEps: 0.40 },
+  ],
+}
+
+/* ─── RISK QUANTIFICATION (Updated May 4, 2026) ────────────────────────── */
+const riskQuantification = {
+  expectedReturn: {
+    scenarios: [
+      { name: 'Frozen Maritime Confrontation', probability: 0.30, return: -0.03 },
+      { name: 'Ceasefire Collapse / Limited Naval War', probability: 0.30, return: -0.30 },
+      { name: 'Negotiated Hormuz Corridor', probability: 0.22, return: 0.27 },
+      { name: 'Escalatory Coercive Resolution', probability: 0.12, return: -0.05 },
+      { name: 'Regime / Nuclear Crisis', probability: 0.06, return: -0.45 },
+    ],
+    weightedReturn: -0.073,
+    calculation: '0.30*(-3%) + 0.30*(-30%) + 0.22*(+27%) + 0.12*(-5%) + 0.06*(-45%) = -7.3%',
+  },
+  maxDrawdown: {
+    peak: 4.489,
+    trough: 3.384,
+    drawdownPct: -24.6,
+    period: '52W high to May 4 intraday support test',
+  },
+  sharpeRatio: {
+    expectedReturn: -0.073,
+    riskFreeRate: 0.0305,
+    volatility: 0.149,
+    sharpe: -0.70,
+    sectorBenchmark: 0.20,
+    verdict: 'Negative until geopolitical expected return turns positive; this is timing risk, not a balance-sheet failure signal.',
+  },
+  kellyCriterion: {
+    winProbability: 0.22,
+    avgWin: 0.27,
+    avgLoss: 0.19,
+    kellyPct: -0.33,
+    halfKelly: 0,
+    quarterKelly: 0,
+    note: 'Scenario-weighted Kelly is negative after the May 4 Hormuz signal. Treat any exposure as discretionary and staged, not formula-driven sizing.',
+  },
 }
 
 /* ─── ANALYSIS GAPS ──────────────────────────────────────────── */
@@ -446,13 +668,13 @@ const analysisGaps = [
   },
   {
     topic: 'ECB Hiking Cycle NII Sensitivity Model',
-    description: 'ECB is expected to hike 50bps+ in 2026. Need precise NII sensitivity modeling per 25bps: deposit beta assumptions, loan repricing lag, and net P&L impact. Alpha guides NII >€1.7B — how much upside does the hiking cycle provide?',
-    issueTitle: 'Extend Alpha Bank analysis: ECB hiking cycle NII sensitivity — deposit beta, repricing, net impact per 25bps',
+    description: 'ECB held at 2.00% on Apr 30 but inflation risk shifted higher. Need precise NII sensitivity per 25bps under a possible June hike: deposit beta, wholesale funding costs, loan repricing lag, and net P&L impact. Alpha guides NII >€1.7B.',
+    issueTitle: 'Extend Alpha Bank analysis: ECB June-hike NII sensitivity — deposit beta, repricing, net impact per 25bps',
   },
   {
-    topic: 'Iran Blockade Resolution Scenarios — Oil Price Paths',
-    description: 'The Hormuz blockade is the key variable for oil prices and ECB policy. Model specific oil price paths under: full blockade (current), partial easing, conditional reopening, and full Hormuz normalization. Map each to ECB rate path and Alpha fair value.',
-    issueTitle: 'Extend Alpha Bank analysis: Oil price paths per blockade scenario → ECB rate path → Alpha fair value',
+    topic: 'Project Freedom / Hormuz Transit Scenarios — Oil Price Paths',
+    description: 'May 4 turned Hormuz from a stalled blockade into a kinetic transit operation. Model oil paths under: stable escorted corridor, contested corridor, renewed closure, and full naval escalation. Map each to ECB rate path, Greek HICP, NPE risk, and Alpha fair value.',
+    issueTitle: 'Extend Alpha Bank analysis: Project Freedom oil scenarios → ECB path → Alpha fair value',
   },
   {
     topic: 'MSCI DM Passive Inflow Quantification',
@@ -466,8 +688,8 @@ const analysisGaps = [
   },
   {
     topic: 'Greece Sovereign Upgrade Impact',
-    description: 'S&P review due April 2026, Fitch due May 2026. Model impact of BBB+ upgrade on: bank funding costs, CDS spreads, investor base expansion, and Alpha Bank P/B re-rating.',
-    issueTitle: 'Extend Alpha Bank analysis: Greece BBB+ upgrade impact — funding costs, spreads, P/B re-rating',
+    description: 'Model whether the April-May energy inflation shock delays the Greece BBB+ path. Quantify impact on bank funding costs, CDS spreads, investor base expansion, and Alpha Bank P/B re-rating.',
+    issueTitle: 'Extend Alpha Bank analysis: Greece BBB+ upgrade sensitivity under oil shock — funding costs, spreads, P/B re-rating',
   },
 ]
 
@@ -491,6 +713,9 @@ export default function AlphaBankAnalysis() {
       geoOverlay={geoOverlay}
       riskNotices={riskNotices}
       verdict={verdict}
+      valuationModels={valuationModels}
+      sensitivityAnalysis={sensitivityAnalysis}
+      riskQuantification={riskQuantification}
       analysisGaps={analysisGaps}
       dashboardFile="src/dashboards/stocks/alpha-analysis-2026-03-22.jsx"
     />
