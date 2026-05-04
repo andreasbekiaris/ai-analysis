@@ -1,4 +1,4 @@
-export const MODEL_CONFIG_API_BASE = 'https://ai-analysis-production-0590.up.railway.app'
+export const MODEL_CONFIG_API_BASE = ''
 
 export const DEFAULT_MODEL_CONFIG = {
   version: 1,
