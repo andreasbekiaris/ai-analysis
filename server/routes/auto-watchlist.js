@@ -1,5 +1,5 @@
 // Auto-watchlist dispatch — creates a GitHub issue that the watcher picks up.
-// The watcher runs Claude Code with buildAutoWatchlistPrompt() and commits the
+// The watcher runs the configured local analysis agent with buildAutoWatchlistPrompt() and commits the
 // resulting additions to schedule.json → bestPicks.watchlist.
 
 const REPO = 'andreasbekiaris/ai-analysis'
@@ -30,7 +30,7 @@ export async function autoWatchlistHandler(req, res) {
         },
         body: JSON.stringify({
           title: `AutoWatchlist: ${normalized}`,
-          body: `Automated watchlist research request — scope ${normalized}.\n\nThe watcher will run Claude Code to identify 10–15 top-quality tickers and append them to schedule.json.`,
+          body: `Automated watchlist research request — scope ${normalized}.\n\nThe watcher will run the configured analysis agent to identify 10–15 top-quality tickers and append them to schedule.json.`,
         }),
       }
     )

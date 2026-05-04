@@ -1,5 +1,5 @@
 // Best-picks dispatch — creates a GitHub issue that the watcher picks up.
-// The watcher runs Claude Code with buildBestPicksPrompt() and commits the
+// The watcher runs the configured local analysis agent with buildBestPicksPrompt() and commits the
 // resulting data to src/data/best-picks.json.
 
 const REPO = 'andreasbekiaris/ai-analysis'
@@ -30,7 +30,7 @@ export async function bestPicksDispatchHandler(req, res) {
         },
         body: JSON.stringify({
           title: `BestPicks: ${normalized}`,
-          body: `Manual best-picks screening dispatch.\n\nThe watcher will run Claude Code to refresh src/data/best-picks.json with the top 3 buy + top 3 short candidates per region.`,
+          body: `Manual best-picks screening dispatch.\n\nThe watcher will run the configured analysis agent to refresh src/data/best-picks.json with the top 3 buy + top 3 short candidates per region.`,
         }),
       }
     )

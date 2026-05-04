@@ -20,6 +20,11 @@ export const MODEL_LABELS = {
   'gemini-2.5-flash': 'Gemini 2.5 Flash',
   'gemini-2.5-pro': 'Gemini 2.5 Pro',
   'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
+  'gpt-5.5': 'OpenAI GPT-5.5',
+  'gpt-5.5-pro': 'OpenAI GPT-5.5 Pro',
+  'gpt-5.4': 'OpenAI GPT-5.4',
+  'gpt-5.4-mini': 'OpenAI GPT-5.4 Mini',
+  'gpt-5.4-nano': 'OpenAI GPT-5.4 Nano',
 }
 
 export const MODEL_ID_ALIASES = {
@@ -40,6 +45,19 @@ export const CLAUDE_MODEL_OPTIONS = [
   'claude-3-haiku-20240307',
 ]
 
+export const OPENAI_MODEL_OPTIONS = [
+  'gpt-5.5',
+  'gpt-5.5-pro',
+  'gpt-5.4',
+  'gpt-5.4-mini',
+  'gpt-5.4-nano',
+]
+
+export const GENERATION_MODEL_OPTIONS = [
+  ...CLAUDE_MODEL_OPTIONS,
+  ...OPENAI_MODEL_OPTIONS,
+]
+
 export const GEMINI_MODEL_OPTIONS = [
   'gemini-2.5-pro',
   'gemini-2.5-flash',
@@ -54,7 +72,7 @@ export function normalizeModelConfig(config = {}) {
   const next = { ...DEFAULT_MODEL_CONFIG, ...(config || {}) }
   for (const key of ['generationModel', 'fallbackModel', 'reanalysisModel', 'stockReanalysisModel']) {
     next[key] = normalizeModelId(next[key])
-    if (!CLAUDE_MODEL_OPTIONS.includes(next[key])) next[key] = DEFAULT_MODEL_CONFIG[key]
+    if (!GENERATION_MODEL_OPTIONS.includes(next[key])) next[key] = DEFAULT_MODEL_CONFIG[key]
   }
   next.searchModel = normalizeModelId(next.searchModel)
   if (!GEMINI_MODEL_OPTIONS.includes(next.searchModel)) {

@@ -6,8 +6,8 @@
  * HOW IT WORKS:
  * 1. Runs in the background on your desktop
  * 2. Connects to smee.io to receive GitHub webhooks instantly
- * 3. When a new issue is created, it launches Claude Code with the title as the prompt
- * 4. Claude Code creates the dashboard, commits, and pushes
+ * 3. When a new issue is created, it launches the configured local analysis agent
+ * 4. The agent creates the dashboard, commits, and pushes
  * 5. Vercel auto-deploys — you see results on your phone
  *
  * FIRST-TIME SETUP:
@@ -76,7 +76,20 @@ const CLAUDE_MODEL_OPTIONS = new Set([
   'claude-3-haiku-20240307',
 ]);
 
-const CLAUDE_CODE_TIMEOUT_MS = 30 * 60 * 1000;
+const OPENAI_MODEL_OPTIONS = new Set([
+  'gpt-5.5',
+  'gpt-5.5-pro',
+  'gpt-5.4',
+  'gpt-5.4-mini',
+  'gpt-5.4-nano',
+]);
+
+const GENERATION_MODEL_OPTIONS = new Set([
+  ...CLAUDE_MODEL_OPTIONS,
+  ...OPENAI_MODEL_OPTIONS,
+]);
+
+const ANALYSIS_AGENT_TIMEOUT_MS = 30 * 60 * 1000;
 
 // ============================================
 // WATCHER LOGIC
@@ -106,9 +119,21 @@ function normalizeModelConfig(input = {}) {
   const next = { ...DEFAULT_MODEL_CONFIG, ...(input || {}), version: 1 };
   for (const key of ['generationModel', 'fallbackModel', 'reanalysisModel', 'stockReanalysisModel']) {
     const normalized = normalizeModelId(next[key]);
-    next[key] = CLAUDE_MODEL_OPTIONS.has(normalized) ? normalized : DEFAULT_MODEL_CONFIG[key];
+    next[key] = GENERATION_MODEL_OPTIONS.has(normalized) ? normalized : DEFAULT_MODEL_CONFIG[key];
   }
   return next;
+}
+
+function isClaudeModel(model) {
+  return CLAUDE_MODEL_OPTIONS.has(normalizeModelId(model));
+}
+
+function isOpenAIModel(model) {
+  return OPENAI_MODEL_OPTIONS.has(normalizeModelId(model));
+}
+
+function agentNameForModel(model) {
+  return isOpenAIModel(model) ? 'Codex' : 'Claude Code';
 }
 
 function readLocalModelConfig() {
@@ -514,21 +539,21 @@ function updateIssue(issueNumber, status, comment) {
 }
 
 /**
- * Build the Claude Code prompt for a fresh analysis (new dashboard)
+ * Build the local-agent prompt for a fresh analysis (new dashboard)
  */
 function buildAnalysisPrompt(analysisRequest) {
   return [
     analysisRequest,
     '',
     'FAST-PATH INSTRUCTIONS — follow these exactly to minimize time:',
-    '1. Read CLAUDE.md first to understand the skill (geopolitical or stock) and data structure.',
+    '1. Read AGENTS.md first to understand the skill (geopolitical or stock) and data structure. If AGENTS.md is unavailable, read CLAUDE.md.',
     '2. Use the shared GeoDashboard component at src/components/GeoDashboard.jsx — do NOT rebuild the UI. Your job is only to produce the DATA file (analysisData, politicalComments, strategicVerdict, analysisGaps, affectedCountries) and export a thin wrapper component that passes them to <GeoDashboard />.',
     '3. Run all web searches in parallel — do not do them sequentially.',
     '4. Skip generating a Word document — dashboard only.',
     '5. After writing the .jsx file: update App.jsx routing, git add the new file + App.jsx, commit, then push.',
     '6. The commit message must follow: feat: [type] analysis - [subject] - [YYYY-MM-DD]',
     '',
-    'KEY FORMULAS (use directly — saves re-reading full CLAUDE.md):',
+    'KEY FORMULAS (use directly — saves re-reading full AGENTS.md):',
     '',
     'STOCK VALUATION:',
     '- DCF: Project FCF at growth rate g for 5yr, discount at WACC (Rf + Beta×5.5%), terminal = FCF5×(1+2.5%)/(WACC−2.5%)',
@@ -550,7 +575,7 @@ function buildAnalysisPrompt(analysisRequest) {
 }
 
 /**
- * Build the Claude Code prompt for a reanalysis (update existing dashboard)
+ * Build the local-agent prompt for a reanalysis (update existing dashboard)
  */
 function buildReanalyzePrompt(dashboardFile, analysisTitle, extraContext) {
   const today = new Date().toISOString().slice(0, 10)
@@ -560,7 +585,7 @@ function buildReanalyzePrompt(dashboardFile, analysisTitle, extraContext) {
     `Today's date: ${today}`,
     '',
     'REANALYSIS INSTRUCTIONS — follow exactly:',
-    '1. Read CLAUDE.md to understand the project structure and data formats.',
+    '1. Read AGENTS.md to understand the project structure and data formats. If AGENTS.md is unavailable, read CLAUDE.md.',
     `2. Read the existing file at ${dashboardFile} in full — understand all current data, actors, scenarios, signals, and verdict.`,
     '3. Do NOT ask clarifying questions. Resolve uncertainty by researching current sources and using explicit assumptions inside the dashboard.',
     '4. Run ALL web searches in parallel:',
@@ -591,7 +616,7 @@ function buildReanalyzePrompt(dashboardFile, analysisTitle, extraContext) {
 }
 
 /**
- * Build the Claude Code prompt for a deep auto-watchlist research run.
+ * Build the local-agent prompt for a deep auto-watchlist research run.
  * Appends quality tickers to schedule.json → bestPicks.watchlist. Commits + pushes.
  */
 function buildAutoWatchlistPrompt(scope, extraContext) {
@@ -640,7 +665,7 @@ function buildAutoWatchlistPrompt(scope, extraContext) {
 }
 
 /**
- * Build the Claude Code prompt for a twice-daily Best Picks screening run.
+ * Build the local-agent prompt for a twice-daily Best Picks screening run.
  * Cheap screening pass — no full fundamentals, no new .jsx files, only writes src/data/best-picks.json.
  */
 function buildBestPicksPrompt(runType, watchlistContext) {
@@ -689,27 +714,36 @@ function buildBestPicksPrompt(runType, watchlistContext) {
 }
 
 /**
- * Run Claude Code with the analysis prompt
+ * Run the configured local analysis agent with the analysis prompt
  */
-function runClaudeCode(prompt, issueNumber, modelId) {
+function runAnalysisAgent(prompt, issueNumber, modelId) {
   return new Promise((resolve, reject) => {
     const fullPrompt = prompt;
     const model = normalizeModelId(modelId) || DEFAULT_MODEL_CONFIG.generationModel;
 
-    log(`Launching Claude Code for issue #${issueNumber} with ${model}`);
+    const agentName = agentNameForModel(model);
+    log(`Launching ${agentName} for issue #${issueNumber} with ${model}`);
 
-    // Escape double quotes for cmd.exe and wrap prompt in quotes
-    const escapedPrompt = fullPrompt.replace(/"/g, '""');
-    const claude = spawn(
-      `claude --model ${model} --dangerously-skip-permissions -p "${escapedPrompt}"`,
-      { cwd: CONFIG.projectPath, stdio: ['pipe', 'pipe', 'pipe'], shell: true, timeout: CLAUDE_CODE_TIMEOUT_MS }
-    );
+    const claude = isOpenAIModel(model)
+      ? spawn(
+          `codex --search exec --model ${shellQuote(model)} --dangerously-bypass-approvals-and-sandbox --ask-for-approval never --sandbox danger-full-access --cd ${shellQuote(CONFIG.projectPath)} -`,
+          { cwd: CONFIG.projectPath, stdio: ['pipe', 'pipe', 'pipe'], shell: true, timeout: ANALYSIS_AGENT_TIMEOUT_MS }
+        )
+      : spawn(
+          `claude --model ${model} --dangerously-skip-permissions -p ${shellQuote(fullPrompt)}`,
+          { cwd: CONFIG.projectPath, stdio: ['pipe', 'pipe', 'pipe'], shell: true, timeout: ANALYSIS_AGENT_TIMEOUT_MS }
+        );
+
+    if (isOpenAIModel(model)) {
+      claude.stdin.write(fullPrompt);
+      claude.stdin.end();
+    }
 
     let stdout = '';
     let stderr = '';
     let elapsed = 0;
 
-    // Post a progress comment every 30 seconds while Claude is working
+    // Post a progress comment every 30 seconds while the agent is working
     const isSynthetic = typeof issueNumber === 'number' && issueNumber < 0;
     const progressInterval = setInterval(() => {
       elapsed += 30;
@@ -720,7 +754,7 @@ function runClaudeCode(prompt, issueNumber, modelId) {
       if (isSynthetic) return;
       try {
         execSync(
-          `gh issue comment ${issueNumber} --repo ${CONFIG.owner}/${CONFIG.repo} --body "⏳ Still working... (${timeStr} elapsed). Claude Code is researching and building your dashboard."`,
+          `gh issue comment ${issueNumber} --repo ${CONFIG.owner}/${CONFIG.repo} --body ${shellQuote(`Still working... (${timeStr} elapsed). ${agentName} is researching and building your dashboard.`)}`,
           { encoding: 'utf-8', timeout: 15000 }
         );
       } catch (err) {
@@ -741,17 +775,17 @@ function runClaudeCode(prompt, issueNumber, modelId) {
     claude.on('close', (code) => {
       clearInterval(progressInterval);
       if (code === 0) {
-        log(`Claude Code finished successfully for issue #${issueNumber}`);
+        log(`${agentName} finished successfully for issue #${issueNumber}`);
         resolve(stdout);
       } else {
-        logError(`Claude Code exited with code ${code}`);
-        reject(new Error(`Claude Code failed: ${stderr}`));
+        logError(`${agentName} exited with code ${code}`);
+        reject(new Error(`${agentName} failed: ${stderr}`));
       }
     });
 
     claude.on('error', (err) => {
       clearInterval(progressInterval);
-      logError(`Failed to start Claude Code: ${err.message}`);
+      logError(`Failed to start ${agentName}: ${err.message}`);
       reject(err);
     });
   });
@@ -771,7 +805,7 @@ function ensureReanalysisPublished(dashboardFile, analysisTitle, beforeHead) {
   const fileStatus = gitOutput(`git status --short -- ${shellQuote(dashboardFile)}`);
 
   if (afterHead !== beforeHead) {
-    log(`  Reanalysis published by Claude Code (${beforeHead.slice(0, 7)} → ${afterHead.slice(0, 7)}).`);
+    log(`  Reanalysis published by analysis agent (${beforeHead.slice(0, 7)} -> ${afterHead.slice(0, 7)}).`);
     return;
   }
 
@@ -843,7 +877,7 @@ async function processIssue(issue) {
     prompt = buildAnalysisPrompt(`${title}${additionalContext}`);
   }
 
-  // Sync with remote before spawning Claude so pushes don't get rejected.
+  // Sync with remote before spawning the analysis agent so pushes don't get rejected.
   // --autostash handles the common case where the scheduler has just written
   // lastMorningRun/lastAfterCloseRun to schedule.json, leaving it dirty.
   try {
@@ -856,15 +890,16 @@ async function processIssue(issue) {
 
   const modelConfig = readLocalModelConfig();
   const selectedModel = modelConfig[selectedModelKey] || modelConfig.generationModel;
+  const selectedAgentName = agentNameForModel(selectedModel);
 
   const startMsg = isReanalyze
-    ? `Reanalysis started. Claude Code is researching fresh data and updating the dashboard. You will be notified when done (~5–10 minutes).`
-    : `Analysis started. Claude Code is working on this. You will be notified when the dashboard is live.`;
+    ? `Reanalysis started. ${selectedAgentName} is researching fresh data and updating the dashboard. You will be notified when done (~5-10 minutes).`
+    : `Analysis started. ${selectedAgentName} is working on this. You will be notified when the dashboard is live.`;
   updateIssue(number, 'processing', startMsg);
 
   try {
     const beforeHead = isReanalyze ? gitOutput('git rev-parse HEAD') : null;
-    await runClaudeCode(prompt, number, selectedModel);
+    await runAnalysisAgent(prompt, number, selectedModel);
     if (isReanalyze) ensureReanalysisPublished(reanalyzeTarget, reanalyzeTitle, beforeHead);
 
     const siteUrl = `https://${CONFIG.repo}.vercel.app`;
@@ -899,12 +934,32 @@ function checkPrerequisites() {
     process.exit(1);
   }
 
-  try {
-    execSync('claude --version', { encoding: 'utf-8', stdio: 'pipe' });
-    log('  Claude Code found');
-  } catch {
-    logError('Claude Code not found. Install: npm install -g @anthropic-ai/claude-code');
-    process.exit(1);
+  const localModelConfig = readLocalModelConfig();
+  const configuredModels = [
+    localModelConfig.generationModel,
+    localModelConfig.fallbackModel,
+    localModelConfig.reanalysisModel,
+    localModelConfig.stockReanalysisModel,
+  ].map(normalizeModelId).filter(Boolean);
+
+  if (configuredModels.some(isClaudeModel)) {
+    try {
+      execSync('claude --version', { encoding: 'utf-8', stdio: 'pipe' });
+      log('  Claude Code found');
+    } catch {
+      logError('Claude Code not found. Install: npm install -g @anthropic-ai/claude-code');
+      process.exit(1);
+    }
+  }
+
+  if (configuredModels.some(isOpenAIModel)) {
+    try {
+      execSync('codex --version', { encoding: 'utf-8', stdio: 'pipe' });
+      log('  Codex CLI found');
+    } catch {
+      logError('Codex CLI not found. Install and authenticate Codex before using OpenAI models in the watcher.');
+      process.exit(1);
+    }
   }
 
   try {

@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { BrainCircuit, Check, Loader, Lock, Save, X } from 'lucide-react'
 import {
-  CLAUDE_MODEL_OPTIONS,
   DEFAULT_MODEL_CONFIG,
   GEMINI_MODEL_OPTIONS,
+  GENERATION_MODEL_OPTIONS,
   MODEL_CONFIG_API_BASE,
   fetchModelConfig,
   labelModel,
@@ -236,28 +236,28 @@ export default function ModelSettingsButton({ analysisEngine = {} }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '0.85rem', marginBottom: '1rem' }}>
               <ModelSelect
                 label="New dashboards"
-                options={CLAUDE_MODEL_OPTIONS}
+                options={GENERATION_MODEL_OPTIONS}
                 value={draft.generationModel}
                 onChange={(generationModel) => setDraft({ ...draft, generationModel })}
                 detail="Used for fresh geopolitical, equity, and sector dashboard generation."
               />
               <ModelSelect
                 label="Fallback"
-                options={CLAUDE_MODEL_OPTIONS}
+                options={GENERATION_MODEL_OPTIONS}
                 value={draft.fallbackModel}
                 onChange={(fallbackModel) => setDraft({ ...draft, fallbackModel })}
-                detail="Tried after the primary model if generation is overloaded or returns no output."
+                detail="Tried after the primary model if generation is overloaded, unavailable, or returns no output."
               />
               <ModelSelect
                 label="Geo reanalysis"
-                options={CLAUDE_MODEL_OPTIONS}
+                options={GENERATION_MODEL_OPTIONS}
                 value={draft.reanalysisModel}
                 onChange={(reanalysisModel) => setDraft({ ...draft, reanalysisModel })}
                 detail="Used when a geopolitical dashboard is deeply reanalyzed."
               />
               <ModelSelect
                 label="Stock reanalysis"
-                options={CLAUDE_MODEL_OPTIONS}
+                options={GENERATION_MODEL_OPTIONS}
                 value={draft.stockReanalysisModel}
                 onChange={(stockReanalysisModel) => setDraft({ ...draft, stockReanalysisModel })}
                 detail="Used when an equity dashboard is deeply reanalyzed."
@@ -269,6 +269,19 @@ export default function ModelSettingsButton({ analysisEngine = {} }) {
                 onChange={(searchModel) => setDraft({ ...draft, searchModel })}
                 detail="Used for the live web-search research pass before dashboard generation."
               />
+            </div>
+
+            <div style={{
+              color: BOX.dim,
+              fontSize: '0.7rem',
+              lineHeight: 1.45,
+              border: `1px solid ${BOX.border}`,
+              background: 'rgba(10,15,30,0.42)',
+              borderRadius: 8,
+              padding: '0.65rem 0.75rem',
+              marginBottom: '1rem',
+            }}>
+              Claude models use Anthropic on the hosted API and Claude Code in the watcher. OpenAI models use the Responses API on hosted jobs and Codex CLI in the local watcher.
             </div>
 
             <div style={{ borderTop: `1px solid ${BOX.border}`, paddingTop: '1rem', marginBottom: '1rem' }}>

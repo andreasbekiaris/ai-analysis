@@ -1,4 +1,5 @@
-import { maxOutputTokensForModel, readModelConfig, uniqueModelList } from '../model-config.js'
+import { readModelConfig, uniqueModelList } from '../model-config.js'
+import { callTextModel } from '../model-call.js'
 
 const REPO = 'andreasbekiaris/ai-analysis'
 
@@ -343,10 +344,10 @@ export async function handler(req, res) {
 
   const geminiKey = process.env.GEMINI_API_KEY
   const anthropicKey = process.env.ANTHROPIC_API_KEY
+  const openaiKey = process.env.OPENAI_API_KEY
   const githubToken = process.env.GITHUB_TOKEN
 
   if (!geminiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' })
-  if (!anthropicKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' })
   if (!githubToken) return res.status(500).json({ error: 'GITHUB_TOKEN not configured' })
 
   const type = detectType(prompt.trim())
@@ -365,13 +366,13 @@ export async function handler(req, res) {
   if (!appFile) return res.status(502).json({ error: 'Failed to read App.jsx from GitHub' })
 
   // ── Step 2: Build Claude prompt ──────────────────────────────────────────────
-  const claudePrompt = type === 'geopolitical'
+  const generationPrompt = type === 'geopolitical'
     ? buildGeoPrompt(prompt.trim(), date, searchResults)
     : buildStockPrompt(prompt.trim(), date, searchResults, geoFiles)
 
   // ── Step 3: Call Claude — NO timeout pressure, full tokens ──────────────────
   const maxRetries = 3
-  let claudeText = ''
+  let modelText = ''
   let usedModel = null
   const modelAttempts = uniqueModelList(modelConfig.generationModel, modelConfig.fallbackModel)
 
@@ -379,65 +380,47 @@ export async function handler(req, res) {
     usedModel = model
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': anthropicKey,
-            'anthropic-version': '2023-06-01',
-          },
-          body: JSON.stringify({
-            model: usedModel,
-            max_tokens: maxOutputTokensForModel(usedModel, 16000),
-            messages: [{ role: 'user', content: claudePrompt }],
-          }),
+        modelText = await callTextModel({
+          model: usedModel,
+          prompt: generationPrompt,
+          anthropicKey,
+          openaiKey,
+          maxOutputTokens: 16000,
         })
-
-        if (claudeRes.status === 529 || claudeRes.status === 503) {
-          if (attempt < maxRetries) {
-            await new Promise(r => setTimeout(r, attempt * 5000))
-            continue
-          }
-          break
-        }
-
-        if (!claudeRes.ok) {
-          const err = await claudeRes.json().catch(() => ({}))
-          return res.status(502).json({ error: `Claude API error: ${err.error?.message || claudeRes.status}` })
-        }
-        const data = await claudeRes.json()
-        claudeText = data?.content?.[0]?.text || ''
-        if (claudeText) break
+        if (modelText) break
 
         if (attempt < maxRetries) {
           await new Promise(r => setTimeout(r, 3000))
         }
       } catch (e) {
-        if (attempt === maxRetries) {
+        if (!e.retryable || attempt === maxRetries) {
+          if (model === modelAttempts[modelAttempts.length - 1]) {
+            return res.status(e.status && e.status < 500 ? e.status : 502).json({ error: e.message })
+          }
           break
         }
         await new Promise(r => setTimeout(r, attempt * 5000))
       }
     }
 
-    if (claudeText) break
+    if (modelText) break
   }
 
-  if (!claudeText) return res.status(502).json({ error: 'Configured Claude models failed or timed out - try again in a few minutes' })
+  if (!modelText) return res.status(502).json({ error: 'Configured generation models failed or timed out - try again in a few minutes' })
 
   // ── Step 4: Parse metadata + JSX ─────────────────────────────────────────────
-  claudeText = claudeText.replace(/^```(?:jsx|javascript|js)?\s*\n?/gm, '').replace(/\n?```\s*$/gm, '').trim()
+  modelText = modelText.replace(/^```(?:jsx|javascript|js)?\s*\n?/gm, '').replace(/\n?```\s*$/gm, '').trim()
 
-  const metaMatch = claudeText.match(/^\/\/\s*METADATA:\s*(\{[^\n]+\})\s*\n/)
+  const metaMatch = modelText.match(/^\/\/\s*METADATA:\s*(\{[^\n]+\})\s*\n/)
   let meta = {}
-  let jsxContent = claudeText
+  let jsxContent = modelText
   if (metaMatch) {
     try { meta = JSON.parse(metaMatch[1]) } catch { /* extract from code */ }
-    jsxContent = claudeText.slice(metaMatch[0].length)
+    jsxContent = modelText.slice(metaMatch[0].length)
   }
 
   if (!jsxContent.includes('import') || !jsxContent.includes('export default')) {
-    return res.status(502).json({ error: 'Claude generated invalid output (missing import or export)', preview: claudeText.slice(0, 500) })
+    return res.status(502).json({ error: 'Generation model produced invalid output (missing import or export)', preview: modelText.slice(0, 500) })
   }
 
   const componentName = meta.componentName || extractComponentName(jsxContent)

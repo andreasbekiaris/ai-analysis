@@ -124,7 +124,7 @@ function NewAnalysisForm({ modelConfig = DEFAULT_MODEL_CONFIG }) {
           </span>
         </div>
         <div style={{ color: '#94a3b8', fontSize: '0.86rem', marginBottom: '1.1rem' }}>
-          Spin up a fresh dashboard from a single prompt. Geopolitical, equity, or sector — Claude figures out the rest.
+          Spin up a fresh dashboard from a single prompt. Geopolitical, equity, or sector — the selected analysis model figures out the rest.
         </div>
 
         <div style={{
@@ -601,7 +601,7 @@ function Home() {
           }}>
             <Globe2 size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
             <h2 style={{ color: '#94a3b8', marginBottom: '0.5rem' }}>No Analyses Yet</h2>
-            <p>Ask Claude to create your first analysis dashboard.</p>
+            <p>Ask the analysis model to create your first dashboard.</p>
           </div>
         ) : (
           <div className="home-grid stagger" style={{
@@ -619,7 +619,7 @@ function Home() {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem',
         }}>
           <div style={{ color: '#475569', fontSize: '0.74rem' }}>
-            Built with React, Recharts & Claude · Auto-deployed via Vercel
+            Built with React, Recharts & selectable LLMs · Auto-deployed via Vercel
           </div>
           <div style={{ color: '#334155', fontSize: '0.7rem', fontFamily: 'ui-monospace, monospace' }}>
             v2.4.0 · 2026-04-19

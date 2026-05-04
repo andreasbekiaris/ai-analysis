@@ -21,6 +21,19 @@ export const CLAUDE_MODEL_OPTIONS = [
   'claude-3-haiku-20240307',
 ]
 
+export const OPENAI_MODEL_OPTIONS = [
+  'gpt-5.5',
+  'gpt-5.5-pro',
+  'gpt-5.4',
+  'gpt-5.4-mini',
+  'gpt-5.4-nano',
+]
+
+export const GENERATION_MODEL_OPTIONS = [
+  ...CLAUDE_MODEL_OPTIONS,
+  ...OPENAI_MODEL_OPTIONS,
+]
+
 export const GEMINI_MODEL_OPTIONS = [
   'gemini-2.5-pro',
   'gemini-2.5-flash',
@@ -67,10 +80,24 @@ function normalizeModelId(value) {
 }
 
 function assertSupportedModel(key, model) {
-  const options = key === 'searchModel' ? GEMINI_MODEL_OPTIONS : CLAUDE_MODEL_OPTIONS
+  const options = key === 'searchModel' ? GEMINI_MODEL_OPTIONS : GENERATION_MODEL_OPTIONS
   if (!options.includes(model)) {
     throw new Error(`Unsupported model id for ${key}: ${model}`)
   }
+}
+
+export function isClaudeModel(model) {
+  return CLAUDE_MODEL_OPTIONS.includes(normalizeModelId(model))
+}
+
+export function isOpenAIModel(model) {
+  return OPENAI_MODEL_OPTIONS.includes(normalizeModelId(model))
+}
+
+export function providerForModel(model) {
+  if (isClaudeModel(model)) return 'anthropic'
+  if (isOpenAIModel(model)) return 'openai'
+  return 'unknown'
 }
 
 export function maxOutputTokensForModel(model, requested) {

@@ -1,4 +1,5 @@
-import { maxOutputTokensForModel, readModelConfig } from '../model-config.js'
+import { readModelConfig } from '../model-config.js'
+import { callTextModel } from '../model-call.js'
 
 const REPO = 'andreasbekiaris/ai-analysis'
 
@@ -8,8 +9,8 @@ async function runReanalysis(body, job) {
   if (!dashboardFile) { job.status = 'error'; job.error = 'Missing dashboardFile'; return }
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY
+  const openaiKey = process.env.OPENAI_API_KEY
   const githubToken = process.env.GITHUB_TOKEN
-  if (!anthropicKey) { job.status = 'error'; job.error = 'ANTHROPIC_API_KEY not configured'; return }
   if (!githubToken) { job.status = 'error'; job.error = 'GITHUB_TOKEN not configured'; return }
 
   job.stage = 'Reading dashboard from GitHub...'
@@ -33,10 +34,10 @@ async function runReanalysis(body, job) {
   const prevVerdict = extractBlock(content, 'const strategicVerdict')
   const prevGaps = extractBlock(content, 'const analysisGaps')
 
-  job.stage = 'Claude is researching and analyzing (web search + deep analysis)...'
+  job.stage = 'Generation model is researching and analyzing (web search + deep analysis)...'
 
   // ── Build Claude prompt with web search instructions ───────────────────
-  const claudePrompt = `You are a senior geopolitical analyst performing a COMPREHENSIVE DEEP REANALYSIS.
+  const modelPrompt = `You are a senior geopolitical analyst performing a COMPREHENSIVE DEEP REANALYSIS.
 Today's date: ${today}. Analysis topic: "${title}".
 
 CRITICAL: This is NOT a quick update. You must REDO the entire analysis from scratch.
@@ -161,45 +162,15 @@ CRITICAL RULES:
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      job.stage = `Claude researching & analyzing (attempt ${attempt}/${maxRetries})...`
-      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anthropicKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: usedModel,
-          max_tokens: maxOutputTokensForModel(usedModel, 16000),
-          tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 10 }],
-          messages: [{ role: 'user', content: claudePrompt }],
-        }),
+      job.stage = `Generation model researching & analyzing (attempt ${attempt}/${maxRetries})...`
+      const text = await callTextModel({
+        model: usedModel,
+        prompt: modelPrompt,
+        anthropicKey,
+        openaiKey,
+        maxOutputTokens: 16000,
+        webSearch: true,
       })
-
-      if (claudeRes.status === 402 || claudeRes.status === 429) {
-        const errText = await claudeRes.text().catch(() => '')
-        job.status = 'error'; job.error = `No API credits — ${errText.slice(0, 150)}`; job.code = 'NO_CREDITS'; return
-      }
-
-      if (claudeRes.status === 529 || claudeRes.status === 503) {
-        if (attempt < maxRetries) {
-          job.stage = `Claude API overloaded — retrying in ${attempt * 5}s...`
-          await new Promise(r => setTimeout(r, attempt * 5000))
-          continue
-        }
-        job.status = 'error'; job.error = `Claude API overloaded after ${maxRetries} attempts — try again later`; return
-      }
-
-      if (!claudeRes.ok) {
-        const errText = await claudeRes.text().catch(() => '')
-        job.status = 'error'; job.error = `Claude API error (${claudeRes.status}): ${errText.slice(0, 200)}`; return
-      }
-
-      const claudeData = await claudeRes.json()
-      // Extract text from content blocks (may include tool_use and text blocks)
-      const textBlocks = (claudeData?.content || []).filter(b => b.type === 'text')
-      const text = textBlocks.map(b => b.text).join('').trim()
 
       const clean = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
       try { result = JSON.parse(clean) } catch {
@@ -209,18 +180,18 @@ CRITICAL RULES:
       if (result) break
 
       if (attempt < maxRetries) {
-        job.stage = `Parsing failed — retrying (${attempt}/${maxRetries})...`
+        job.stage = `Parsing failed, retrying (${attempt}/${maxRetries})...`
         await new Promise(r => setTimeout(r, 3000))
       }
     } catch (e) {
-      if (attempt === maxRetries) {
-        job.status = 'error'; job.error = `Claude API failed: ${e.message}`; return
+      if (!e.retryable || attempt === maxRetries) {
+        job.status = 'error'; job.error = e.message; return
       }
       await new Promise(r => setTimeout(r, attempt * 5000))
     }
   }
 
-  if (!result) { job.status = 'error'; job.error = 'Claude returned unparseable response after retries'; return }
+  if (!result) { job.status = 'error'; job.error = 'Generation model returned unparseable response after retries'; return }
 
   // ── Replace data blocks in file ────────────────────────────────────────
   job.stage = 'Committing updated analysis to GitHub...'
