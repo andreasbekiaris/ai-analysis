@@ -23,10 +23,8 @@ export const CLAUDE_MODEL_OPTIONS = [
 
 export const OPENAI_MODEL_OPTIONS = [
   'gpt-5.5',
-  'gpt-5.5-pro',
   'gpt-5.4',
   'gpt-5.4-mini',
-  'gpt-5.4-nano',
 ]
 
 export const GENERATION_MODEL_OPTIONS = [

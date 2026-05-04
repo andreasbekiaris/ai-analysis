@@ -21,10 +21,8 @@ export const MODEL_LABELS = {
   'gemini-2.5-pro': 'Gemini 2.5 Pro',
   'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
   'gpt-5.5': 'OpenAI GPT-5.5',
-  'gpt-5.5-pro': 'OpenAI GPT-5.5 Pro',
   'gpt-5.4': 'OpenAI GPT-5.4',
   'gpt-5.4-mini': 'OpenAI GPT-5.4 Mini',
-  'gpt-5.4-nano': 'OpenAI GPT-5.4 Nano',
 }
 
 export const MODEL_ID_ALIASES = {
@@ -47,10 +45,8 @@ export const CLAUDE_MODEL_OPTIONS = [
 
 export const OPENAI_MODEL_OPTIONS = [
   'gpt-5.5',
-  'gpt-5.5-pro',
   'gpt-5.4',
   'gpt-5.4-mini',
-  'gpt-5.4-nano',
 ]
 
 export const GENERATION_MODEL_OPTIONS = [

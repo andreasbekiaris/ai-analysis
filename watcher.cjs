@@ -41,6 +41,7 @@ const CONFIG = {
 
   doneLabel: 'completed',
   processingLabel: 'in-progress',
+  failedLabel: 'bug',
 
   // File to persist the smee channel URL across restarts
   smeeUrlFile: path.join(process.env.HOME || process.env.USERPROFILE, 'Documents', 'projects', 'ai-analysis', '.smee-url'),
@@ -78,10 +79,8 @@ const CLAUDE_MODEL_OPTIONS = new Set([
 
 const OPENAI_MODEL_OPTIONS = new Set([
   'gpt-5.5',
-  'gpt-5.5-pro',
   'gpt-5.4',
   'gpt-5.4-mini',
-  'gpt-5.4-nano',
 ]);
 
 const GENERATION_MODEL_OPTIONS = new Set([
@@ -514,7 +513,7 @@ function updateIssue(issueNumber, status, comment) {
   }
   try {
     execSync(
-      `gh issue comment ${issueNumber} --repo ${CONFIG.owner}/${CONFIG.repo} --body "${comment}"`,
+      `gh issue comment ${issueNumber} --repo ${CONFIG.owner}/${CONFIG.repo} --body ${shellQuote(comment)}`,
       { encoding: 'utf-8', timeout: 15000 }
     );
 
@@ -530,6 +529,11 @@ function updateIssue(issueNumber, status, comment) {
       );
       execSync(
         `gh issue close ${issueNumber} --repo ${CONFIG.owner}/${CONFIG.repo}`,
+        { encoding: 'utf-8', timeout: 15000 }
+      );
+    } else if (status === 'failed') {
+      execSync(
+        `gh issue edit ${issueNumber} --repo ${CONFIG.owner}/${CONFIG.repo} --add-label "${CONFIG.failedLabel}" --remove-label "${CONFIG.processingLabel}"`,
         { encoding: 'utf-8', timeout: 15000 }
       );
     }
@@ -724,20 +728,18 @@ function runAnalysisAgent(prompt, issueNumber, modelId) {
     const agentName = agentNameForModel(model);
     log(`Launching ${agentName} for issue #${issueNumber} with ${model}`);
 
-    const claude = isOpenAIModel(model)
+    const analysisAgent = isOpenAIModel(model)
       ? spawn(
-          `codex --search exec --model ${shellQuote(model)} --dangerously-bypass-approvals-and-sandbox --ask-for-approval never --sandbox danger-full-access --cd ${shellQuote(CONFIG.projectPath)} -`,
+          `codex --search --dangerously-bypass-approvals-and-sandbox exec --model ${shellQuote(model)} --cd ${shellQuote(CONFIG.projectPath)} -`,
           { cwd: CONFIG.projectPath, stdio: ['pipe', 'pipe', 'pipe'], shell: true, timeout: ANALYSIS_AGENT_TIMEOUT_MS }
         )
       : spawn(
-          `claude --model ${model} --dangerously-skip-permissions -p ${shellQuote(fullPrompt)}`,
+          `claude --model ${shellQuote(model)} --dangerously-skip-permissions -p`,
           { cwd: CONFIG.projectPath, stdio: ['pipe', 'pipe', 'pipe'], shell: true, timeout: ANALYSIS_AGENT_TIMEOUT_MS }
         );
 
-    if (isOpenAIModel(model)) {
-      claude.stdin.write(fullPrompt);
-      claude.stdin.end();
-    }
+    analysisAgent.stdin.write(fullPrompt);
+    analysisAgent.stdin.end();
 
     let stdout = '';
     let stderr = '';
@@ -762,17 +764,17 @@ function runAnalysisAgent(prompt, issueNumber, modelId) {
       }
     }, 30000);
 
-    claude.stdout.on('data', (data) => {
+    analysisAgent.stdout.on('data', (data) => {
       const text = data.toString();
       stdout += text;
       process.stdout.write(text);
     });
 
-    claude.stderr.on('data', (data) => {
+    analysisAgent.stderr.on('data', (data) => {
       stderr += data.toString();
     });
 
-    claude.on('close', (code) => {
+    analysisAgent.on('close', (code) => {
       clearInterval(progressInterval);
       if (code === 0) {
         log(`${agentName} finished successfully for issue #${issueNumber}`);
@@ -783,7 +785,7 @@ function runAnalysisAgent(prompt, issueNumber, modelId) {
       }
     });
 
-    claude.on('error', (err) => {
+    analysisAgent.on('error', (err) => {
       clearInterval(progressInterval);
       logError(`Failed to start ${agentName}: ${err.message}`);
       reject(err);
@@ -912,7 +914,7 @@ async function processIssue(issue) {
   } catch (err) {
     updateIssue(
       number,
-      'done',
+      'failed',
       `Analysis failed.\n\nError: ${err.message}\n\nPlease check the desktop logs or try again.`
     );
   } finally {
