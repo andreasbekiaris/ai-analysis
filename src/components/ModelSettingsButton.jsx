@@ -125,10 +125,11 @@ export default function ModelSettingsButton({ analysisEngine = {} }) {
         stockReanalysisModel: normalizedDraft.stockReanalysisModel,
         searchModel: normalizedDraft.searchModel,
       }
-      const res = await fetch(`${MODEL_CONFIG_API_BASE}/api/model-config`, {
+      const res = await fetch(`${MODEL_CONFIG_API_BASE}/api/gemini?modelConfig=1`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'model-config',
           password,
           patch,
           commitMessage: 'chore: update analysis model config',

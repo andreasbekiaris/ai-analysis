@@ -1,4 +1,18 @@
+import { getModelConfigHandler, postModelConfigHandler } from '../server/model-config.js'
+
+function isModelConfigRequest(req) {
+  const url = new URL(req.url || '/', 'https://local.invalid')
+  return url.searchParams.get('modelConfig') === '1' || req.body?.action === 'model-config'
+}
+
 export default async function handler(req, res) {
+  if (isModelConfigRequest(req)) {
+    if (req.method === 'GET') return getModelConfigHandler(req, res)
+    if (req.method === 'POST') return postModelConfigHandler(req, res)
+    if (req.method === 'OPTIONS') return res.status(204).end()
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }

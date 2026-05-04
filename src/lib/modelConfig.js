@@ -87,7 +87,7 @@ export function labelModel(modelId) {
 }
 
 export async function fetchModelConfig() {
-  const res = await fetch(`${MODEL_CONFIG_API_BASE}/api/model-config`)
+  const res = await fetch(`${MODEL_CONFIG_API_BASE}/api/gemini?modelConfig=1`)
   const data = await res.json()
   if (!res.ok) throw new Error(data?.error || `Model config fetch failed (${res.status})`)
   return normalizeModelConfig(data.config)
