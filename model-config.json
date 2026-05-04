@@ -2,7 +2,8 @@
   "version": 1,
   "generationModel": "claude-sonnet-4-20250514",
   "fallbackModel": "claude-3-7-sonnet-20250219",
-  "reanalysisModel": "claude-sonnet-4-20250514",
-  "stockReanalysisModel": "claude-sonnet-4-20250514",
-  "searchModel": "gemini-2.5-flash"
+  "reanalysisModel": "gpt-5.5-pro",
+  "stockReanalysisModel": "gpt-5.5-pro",
+  "searchModel": "gemini-2.5-flash",
+  "updatedAt": "2026-05-04T20:08:22.938Z"
 }
