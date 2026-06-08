@@ -41,6 +41,7 @@ const glossary = {
     { term: '52-wk H/L', full: '52-Week High/Low', definition: 'Highest and lowest traded price over the trailing year. Key psychological support and resistance levels.' },
   ],
   geopolitical: [
+    { term: "DPRK", full: "Democratic People's Republic of Korea", definition: "The official name for North Korea. Its geopolitical status, nuclear program, and economic isolation significantly impact regional stability, international relations, and specific commodity markets (e.g., rare earths, sanctions-related trade)." },
     { term: 'IRGC', full: 'Islamic Revolutionary Guard Corps', definition: 'Elite parallel military branch in Iran. Controls proxy forces (Hezbollah, Houthis, Iraqi PMF), ballistic missile program, and nuclear enrichment oversight.' },
     { term: 'JCPOA', full: 'Joint Comprehensive Plan of Action', definition: '2015 Iran nuclear deal between Iran and P5+1. Limited enrichment in exchange for sanctions relief. US withdrew May 2018; Iran declared terminated Oct 2025.' },
     { term: 'HEU', full: 'Highly Enriched Uranium', definition: 'Uranium enriched to ≥ 20% U-235. Weapons-grade is typically ≥ 90%. Iran held ~400 kg at 60% enrichment as of early 2026.' },
